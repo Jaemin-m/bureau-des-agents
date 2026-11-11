@@ -1,7 +1,6 @@
-// Les robots du bureau : des cubes-robots, comme le logo de VibesMoney (visière noire, yeux orange).
-// Max, le chef, est le robot noir du logo ; l'équipe est blanche, avec la couleur de son métier
-// et un accessoire (le béret du designer, les lunettes de l'analyste…). Tout est dessiné en code,
-// pose par pose, puis gardé en mémoire.
+// 사무실 로봇: VibesMoney 로고 같은 큐브 로봇(검은 바이저, 주황 눈).
+// 팀장 맥스는 로고 속 검은 로봇이고, 팀원은 흰색에 직무 색과 소품을 단다
+// (디자이너의 베레모, 분석가의 안경…). 모두 코드로 자세마다 그린 뒤 메모리에 보관한다.
 import type { Role } from '../../shared/protocol.ts';
 import { ROLES } from '../../shared/activity.ts';
 import { darken, g2d, lighten, makeCanvas, mirror, outline, P, px, rect } from './pixels.ts';
@@ -10,7 +9,7 @@ export type Dir = 'down' | 'up' | 'left' | 'right';
 export type Pose = 'stand' | 'walk' | 'sit' | 'type' | 'read' | 'think' | 'carry' | 'raise' | 'cheer' | 'wave' | 'write';
 export type Eyes = 'open' | 'blink' | 'down' | 'up' | 'left' | 'right' | 'happy';
 
-/** Taille d'un sprite de robot ; les pieds (le bas du contour) sont au point d'ancrage. */
+/** 로봇 스프라이트 크기. 발(윤곽의 아래 끝)이 기준점에 온다. */
 export const ROBOT_W = 20;
 export const ROBOT_H = 24;
 export const ANCHOR_X = 10;
@@ -44,7 +43,7 @@ const EYE = P.orange;
 const EYE_HI = '#ffe2c4';
 const EYE_DIM = '#c8612a';
 
-/** Les yeux, dans la visière (vue de face). ox, oy = décalage du regard. */
+/** 바이저 안의 눈(정면). ox, oy = 시선 이동량. */
 function drawEyes(g: CanvasRenderingContext2D, eyes: Eyes, bob: number) {
   const y0 = 8 + bob;
   if (eyes === 'blink') {
@@ -68,26 +67,26 @@ function drawEyes(g: CanvasRenderingContext2D, eyes: Eyes, bob: number) {
   }
 }
 
-/** La tête (cube) vue de face, de dos ou de profil. */
+/** 앞, 뒤, 옆에서 본 머리(큐브). */
 function drawHead(g: CanvasRenderingContext2D, L: Look, dir: Dir, eyes: Eyes, bob: number) {
   const y = 4 + bob;
-  // dessus du cube (plus clair), puis la face
+  // 큐브 윗면(더 밝게), 그다음 앞면
   rect(g, 4, y, 12, 2, L.top);
   rect(g, 4, y + 2, 12, 8, L.front);
   rect(g, 15, y + 2, 1, 8, L.shade);
   rect(g, 4, y + 9, 12, 1, L.shade);
-  // l'arête lumineuse entre le dessus et la face
+  // 윗면과 앞면 사이의 밝은 모서리
   rect(g, 4, y + 2, 11, 1, lighten(L.front, 0.12));
   if (dir === 'down') {
     rect(g, 6, y + 3, 8, 4, L.visor);
     rect(g, 6, y + 3, 3, 1, L.visorHi);
     drawEyes(g, eyes, bob);
   } else if (dir === 'up') {
-    // l'arrière de la tête : une petite grille d'aération
+    // 뒤통수: 작은 환기 그릴
     rect(g, 8, y + 5, 4, 1, L.shade);
     rect(g, 8, y + 7, 4, 1, L.shade);
   } else {
-    // de profil (vers la droite) : la visière occupe l'avant de la tête, un seul œil
+    // 옆모습(오른쪽): 바이저가 머리 앞쪽을 차지하고 눈은 하나
     rect(g, 10, y + 3, 6, 4, L.visor);
     rect(g, 10, y + 3, 2, 1, L.visorHi);
     const oy = eyes === 'down' ? 1 : eyes === 'up' ? -1 : 0;
@@ -98,18 +97,18 @@ function drawHead(g: CanvasRenderingContext2D, L: Look, dir: Dir, eyes: Eyes, bo
   }
 }
 
-/** L'antenne, avec sa petite boule de couleur. */
+/** 작은 색 구슬이 달린 안테나. */
 function drawAntenna(g: CanvasRenderingContext2D, L: Look, bob: number) {
   rect(g, 9, 3 + bob, 2, 1, L.chef ? '#5b566a' : '#9d98ae');
   rect(g, 9, 1 + bob, 2, 2, L.tip);
   px(g, 9, 1 + bob, lighten(L.tip, 0.5));
 }
 
-/** Les accessoires de métier, par-dessus la tête. */
+/** 머리 위에 얹는 직무 소품. */
 function drawAccessory(g: CanvasRenderingContext2D, L: Look, dir: Dir, bob: number) {
   const y = bob;
   switch (L.role) {
-    case 'design': { // un béret rose, penché
+    case 'design': { // 비스듬히 쓴 분홍 베레모
       const c = ROLES.design.color;
       rect(g, 5, 2 + y, 10, 2, c);
       rect(g, 4, 3 + y, 12, 1, darken(c, 0.15));
@@ -117,14 +116,14 @@ function drawAccessory(g: CanvasRenderingContext2D, L: Look, dir: Dir, bob: numb
       px(g, 11, 0 + y, darken(c, 0.3));
       break;
     }
-    case 'recherche': { // un chapeau d'explorateur (il part à la chasse aux infos)
+    case 'recherche': { // 탐험가 모자(정보 사냥을 떠난다)
       rect(g, 3, 4 + y, 14, 1, '#d6bd86');
       rect(g, 6, 1 + y, 8, 3, '#c7aa70');
       rect(g, 6, 3 + y, 8, 1, '#7c6337');
       rect(g, 7, 1 + y, 6, 1, '#e3cf9e');
       break;
     }
-    case 'code': { // un casque audio
+    case 'code': { // 헤드폰
       const c = ROLES.code.color;
       rect(g, 4, 3 + y, 12, 1, '#2b2836');
       if (dir === 'left' || dir === 'right') {
@@ -138,7 +137,7 @@ function drawAccessory(g: CanvasRenderingContext2D, L: Look, dir: Dir, bob: numb
       }
       break;
     }
-    case 'analyse': { // des lunettes, sur la visière
+    case 'analyse': { // 바이저 위의 안경
       if (dir === 'down') {
         const f = '#f3f1f8';
         for (const x of [6, 10]) {
@@ -154,7 +153,7 @@ function drawAccessory(g: CanvasRenderingContext2D, L: Look, dir: Dir, bob: numb
       }
       break;
     }
-    case 'redaction': { // un crayon sur l'oreille
+    case 'redaction': { // 귀에 꽂은 연필
       if (dir === 'down') {
         px(g, 16, 3 + y, '#ff8fb1');
         rect(g, 16, 4 + y, 1, 5, '#ffd166');
@@ -167,29 +166,29 @@ function drawAccessory(g: CanvasRenderingContext2D, L: Look, dir: Dir, bob: numb
 
 interface Limbs { la: [number, number, number]; ra: [number, number, number]; ll: number; rl: number }
 
-/** Le corps, les bras et les jambes, vus de face ou de dos. */
+/** 앞이나 뒤에서 본 몸통, 팔, 다리. */
 function drawBodyFront(g: CanvasRenderingContext2D, L: Look, dir: Dir, limbs: Limbs, bob: number, seated: boolean) {
   const y = 14 + bob;
-  // jambes (cachées sous le bureau quand il est assis)
+  // 다리(앉으면 책상 밑에 가려진다)
   if (!seated) {
     rect(g, 7, 19, 2, 3 - limbs.ll, L.leg);
     rect(g, 11, 19, 2, 3 - limbs.rl, L.leg);
   }
-  // corps
+  // 몸통
   rect(g, 6, y, 8, 5, L.body);
   rect(g, 6, y, 8, 1, L.bodyHi);
   rect(g, 6, y + 4, 8, 1, L.bodyShade);
   rect(g, 13, y + 1, 1, 3, L.bodyShade);
   if (L.chef && dir === 'down') {
-    // la cravate orange du chef
+    // 팀장의 주황 넥타이
     rect(g, 9, y, 2, 1, P.orangeDark);
     rect(g, 9, y + 1, 2, 2, P.orange);
     px(g, 9, y + 3, P.orange);
   } else if (!L.chef && dir === 'down') {
-    // un petit voyant sur la poitrine
+    // 가슴의 작은 표시등
     px(g, 8, y + 2, lighten(L.body, 0.55));
   }
-  // bras : [x, y, hauteur]
+  // 팔: [x, y, 높이]
   for (const [x, ay, h] of [limbs.la, limbs.ra]) {
     rect(g, x, ay + bob, 2, h, L.arm);
     rect(g, x, ay + bob + h - 1, 2, 1, L.hand);
@@ -199,14 +198,14 @@ function drawBodyFront(g: CanvasRenderingContext2D, L: Look, dir: Dir, limbs: Li
 function drawBodySide(g: CanvasRenderingContext2D, L: Look, frame: number, walking: boolean, bob: number, pose: Pose) {
   const y = 14 + bob;
   const swing = walking ? [0, 1, 0, -1][frame % 4] : 0;
-  // jambes : l'une devant, l'autre derrière
+  // 다리: 하나는 앞, 하나는 뒤
   rect(g, 8 + swing, 19, 2, 3, darken(L.leg, 0.15));
   rect(g, 10 - swing, 19, 2, 3, L.leg);
   rect(g, 7, y, 7, 5, L.body);
   rect(g, 7, y, 7, 1, L.bodyHi);
   rect(g, 7, y + 4, 7, 1, L.bodyShade);
   if (pose === 'carry') {
-    // la feuille tenue devant lui
+    // 앞에 들고 있는 종이
     rect(g, 12, y, 5, 6, P.paper);
     rect(g, 13, y + 2, 3, 1, P.paperLine);
     rect(g, 13, y + 4, 2, 1, P.paperLine);
@@ -261,13 +260,13 @@ function build(role: Role, pose: Pose, dir: Dir, frame: number, eyes: Eyes): HTM
     drawAccessory(g, L, 'right', bob);
   } else {
     const limbs = limbsFor(pose, frame);
-    // les bras levés passent derrière la tête : on les dessine d'abord
+    // 든 팔은 머리 뒤로 가니 먼저 그린다
     drawBodyFront(g, L, dir, limbs, bob, seated);
     if (!hatted) drawAntenna(g, L, bob);
     drawHead(g, L, dir, eyes, bob);
     drawAccessory(g, L, dir, bob);
     if (pose === 'carry' && dir === 'down') {
-      // la feuille, tenue à deux mains devant le ventre
+      // 배 앞에 두 손으로 든 종이
       rect(g, 7, 15 + bob, 6, 6, P.paper);
       rect(g, 8, 17 + bob, 4, 1, P.paperLine);
       rect(g, 8, 19 + bob, 3, 1, P.paperLine);
@@ -276,7 +275,7 @@ function build(role: Role, pose: Pose, dir: Dir, frame: number, eyes: Eyes): HTM
       rect(g, 13, 16 + bob, 2, 2, L.hand);
     }
     if ((pose === 'raise' || pose === 'cheer' || pose === 'wave') && dir === 'down') {
-      // le bras levé redessiné par-dessus la tête quand il la recouvre
+      // 든 팔이 머리를 덮을 때는 머리 위에 다시 그린다
       const [x, ay, h] = limbs.ra;
       if (x <= 15) { rect(g, x, ay + bob, 2, h, L.arm); rect(g, x, ay + bob, 2, 1, L.hand); }
       if (pose === 'cheer') { const [lx, ly, lh] = limbs.la; rect(g, lx, ly + bob, 2, lh, L.arm); rect(g, lx, ly + bob, 2, 1, L.hand); }
@@ -288,7 +287,7 @@ function build(role: Role, pose: Pose, dir: Dir, frame: number, eyes: Eyes): HTM
 
 const cache = new Map<string, HTMLCanvasElement>();
 
-/** Le sprite d'un robot (gardé en mémoire : chaque pose n'est dessinée qu'une fois). */
+/** 로봇 스프라이트(메모리에 보관: 자세마다 한 번만 그린다). */
 export function robotSprite(role: Role, pose: Pose, dir: Dir, frame: number, eyes: Eyes = 'open'): HTMLCanvasElement {
   const key = `${role}|${pose}|${dir}|${frame}|${eyes}`;
   let c = cache.get(key);
@@ -299,7 +298,7 @@ export function robotSprite(role: Role, pose: Pose, dir: Dir, frame: number, eye
   return c;
 }
 
-/** Le visage d'un robot en grand (pour la boîte de dialogue). */
+/** 크게 그린 로봇 얼굴(대화 상자용). */
 export function portrait(role: Role, eyes: Eyes, scale: number): HTMLCanvasElement {
   const src = robotSprite(role, 'stand', 'down', 0, eyes);
   const c = makeCanvas(16 * scale, 16 * scale);

@@ -1,5 +1,5 @@
-// La barre du haut : le nom du bureau, la mission en cours et son chrono, les compteurs (agents,
-// recherches, pages lues, rendus), l'énergie de ton abonnement, et les réglages d'affichage.
+// 상단 바: 사무실 이름, 진행 중인 미션과 경과 시간, 카운터(에이전트,
+// 검색, 읽은 페이지, 결과물), 구독 에너지, 화면 설정.
 import { useEffect, useState } from 'react';
 import { sfx } from '../audio/sfx.ts';
 import { applySound } from '../audio/sound.ts';
@@ -27,7 +27,7 @@ function useTick(on: boolean) {
 
 const TOD_NEXT: Record<Tod, Tod> = { auto: 'day', day: 'evening', evening: 'night', night: 'auto' };
 const TOD_ICON: Record<Tod, string> = { auto: '🕒', day: '☀️', evening: '🌇', night: '🌙' };
-const TOD_LABEL: Record<Tod, string> = { auto: 'Heure de ton Mac', day: 'Jour', evening: 'Soir', night: 'Nuit' };
+const TOD_LABEL: Record<Tod, string> = { auto: 'Mac 시간대로', day: '낮', evening: '저녁', night: '밤' };
 
 export function TopBar() {
   const mission = useOffice((s) => s.mission);
@@ -64,8 +64,8 @@ export function TopBar() {
       <div className="brand">
         <Logo />
         <div>
-          <b>Le Bureau des agents</b>
-          <span>{connection === 'demo' ? 'Démo · VibesMoney' : 'par VibesMoney'}</span>
+          <b>에이전트 사무실</b>
+          <span>{connection === 'demo' ? '데모 · VibesMoney' : 'VibesMoney 제작'}</span>
         </div>
       </div>
 
@@ -76,7 +76,7 @@ export function TopBar() {
             <span className="mission-title" title={mission.prompt}>{mission.title}</span>
             <span className="timer">{fmtClock(elapsed)}</span>
           </>
-        ) : <span className="muted">Aucune mission en cours</span>}
+        ) : <span className="muted">진행 중인 미션 없음</span>}
         {mission && plan.length > 0 && (
           <span className="plan-step" title={current?.text ?? ''}>📋 {done}/{plan.length}{current && busySince ? ` · ${current.text}` : ''}</span>
         )}
@@ -84,37 +84,37 @@ export function TopBar() {
 
       {mission && (
         <div className="stats">
-          <span title="Agents appelés">🤖 {stats.agents}</span>
-          <span title="Recherches sur internet">🔎 {stats.searches}</span>
-          <span title="Pages web lues">🌐 {stats.pages}</span>
-          <span title="Fichiers rendus">📄 {files}</span>
+          <span title="부른 에이전트">🤖 {stats.agents}</span>
+          <span title="인터넷 검색">🔎 {stats.searches}</span>
+          <span title="읽은 웹 페이지">🌐 {stats.pages}</span>
+          <span title="만든 파일">📄 {files}</span>
         </div>
       )}
 
       {replaying && (
         <div className="replay-bar">
-          <span>Rediffusion</span>
+          <span>다시 재생 중</span>
           {[1, 2, 4].map((x) => <button key={x} onClick={() => replaySpeed(x)}>×{x}</button>)}
-          {connection !== 'demo' && <button onClick={() => { sfx('click'); stopReplay(); }}>Quitter</button>}
+          {connection !== 'demo' && <button onClick={() => { sfx('click'); stopReplay(); }}>나가기</button>}
         </div>
       )}
 
       <div className="tools">
         {quota && (
-          <span className="energy" title={`Ton abonnement sur 5 heures : ${Math.round(quota.fiveHour * 100)} % utilisés`}>
-            <span className="energy-label">Énergie</span>
+          <span className="energy" title={`5시간 구독 사용량: ${Math.round(quota.fiveHour * 100)}% 사용`}>
+            <span className="energy-label">에너지</span>
             <span className="energy-bar"><i style={{ width: `${Math.max(3, 100 - quota.fiveHour * 100)}%` }} /></span>
           </span>
         )}
-        <button className="icon-btn" title="Visite guidée : Max présente son bureau (T)" onClick={() => void startTour()}>🎤</button>
-        <button className="icon-btn" title="Toute l’équipe : les métiers, leurs outils, l’historique" onClick={() => { sfx('open'); useOffice.setState({ modal: { kind: 'team' } }); }}>👥</button>
-        <button className={`icon-btn ${musicOn ? 'on' : ''}`} title="Le jukebox (J)" onClick={() => { sfx('open'); useOffice.setState({ modal: { kind: 'jukebox' } }); }}>{musicOn ? '🎶' : '🎵'}</button>
-        <button className="icon-btn" title="Missions précédentes (H)" onClick={() => { sfx('open'); useOffice.setState({ historyOpen: true }); }}>🗂️</button>
-        <button className="icon-btn" title={`L’heure du bureau : ${TOD_LABEL[tod]} (N)`} onClick={() => { sfx('click'); const n = TOD_NEXT[tod]; useOffice.setState({ tod: n }); savePref('tod', n); }}>{TOD_ICON[tod]}</button>
-        <button className="icon-btn" title={sound ? 'Couper le son (M)' : 'Remettre le son (M)'} onClick={() => toggle('sound')}>{sound ? '🔊' : '🔇'}</button>
-        <button className={`icon-btn ${vertical ? 'on' : ''}`} title="Cadre vertical 9:16, pour filmer un reel (V)" onClick={() => toggle('vertical')}>📱</button>
-        <button className={`icon-btn ${filming ? 'on' : ''}`} title="Mode tournage : juste le bureau et Max (F)" onClick={() => toggle('filming')}>🎬</button>
-        <button className="icon-btn" title="Réglages" onClick={() => { sfx('open'); useOffice.setState({ settingsOpen: true }); }}>⚙️</button>
+        <button className="icon-btn" title="사무실 둘러보기: 맥스가 사무실을 소개해요 (T)" onClick={() => void startTour()}>🎤</button>
+        <button className="icon-btn" title="팀 전체: 직무, 도구, 기록" onClick={() => { sfx('open'); useOffice.setState({ modal: { kind: 'team' } }); }}>👥</button>
+        <button className={`icon-btn ${musicOn ? 'on' : ''}`} title="주크박스 (J)" onClick={() => { sfx('open'); useOffice.setState({ modal: { kind: 'jukebox' } }); }}>{musicOn ? '🎶' : '🎵'}</button>
+        <button className="icon-btn" title="지난 미션 (H)" onClick={() => { sfx('open'); useOffice.setState({ historyOpen: true }); }}>🗂️</button>
+        <button className="icon-btn" title={`사무실 시간: ${TOD_LABEL[tod]} (N)`} onClick={() => { sfx('click'); const n = TOD_NEXT[tod]; useOffice.setState({ tod: n }); savePref('tod', n); }}>{TOD_ICON[tod]}</button>
+        <button className="icon-btn" title={sound ? '소리 끄기 (M)' : '소리 켜기 (M)'} onClick={() => toggle('sound')}>{sound ? '🔊' : '🔇'}</button>
+        <button className={`icon-btn ${vertical ? 'on' : ''}`} title="9:16 세로 화면, 릴스 촬영용 (V)" onClick={() => toggle('vertical')}>📱</button>
+        <button className={`icon-btn ${filming ? 'on' : ''}`} title="촬영 모드: 사무실과 맥스만 보여요 (F)" onClick={() => toggle('filming')}>🎬</button>
+        <button className="icon-btn" title="설정" onClick={() => { sfx('open'); useOffice.setState({ settingsOpen: true }); }}>⚙️</button>
       </div>
     </header>
   );

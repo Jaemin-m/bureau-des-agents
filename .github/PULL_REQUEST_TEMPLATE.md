@@ -1,10 +1,10 @@
-## Ce que ça change
+## 무엇이 바뀌나요
 
-<!-- En deux ou trois phrases. Une capture d'écran si c'est visible dans le bureau. -->
+<!-- 두세 문장으로. 사무실에서 눈에 보이는 거라면 스크린샷도 함께. -->
 
-## Vérifié
+## 확인했어요
 
-- [ ] `npm run check` passe
-- [ ] `npm run build` passe
-- [ ] J'ai regardé le résultat dans le navigateur (`npm start`)
-- [ ] Les textes affichés sont en français, au tutoiement, sans chemin complet
+- [ ] `npm run check` 통과
+- [ ] `npm run build` 통과
+- [ ] 브라우저에서 결과를 봤어요 (`npm start`)
+- [ ] 화면 문구는 한국어, 친근한 해요체이고, 전체 경로가 보이지 않아요

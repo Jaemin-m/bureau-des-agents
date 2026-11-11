@@ -1,17 +1,16 @@
-// Le jukebox du bureau : six morceaux originaux (house progressive et techno mélodique), composés pour
-// le bureau avec ElevenLabs Music et Google Lyria. On écoute aussi le rythme (les basses) pour faire
-// pulser les lumières et danser les robots.
+// 사무실 주크박스: 사무실을 위해 ElevenLabs Music과 Google Lyria로 만든 오리지널 곡 여섯 개
+// (프로그레시브 하우스, 멜로딕 테크노). 리듬(저음)도 들어서 조명을 깜빡이고 로봇을 춤추게 한다.
 import { useOffice } from '../state/store.ts';
 
 export interface Track { id: string; title: string; mood: string; by: string; file: string }
 
 export const TRACKS: Track[] = [
-  { id: 'coucher-de-soleil', title: 'Coucher de soleil', mood: 'House progressive mélodique', by: 'ElevenLabs', file: '/music/coucher-de-soleil.mp3' },
-  { id: 'nuit-au-bureau', title: 'Nuit au bureau', mood: 'Techno mélodique', by: 'ElevenLabs', file: '/music/nuit-au-bureau.mp3' },
-  { id: 'afterwork', title: 'Afterwork', mood: 'House progressive solaire', by: 'ElevenLabs', file: '/music/afterwork.mp3' },
-  { id: 'golden-hour', title: 'Golden hour', mood: 'House progressive', by: 'Lyria', file: '/music/golden-hour.mp3' },
-  { id: 'minuit-pile', title: 'Minuit pile', mood: 'Techno mélodique', by: 'Lyria', file: '/music/minuit-pile.mp3' },
-  { id: 'vendredi-18h', title: 'Vendredi 18 h', mood: 'House solaire', by: 'Lyria', file: '/music/vendredi-18h.mp3' },
+  { id: 'coucher-de-soleil', title: '노을', mood: '멜로딕 프로그레시브 하우스', by: 'ElevenLabs', file: '/music/coucher-de-soleil.mp3' },
+  { id: 'nuit-au-bureau', title: '사무실의 밤', mood: '멜로딕 테크노', by: 'ElevenLabs', file: '/music/nuit-au-bureau.mp3' },
+  { id: 'afterwork', title: '퇴근 후', mood: '햇살 같은 프로그레시브 하우스', by: 'ElevenLabs', file: '/music/afterwork.mp3' },
+  { id: 'golden-hour', title: '골든 아워', mood: '프로그레시브 하우스', by: 'Lyria', file: '/music/golden-hour.mp3' },
+  { id: 'minuit-pile', title: '자정 정각', mood: '멜로딕 테크노', by: 'Lyria', file: '/music/minuit-pile.mp3' },
+  { id: 'vendredi-18h', title: '금요일 오후 6시', mood: '햇살 같은 하우스', by: 'Lyria', file: '/music/vendredi-18h.mp3' },
 ];
 
 class Jukebox {
@@ -25,9 +24,9 @@ class Jukebox {
   index = 0;
   playing = false;
   volume = 0.55;
-  /** l'énergie des basses, lissée (0 à 1) */
+  /** 부드럽게 다듬은 저음 세기(0~1) */
   level = 0;
-  /** un coup de grosse caisse vient de tomber */
+  /** 방금 킥 드럼이 울렸다 */
   beat = false;
   private lastPeak = 0;
   private avg = 0;
@@ -52,7 +51,7 @@ class Jukebox {
       this.analyser = analyser;
       this.gain = gain;
       this.bins = new Uint8Array(analyser.frequencyBinCount);
-    } catch { /* sans analyse, la musique joue quand même */ }
+    } catch { /* 분석이 안 돼도 음악은 나온다 */ }
     this.applyVolume();
   }
 
@@ -96,11 +95,11 @@ class Jukebox {
     this.publish();
   }
 
-  /** La voix de Max passe devant la musique. */
+  /** 맥스가 말할 때는 음악 소리를 줄인다. */
   duck(on: boolean) { this.ducked = on; this.applyVolume(); }
   setMuted(m: boolean) { this.muted = m; this.applyVolume(); }
 
-  /** À chaque image : l'énergie des basses (pour les lumières et la danse). */
+  /** 매 프레임: 저음 세기(조명과 춤에 쓴다). */
   sample() {
     this.beat = false;
     if (!this.playing || !this.analyser || !this.bins) { this.level *= 0.9; return this.level; }

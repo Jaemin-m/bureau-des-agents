@@ -1,5 +1,5 @@
-// Les bruitages, façon console 8 bits, fabriqués en direct par ZzFX (une toute petite librairie de
-// synthèse sonore) : aucun fichier audio. Discrets, et coupables d'un clic (le bouton du son).
+// 8비트 게임기 느낌의 효과음. ZzFX(아주 작은 사운드 합성 라이브러리)로 그 자리에서 만들어서
+// 오디오 파일이 없다. 은은하고, 클릭 한 번(소리 버튼)으로 끌 수 있다.
 import { ZZFX, zzfx } from 'zzfx';
 
 type Name = 'blip' | 'spawn' | 'tick' | 'search' | 'paper' | 'print' | 'plan' | 'check' | 'ask' | 'yes' | 'no' | 'send' | 'done' | 'error' | 'click' | 'open' | 'meow' | 'pour' | 'glug';
@@ -9,7 +9,7 @@ export function setMuted(m: boolean) { muted = m; }
 
 ZZFX.volume = 0.32;
 
-// Le navigateur n'autorise le son qu'après un premier geste : on réveille l'audio au premier clic.
+// 브라우저는 첫 조작 뒤에야 소리를 허락한다: 첫 클릭 때 오디오를 깨운다.
 if (typeof window !== 'undefined') {
   const wake = () => { void ZZFX.audioContext?.resume?.(); };
   window.addEventListener('pointerdown', wake, { once: true });
@@ -44,5 +44,5 @@ export function sfx(name: Name, pitch = 1) {
       case 'pour': zzfx(0.1, 0.3, 300, 0.05, 0.5, 0.25, 4, 1, 0, 0, 0, 0, 0, 0.7); break;
       case 'glug': zzfx(0.16, 0.1, 190, 0.01, 0.04, 0.08, 0, 1, 12, 0, 0, 0, 0.09); break;
     }
-  } catch { /* pas d'audio sur cet appareil */ }
+  } catch { /* 이 기기에는 오디오가 없다 */ }
 }

@@ -1,7 +1,7 @@
-// La caméra du bureau : un plan large (tout le monde au travail), ou un gros plan qui suit l'action.
-// En mode tournage, un « réalisateur » choisit les plans tout seul, comme à la télé : le nouvel
-// arrivant qui passe la porte, la chercheuse qui lit un site, le rapport posé sur le bureau du chef…
-// et régulièrement un plan large, pour voir toute l'équipe travailler en même temps.
+// 사무실 카메라: 와이드 숏(모두가 일하는 모습) 또는 행동을 따라가는 클로즈업.
+// 촬영 모드에서는 “감독”이 TV처럼 알아서 장면을 고른다: 문으로 들어오는 새 팀원,
+// 사이트를 읽는 리서처, 팀장 책상에 놓이는 보고서…
+// 그리고 주기적으로 와이드 숏을 넣어 팀 전체가 동시에 일하는 모습을 보여 준다.
 import type { OfficeEvent } from '../../shared/protocol.ts';
 import { BOARD, H, SPOTS, T, W } from './layout.ts';
 import type { World } from './world.ts';
@@ -13,7 +13,7 @@ export class Camera {
   tx = W / 2;
   ty = H / 2;
   tzoom = 1;
-  /** jusqu'à quand garder le plan en cours (secondes, horloge du navigateur) */
+  /** 지금 장면을 언제까지 유지할지(초, 브라우저 시계) */
   holdUntil = 0;
 
   shot(x: number, y: number, zoom: number, hold: number) {
@@ -25,7 +25,7 @@ export class Camera {
 
   wide(hold = 0) { this.shot(W / 2, H / 2, 1, hold); }
 
-  /** Avance la caméra vers son plan. Renvoie vrai tant qu'elle bouge. */
+  /** 카메라를 목표 장면 쪽으로 움직인다. 움직이는 동안 true를 돌려준다. */
   update(dt: number) {
     const k = 1 - Math.exp(-dt * 2.6);
     this.x += (this.tx - this.x) * k;
@@ -34,7 +34,7 @@ export class Camera {
     return Math.abs(this.tzoom - this.zoom) > 0.002 || Math.abs(this.tx - this.x) > 0.3 || Math.abs(this.ty - this.y) > 0.3;
   }
 
-  /** La transformation CSS de la scène (taille d'affichage : W*scale × H*scale). */
+  /** 장면의 CSS transform(표시 크기: W*scale × H*scale). */
   css(scale: number) {
     const vw = W * scale, vh = H * scale;
     const z = this.zoom;
@@ -45,7 +45,7 @@ export class Camera {
   }
 }
 
-/** Le réalisateur : il choisit les plans d'après ce qui se passe vraiment dans la mission. */
+/** 감독: 미션에서 실제로 일어나는 일을 보고 장면을 고른다. */
 export class Director {
   enabled = false;
   private cam: Camera;
@@ -101,7 +101,7 @@ export class Director {
     }
   }
 
-  /** Régulièrement, un plan large : toute l'équipe au travail en même temps. */
+  /** 주기적인 와이드 숏: 팀 전체가 동시에 일하는 모습. */
   tick() {
     if (!this.enabled || !this.free()) return;
     const t = this.now();

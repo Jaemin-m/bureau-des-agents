@@ -1,28 +1,28 @@
-// Les métiers du bureau, et la traduction en français de ce que fait vraiment chaque agent :
-// chaque outil de Claude Code devient une action (une icône, une animation, une bulle).
+// 사무실의 직무, 그리고 각 에이전트가 실제로 하는 일을 한국어로 옮긴 것.
+// Claude Code의 도구 하나하나가 행동(아이콘, 애니메이션, 말풍선)이 된다.
 import type { ActKind, MissionStats, OfficeEvent, Role } from './protocol.ts';
 
 export interface RoleInfo {
-  /** le nom du métier, tel qu'il s'affiche dans le bureau */
+  /** 사무실에 표시되는 직무 이름 */
   label: string;
   icon: string;
   color: string;
-  /** l'agent Claude Code (subagent_type) qui fait ce métier */
+  /** 이 직무를 맡는 Claude Code 에이전트(subagent_type) */
   type: string;
   what: string;
 }
 
 export const ROLES: Record<Role, RoleInfo> = {
-  chef: { label: 'Chef de projet', icon: '⭐', color: '#FF8A3D', type: '', what: 'Il reçoit ta demande, fait le plan, répartit le travail et assemble le rendu.' },
-  recherche: { label: 'Recherche', icon: '🔎', color: '#4FB3FF', type: 'chercheur', what: 'Cherche sur internet : concurrents, prix, avis, actualités, sources.' },
-  code: { label: 'Code', icon: '💻', color: '#3DDC97', type: 'developpeur', what: 'Code, sites, scripts, automatisations : ce qui se lance et se teste.' },
-  design: { label: 'Design', icon: '🎨', color: '#FF6FA8', type: 'designer', what: 'Pages web soignées, maquettes, visuels, mise en forme.' },
-  redaction: { label: 'Rédaction', icon: '✍️', color: '#A98BFF', type: 'redacteur', what: 'Posts, e-mails, articles, scripts vidéo, rapports.' },
-  analyse: { label: 'Analyse', icon: '📊', color: '#FFC93D', type: 'analyste', what: 'Chiffres, tableaux, fichiers, comparatifs, calculs.' },
-  renfort: { label: 'Renfort', icon: '🤖', color: '#9AA3B5', type: '', what: 'Un coup de main sur une tâche à part.' },
+  chef: { label: '팀장', icon: '⭐', color: '#FF8A3D', type: '', what: '요청을 받아 계획을 세우고, 일을 나누고, 결과물을 하나로 모아요.' },
+  recherche: { label: '리서치', icon: '🔎', color: '#4FB3FF', type: 'chercheur', what: '인터넷에서 찾아요. 경쟁사, 가격, 리뷰, 뉴스, 출처.' },
+  code: { label: '코드', icon: '💻', color: '#3DDC97', type: 'developpeur', what: '코드, 웹사이트, 스크립트, 자동화. 실행하고 테스트하는 모든 것.' },
+  design: { label: '디자인', icon: '🎨', color: '#FF6FA8', type: 'designer', what: '완성도 높은 웹 페이지, 시안, 비주얼, 꾸미기.' },
+  redaction: { label: '글쓰기', icon: '✍️', color: '#A98BFF', type: 'redacteur', what: 'SNS 글, 이메일, 기사, 영상 대본, 보고서.' },
+  analyse: { label: '분석', icon: '📊', color: '#FFC93D', type: 'analyste', what: '숫자, 표, 파일, 비교, 계산.' },
+  renfort: { label: '지원', icon: '🤖', color: '#9AA3B5', type: '', what: '따로 떨어진 일을 거들어요.' },
 };
 
-/** Les outils Claude Code de chaque métier (le chef a tous ceux de la séance). */
+/** 직무별 Claude Code 도구(팀장은 세션의 도구를 모두 가진다). */
 export const ROLE_TOOLS: Record<Role, string[]> = {
   chef: ['Agent', 'TodoWrite', 'Read', 'Write', 'Edit', 'Glob', 'Grep', 'WebSearch', 'WebFetch', 'Bash'],
   recherche: ['WebSearch', 'WebFetch', 'Read', 'Glob', 'Grep'],
@@ -33,28 +33,28 @@ export const ROLE_TOOLS: Record<Role, string[]> = {
   renfort: [],
 };
 
-/** Ce que veut dire chaque outil, en français (pour la fiche des métiers). */
+/** 각 도구가 하는 일, 한국어로(직무 카드에 쓴다). */
 export const TOOL_INFO: Record<string, string> = {
-  Agent: 'appelle un membre de l’équipe', TodoWrite: 'écrit et coche le plan', Read: 'lit un fichier', Write: 'crée un fichier',
-  Edit: 'retouche un fichier', Glob: 'cherche des fichiers', Grep: 'cherche dans les fichiers', WebSearch: 'cherche sur internet',
-  WebFetch: 'lit une page web', Bash: 'lance une commande',
+  Agent: '팀원 부르기', TodoWrite: '계획 쓰고 체크하기', Read: '파일 읽기', Write: '파일 만들기',
+  Edit: '파일 고치기', Glob: '파일 찾기', Grep: '파일 안에서 찾기', WebSearch: '인터넷 검색',
+  WebFetch: '웹 페이지 읽기', Bash: '명령 실행',
 };
 
-/** Le métier d'un agent, d'après le type d'agent que le chef a appelé. */
+/** 팀장이 부른 에이전트 타입으로 알아낸 에이전트의 직무. */
 export function roleOfType(type: string): Role {
   for (const [role, info] of Object.entries(ROLES) as [Role, RoleInfo][]) if (info.type && info.type === type) return role;
   return 'renfort';
 }
 
-/** Les prénoms des robots, par métier (jamais deux fois le même dans une mission). */
+/** 직무별 로봇 이름(한 미션 안에서 같은 이름은 두 번 쓰지 않는다). */
 export const NAMES: Record<Role, string[]> = {
-  chef: ['Max'],
-  recherche: ['Iris', 'Hugo', 'Léa', 'Malo', 'Zoé', 'Noé', 'Inès', 'Tom', 'Jade', 'Sacha', 'Lou', 'Nils'],
-  code: ['Ada', 'Linus', 'Grace', 'Alan', 'Margaret', 'Dennis'],
-  design: ['Frida', 'Coco', 'Henri', 'Sonia', 'Saul'],
-  redaction: ['Colette', 'Victor', 'Simone', 'Jules', 'George'],
-  analyse: ['Marie', 'Blaise', 'Émilie', 'Gaspard', 'Ada'],
-  renfort: ['Bob', 'Lulu', 'Gaston', 'Nina', 'Momo', 'Kiki'],
+  chef: ['맥스'],
+  recherche: ['아이리스', '위고', '레아', '말로', '조에', '노에', '이네스', '톰', '자드', '사샤', '루', '닐스'],
+  code: ['에이다', '리누스', '그레이스', '앨런', '마거릿', '데니스'],
+  design: ['프리다', '코코', '앙리', '소니아', '솔'],
+  redaction: ['콜레트', '빅토르', '시몬', '쥘', '조지'],
+  analyse: ['마리', '블레즈', '에밀리', '가스파르', '에이다'],
+  renfort: ['밥', '룰루', '가스통', '니나', '모모', '키키'],
 };
 
 const base = (p: unknown) => (typeof p === 'string' ? p.split(/[\\/]/).filter(Boolean).pop() ?? p : '');
@@ -67,11 +67,11 @@ export const host = (u: unknown) => {
 };
 
 const MCP_NAMES: Record<string, string> = {
-  gmail: 'Gmail', google_drive: 'Google Drive', notion: 'Notion', google_calendar: 'Google Agenda', calendar: 'Google Agenda',
+  gmail: 'Gmail', google_drive: 'Google Drive', notion: 'Notion', google_calendar: 'Google 캘린더', calendar: 'Google 캘린더',
   slack: 'Slack', github: 'GitHub', stripe: 'Stripe', hubspot: 'HubSpot', airtable: 'Airtable',
 };
 
-/** Le nom lisible d'un connecteur MCP : mcp__claude_ai_Gmail__search_threads → Gmail */
+/** MCP 커넥터의 읽기 쉬운 이름: mcp__claude_ai_Gmail__search_threads → Gmail */
 export function mcpName(tool: string): { server: string; action: string } {
   const parts = tool.split('__');
   const raw = (parts[1] ?? '').replace(/^claude_ai_/, '').replace(/^plugin_[^_]+_/, '');
@@ -79,38 +79,38 @@ export function mcpName(tool: string): { server: string; action: string } {
   return { server, action: (parts[2] ?? '').replace(/[_-]+/g, ' ') };
 }
 
-/** L'action, sa phrase (courte, pour la bulle) et le détail complet (pour le panneau). */
+/** 행동, 그 문구(말풍선용, 짧게), 전체 내용(패널용). */
 export function describeAct(tool: string, input: Record<string, unknown> | undefined): { kind: ActKind; label: string; detail: string } {
   const i = input ?? {};
   switch (tool) {
-    case 'WebSearch': return { kind: 'search', label: `Je cherche « ${cut(i.query, 44)} »`, detail: String(i.query ?? '') };
-    case 'WebFetch': return { kind: 'web', label: `Je lis ${host(i.url)}`, detail: String(i.url ?? '') };
-    case 'Read': return { kind: 'read', label: `Je lis ${cut(base(i.file_path), 36)}`, detail: String(i.file_path ?? '') };
-    case 'Glob': return { kind: 'read', label: 'Je fouille le dossier', detail: String(i.pattern ?? '') };
-    case 'Grep': return { kind: 'read', label: `Je cherche « ${cut(i.pattern, 30)} »`, detail: `${i.pattern ?? ''}${i.path ? ' dans ' + i.path : ''}` };
-    case 'LS': return { kind: 'read', label: 'Je regarde le dossier', detail: String(i.path ?? '') };
-    case 'Write': return { kind: 'write', label: `J’écris ${cut(base(i.file_path), 36)}`, detail: String(i.file_path ?? '') };
+    case 'WebSearch': return { kind: 'search', label: `“${cut(i.query, 44)}” 검색 중`, detail: String(i.query ?? '') };
+    case 'WebFetch': return { kind: 'web', label: `${host(i.url)} 읽는 중`, detail: String(i.url ?? '') };
+    case 'Read': return { kind: 'read', label: `${cut(base(i.file_path), 36)} 읽는 중`, detail: String(i.file_path ?? '') };
+    case 'Glob': return { kind: 'read', label: '폴더 뒤지는 중', detail: String(i.pattern ?? '') };
+    case 'Grep': return { kind: 'read', label: `“${cut(i.pattern, 30)}” 찾는 중`, detail: `${i.pattern ?? ''}${i.path ? ' (위치: ' + i.path + ')' : ''}` };
+    case 'LS': return { kind: 'read', label: '폴더 살펴보는 중', detail: String(i.path ?? '') };
+    case 'Write': return { kind: 'write', label: `${cut(base(i.file_path), 36)} 작성 중`, detail: String(i.file_path ?? '') };
     case 'Edit':
-    case 'MultiEdit': return { kind: 'edit', label: `Je retouche ${cut(base(i.file_path), 34)}`, detail: String(i.file_path ?? '') };
-    case 'NotebookEdit': return { kind: 'edit', label: `Je retouche ${cut(base(i.notebook_path), 34)}`, detail: String(i.notebook_path ?? '') };
+    case 'MultiEdit': return { kind: 'edit', label: `${cut(base(i.file_path), 34)} 수정 중`, detail: String(i.file_path ?? '') };
+    case 'NotebookEdit': return { kind: 'edit', label: `${cut(base(i.notebook_path), 34)} 수정 중`, detail: String(i.notebook_path ?? '') };
     case 'Bash': {
       const c = String(i.command ?? '').replace(/\s+/g, ' ').trim();
-      return { kind: 'bash', label: `Je lance ${c.length <= 34 ? `« ${c} »` : cut(i.description || c, 40)}`, detail: String(i.command ?? '') };
+      return { kind: 'bash', label: `${c.length <= 34 ? `“${c}”` : cut(i.description || c, 40)} 실행 중`, detail: String(i.command ?? '') };
     }
-    case 'TodoWrite': return { kind: 'plan', label: 'Je mets le plan à jour', detail: '' };
-    case 'Skill': return { kind: 'skill', label: `J’applique la méthode ${cut(i.skill ?? i.name, 24)}`, detail: String(i.args ?? '') };
-    case 'ToolSearch': return { kind: 'other', label: 'Je cherche le bon outil', detail: String(i.query ?? '') };
+    case 'TodoWrite': return { kind: 'plan', label: '계획 업데이트 중', detail: '' };
+    case 'Skill': return { kind: 'skill', label: `${cut(i.skill ?? i.name, 24)} 스킬 쓰는 중`, detail: String(i.args ?? '') };
+    case 'ToolSearch': return { kind: 'other', label: '알맞은 도구 찾는 중', detail: String(i.query ?? '') };
   }
   if (tool.startsWith('mcp__')) {
     const { server, action } = mcpName(tool);
-    return { kind: 'mcp', label: `Je passe par ${server}`, detail: action };
+    return { kind: 'mcp', label: `${server} 쓰는 중`, detail: action };
   }
-  return { kind: 'other', label: `J’utilise ${tool}`, detail: '' };
+  return { kind: 'other', label: `${tool} 쓰는 중`, detail: '' };
 }
 
 export const emptyStats = (): MissionStats => ({ agents: 0, searches: 0, pages: 0, reads: 0, writes: 0, commands: 0 });
 
-/** Les compteurs de la mission (recherches, pages lues…), mis à jour événement par événement. */
+/** 미션 카운터(검색 수, 읽은 페이지 수…). 이벤트마다 갱신한다. */
 export function countStats(s: MissionStats, ev: OfficeEvent) {
   if (ev.k === 'hire') s.agents++;
   if (ev.k !== 'act') return;
@@ -121,14 +121,14 @@ export function countStats(s: MissionStats, ev: OfficeEvent) {
   else if (ev.kind === 'bash') s.commands++;
 }
 
-/** Remplace le chemin du dossier de la mission par « . » partout où il apparaît en entier. */
+/** 미션 폴더의 전체 경로가 나오는 곳을 모두 “.”로 바꾼다. */
 export function relToFolder(text: string, folder: string): string {
   if (!folder) return text;
   const esc = folder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   return text.replace(new RegExp(esc + '(?=$|[/"\'\\s])', 'g'), '.').replace(/(^|[\s"'])\.\//g, '$1');
 }
 
-/** La commande telle qu'elle sera lancée, juste rendue lisible (le dossier de la mission devient « . »). Rien n'est caché. */
+/** 실행될 명령을 그대로, 읽기 쉽게만 바꾼 것(미션 폴더는 “.”가 된다). 숨기는 것은 없다. */
 export function readableCommand(cmd: unknown, folder: string): string {
   return relToFolder(String(cmd ?? ''), folder).trim().replace(/^cd\s+(?:"\."|'\.'|\.)\s*&&\s*/, '');
 }
@@ -136,28 +136,28 @@ export function readableCommand(cmd: unknown, folder: string): string {
 const FULL_MAX = 72;
 
 /**
- * La demande de permission : la phrase de la bulle, le détail complet, et `full`
- * (vrai seulement si la bulle montre toute l'action : on peut alors répondre directement dans la bulle).
+ * 허락 요청: 말풍선 문구, 전체 내용, 그리고 `full`
+ * (말풍선이 행동 전체를 보여 줄 때만 참이다. 그때는 말풍선에서 바로 답할 수 있다).
  */
 export function permissionText(tool: string, input: Record<string, unknown> | undefined, folder: string): { label: string; detail: string; full: boolean } {
   const i = input ?? {};
   if (tool === 'Bash') {
     const c = readableCommand(i.command, folder);
     const full = c.length > 0 && c.length <= FULL_MAX && !c.includes('\n');
-    return { label: `Je peux lancer « ${full ? c : cut(c, 48)} » ?`, detail: c, full };
+    return { label: `“${full ? c : cut(c, 48)}” 실행해도 될까요?`, detail: c, full };
   }
   if (tool === 'Write' || tool === 'Edit' || tool === 'MultiEdit' || tool === 'NotebookEdit') {
     const raw = String(i.file_path ?? i.notebook_path ?? '');
     const rel = relToFolder(raw, folder);
     const inside = !!folder && raw.startsWith(folder + '/') && !rel.includes('..');
-    return { label: `Je peux ${tool === 'Write' ? 'écrire' : 'modifier'} ${inside ? rel : raw} ?`, detail: raw, full: inside && rel.length <= FULL_MAX };
+    return { label: `${inside ? rel : raw} ${tool === 'Write' ? '작성해도' : '수정해도'} 될까요?`, detail: raw, full: inside && rel.length <= FULL_MAX };
   }
-  if (tool === 'WebFetch') return { label: `Je peux lire ${host(i.url)} ?`, detail: String(i.url ?? ''), full: false };
+  if (tool === 'WebFetch') return { label: `${host(i.url)} 읽어도 될까요?`, detail: String(i.url ?? ''), full: false };
   const detail = relToFolder(JSON.stringify(i, null, 2), folder);
   const clipped = detail.length > 1500 ? detail.slice(0, 1499) + '…' : detail;
   if (tool.startsWith('mcp__')) {
     const { server, action } = mcpName(tool);
-    return { label: `Je peux passer par ${server} (${action}) ?`, detail: clipped, full: false };
+    return { label: `${server}(${action}) 써도 될까요?`, detail: clipped, full: false };
   }
-  return { label: `Je peux utiliser ${tool} ?`, detail: clipped, full: false };
+  return { label: `${tool} 써도 될까요?`, detail: clipped, full: false };
 }

@@ -1,5 +1,5 @@
-// Les fenêtres par-dessus le bureau : la carte du rendu final, la lecture d'un fichier,
-// les missions précédentes, les réglages, et les petites notifications.
+// 사무실 위에 뜨는 창들: 최종 결과 카드, 파일 보기, 지난 미션,
+// 설정, 그리고 작은 알림.
 import { useMemo } from 'react';
 import { sfx } from '../audio/sfx.ts';
 import { savePref, useOffice } from '../state/store.ts';
@@ -9,7 +9,7 @@ import { fmtDate, fmtDuration, plural, tilde } from './format.ts';
 import { mdToHtml } from './md.ts';
 import { tidy } from './tidy.ts';
 
-/** La mission est rendue : Max te présente le travail de l'équipe. */
+/** 미션 완료: 맥스가 팀이 한 일을 보여 준다. */
 export function FinalCard() {
   const show = useOffice((s) => s.showFinal);
   const final = useOffice((s) => s.final);
@@ -23,35 +23,35 @@ export function FinalCard() {
   if (!show || !final || !mission) return null;
   const close = () => useOffice.setState({ showFinal: false });
   return (
-    <div className="final" role="dialog" aria-label="Le rendu de la mission">
-      <button className="close" onClick={close} aria-label="Fermer">×</button>
+    <div className="final" role="dialog" aria-label="미션 결과">
+      <button className="close" onClick={close} aria-label="닫기">×</button>
       <div className="final-head">
         <span className="final-badge"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
         <div>
-          <b>Mission accomplie</b>
+          <b>미션 완료</b>
           <span>{mission.title} · {fmtDuration(workMs)}</span>
         </div>
       </div>
       <div className="final-stats">
-        <span>🤖 {plural(stats.agents, 'agent', 'agents')}</span>
-        <span>🔎 {plural(stats.searches, 'recherche', 'recherches')}</span>
-        <span>🌐 {plural(stats.pages, 'page lue', 'pages lues')}</span>
-        <span>📄 {plural(files, 'rendu', 'rendus')}</span>
+        <span>🤖 에이전트 {plural(stats.agents, '명')}</span>
+        <span>🔎 검색 {plural(stats.searches, '번')}</span>
+        <span>🌐 읽은 페이지 {plural(stats.pages, '개')}</span>
+        <span>📄 결과물 {plural(files, '개')}</span>
       </div>
       {html && <div className="md final-text" dangerouslySetInnerHTML={{ __html: html }} />}
       {files > 0 && <FileList />}
       {!replaying && (
         <div className="final-actions">
-          <button className="btn" onClick={() => send({ t: 'open', missionId: mission.id })}>Ouvrir le dossier</button>
-          <button className="btn" onClick={() => { close(); useOffice.setState({ draft: ' ' }); }}>Demander une retouche</button>
-          <button className="btn primary" onClick={() => { sfx('click'); close(); send({ t: 'new' }); }}>Nouvelle mission</button>
+          <button className="btn" onClick={() => send({ t: 'open', missionId: mission.id })}>폴더 열기</button>
+          <button className="btn" onClick={() => { close(); useOffice.setState({ draft: ' ' }); }}>수정 요청</button>
+          <button className="btn primary" onClick={() => { sfx('click'); close(); send({ t: 'new' }); }}>새 미션</button>
         </div>
       )}
     </div>
   );
 }
 
-/** Lire un rendu (rapport, tableau…) sans quitter le bureau. */
+/** 사무실을 떠나지 않고 결과물(보고서, 표…)을 읽는다. */
 export function Viewer() {
   const viewer = useOffice((s) => s.viewer);
   const send = useOffice((s) => s.send);
@@ -81,7 +81,7 @@ export function Viewer() {
             {versions && versions.length > 1 && (
               <select
                 className="versions"
-                title="L’historique des versions de ce fichier"
+                title="이 파일의 버전 기록"
                 value={viewer.version ?? ''}
                 onChange={(e) => {
                   const v = e.target.value || undefined;
@@ -89,30 +89,30 @@ export function Viewer() {
                   send({ t: 'read', missionId: viewer.missionId, file: viewer.file, version: v });
                 }}
               >
-                <option value="">Version actuelle</option>
+                <option value="">현재 버전</option>
                 {versions.slice(1).map((v, i) => (
                   <option key={v.id} value={v.id}>
-                    v{versions.length - 1 - i} · {new Date(v.at).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit' })} · {v.by === 'chef' ? 'Max' : agents[v.by]?.name ?? 'l’équipe'}
+                    v{versions.length - 1 - i} · {new Date(v.at).toLocaleString('ko-KR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit' })} · {v.by === 'chef' ? '맥스' : agents[v.by]?.name ?? '팀'}
                   </option>
                 ))}
               </select>
             )}
-            <button className="btn small" onClick={() => send({ t: 'open', missionId: viewer.missionId, file: viewer.file })}>Ouvrir avec l’appli</button>
-            <button className="close" onClick={close} aria-label="Fermer">×</button>
+            <button className="btn small" onClick={() => send({ t: 'open', missionId: viewer.missionId, file: viewer.file })}>앱으로 열기</button>
+            <button className="close" onClick={close} aria-label="닫기">×</button>
           </div>
         </div>
         <div className="modal-body">
-          {viewer.text === undefined ? <p className="muted">Ouverture…</p>
+          {viewer.text === undefined ? <p className="muted">여는 중…</p>
             : html ? <div className="md" dangerouslySetInnerHTML={{ __html: html }} />
               : <pre className="plain">{viewer.text}</pre>}
-          {viewer.truncated && <p className="small muted">(Fichier long : seul le début est affiché.)</p>}
+          {viewer.truncated && <p className="small muted">(긴 파일이라 앞부분만 보여요.)</p>}
         </div>
       </div>
     </div>
   );
 }
 
-/** Les missions précédentes : on peut les rejouer (pour filmer) ou ouvrir leur dossier. */
+/** 지난 미션: 다시 재생하거나(촬영용) 폴더를 열 수 있다. */
 export function History() {
   const open = useOffice((s) => s.historyOpen);
   const missions = useOffice((s) => s.missions);
@@ -123,22 +123,22 @@ export function History() {
   return (
     <div className="modal-back" onClick={close}>
       <div className="modal history" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head"><b>Missions précédentes</b><button className="close" onClick={close} aria-label="Fermer">×</button></div>
+        <div className="modal-head"><b>지난 미션</b><button className="close" onClick={close} aria-label="닫기">×</button></div>
         <div className="modal-body">
-          {connection !== 'live' && <p className="muted">Relie le bureau à Claude Code (npm start) pour retrouver tes missions.</p>}
-          {connection === 'live' && !missions.length && <p className="muted">Aucune mission pour l’instant. La première t’attend en bas de l’écran.</p>}
+          {connection !== 'live' && <p className="muted">지난 미션을 보려면 사무실을 Claude Code에 연결하세요(npm start).</p>}
+          {connection === 'live' && !missions.length && <p className="muted">아직 미션이 없어요. 첫 미션은 화면 아래에서 시작할 수 있어요.</p>}
           {missions.map((m) => (
             <div key={m.id} className="hist">
               <div className="hist-id">
                 <b>{m.title}</b>
                 <span className="small muted">
-                  {fmtDate(m.createdAt)} · {fmtDuration(m.workMs)} · {plural(m.stats.agents, 'agent', 'agents')} · {plural(m.files.length, 'rendu', 'rendus')}
-                  {m.status === 'working' ? ' · en cours' : m.status === 'done' ? '' : m.status === 'stopped' ? ' · arrêtée' : ' · en erreur'}
+                  {fmtDate(m.createdAt)} · {fmtDuration(m.workMs)} · 에이전트 {plural(m.stats.agents, '명')} · 결과물 {plural(m.files.length, '개')}
+                  {m.status === 'working' ? ' · 진행 중' : m.status === 'done' ? '' : m.status === 'stopped' ? ' · 중단됨' : ' · 오류'}
                 </span>
               </div>
               <div className="row">
-                <button className="btn small" title="Rejoue la mission (sans relancer l’équipe) : parfait pour filmer" onClick={() => { sfx('click'); close(); send({ t: 'replay', missionId: m.id }); }}>▶ Rejouer</button>
-                <button className="btn small ghost" onClick={() => send({ t: 'open', missionId: m.id })}>Dossier</button>
+                <button className="btn small" title="팀을 다시 부르지 않고 미션을 다시 재생해요. 촬영할 때 좋아요" onClick={() => { sfx('click'); close(); send({ t: 'replay', missionId: m.id }); }}>▶ 다시 재생</button>
+                <button className="btn small ghost" onClick={() => send({ t: 'open', missionId: m.id })}>폴더</button>
               </div>
             </div>
           ))}
@@ -148,8 +148,8 @@ export function History() {
   );
 }
 
-const CHEF_MODELS: [string, string][] = [['sonnet', 'Sonnet (rapide, recommandé)'], ['opus', 'Opus (le plus fin)'], ['fable', 'Fable'], ['haiku', 'Haiku (éclair)'], ['', 'Le modèle par défaut de Claude Code']];
-const TEAM_MODELS: [string, string][] = [['sonnet', 'Sonnet (rapide, recommandé)'], ['haiku', 'Haiku (éclair, économe)'], ['opus', 'Opus (le plus fin)'], ['fable', 'Fable'], ['inherit', 'Le même que Max']];
+const CHEF_MODELS: [string, string][] = [['sonnet', 'Sonnet (빠름, 추천)'], ['opus', 'Opus (가장 섬세함)'], ['fable', 'Fable'], ['haiku', 'Haiku (번개처럼 빠름)'], ['', 'Claude Code 기본 모델']];
+const TEAM_MODELS: [string, string][] = [['sonnet', 'Sonnet (빠름, 추천)'], ['haiku', 'Haiku (아주 빠름, 절약형)'], ['opus', 'Opus (가장 섬세함)'], ['fable', 'Fable'], ['inherit', '맥스와 같은 모델']];
 
 export function SettingsPanel() {
   const open = useOffice((s) => s.settingsOpen);
@@ -164,44 +164,44 @@ export function SettingsPanel() {
   return (
     <div className="modal-back" onClick={close}>
       <div className="modal settings" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head"><b>Réglages du bureau</b><button className="close" onClick={close} aria-label="Fermer">×</button></div>
+        <div className="modal-head"><b>사무실 설정</b><button className="close" onClick={close} aria-label="닫기">×</button></div>
         <div className="modal-body">
           <label className="field">
-            <span>Le cerveau de Max (le chef)</span>
+            <span>맥스(팀장)의 두뇌</span>
             <select value={settings.chefModel} onChange={(e) => send({ t: 'settings', settings: { chefModel: e.target.value } })}>
               {CHEF_MODELS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
             </select>
           </label>
           <label className="field">
-            <span>Le cerveau de l’équipe</span>
+            <span>팀의 두뇌</span>
             <select value={settings.teamModel} onChange={(e) => send({ t: 'settings', settings: { teamModel: e.target.value } })}>
               {TEAM_MODELS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
             </select>
           </label>
           <div className="field">
-            <span>Les permissions</span>
-            <label className="radio"><input type="radio" checked={settings.permission === 'auto'} onChange={() => send({ t: 'settings', settings: { permission: 'auto' } })} /> L’équipe décide seule, et lève la main pour les gestes risqués</label>
-            <label className="radio"><input type="radio" checked={settings.permission === 'ask'} onChange={() => send({ t: 'settings', settings: { permission: 'ask' } })} /> Elle demande avant chaque commande</label>
+            <span>허락</span>
+            <label className="radio"><input type="radio" checked={settings.permission === 'auto'} onChange={() => send({ t: 'settings', settings: { permission: 'auto' } })} /> 팀이 알아서 하고, 위험한 작업만 물어봐요</label>
+            <label className="radio"><input type="radio" checked={settings.permission === 'ask'} onChange={() => send({ t: 'settings', settings: { permission: 'ask' } })} /> 명령을 실행할 때마다 물어봐요</label>
           </div>
           <div className="field">
-            <span>Le spectacle</span>
-            <label className="radio"><input type="checkbox" checked={voiceOn} onChange={(e) => { useOffice.setState({ voiceOn: e.target.checked }); savePref('voice', e.target.checked); applySound(useOffice.getState().sound); }} /> La voix de Max (« C’est parti ! », « Mission accomplie ! », la visite guidée)</label>
-            <label className="radio"><input type="checkbox" checked={cameraAuto} onChange={(e) => { useOffice.setState({ cameraAuto: e.target.checked }); savePref('cameraAuto', e.target.checked); }} /> En mode tournage, la caméra suit l’action toute seule</label>
+            <span>연출</span>
+            <label className="radio"><input type="checkbox" checked={voiceOn} onChange={(e) => { useOffice.setState({ voiceOn: e.target.checked }); savePref('voice', e.target.checked); applySound(useOffice.getState().sound); }} /> 맥스의 목소리: 브라우저 음성(TTS)으로 읽어요(“시작해요!”, “미션 완료!”, 사무실 둘러보기)</label>
+            <label className="radio"><input type="checkbox" checked={cameraAuto} onChange={(e) => { useOffice.setState({ cameraAuto: e.target.checked }); savePref('cameraAuto', e.target.checked); }} /> 촬영 모드에서 카메라가 알아서 작업을 따라가요</label>
           </div>
-          <p className="small muted">Les réglages comptent pour la prochaine mission. L’équipe ne travaille que dans le dossier de la mission, et ne lance jamais rien hors du bureau sans te demander.</p>
+          <p className="small muted">설정은 다음 미션부터 적용돼요. 팀은 미션 폴더 안에서만 일하고, 사무실 밖에서는 묻지 않고 아무것도 실행하지 않아요.</p>
           {claude?.found && <p className="small muted">Claude Code {claude.version} · {tilde(dir)}</p>}
           <div className="keys">
-            <b>Raccourcis</b>
-            <span><kbd>V</kbd> cadre vertical (reel)</span>
-            <span><kbd>F</kbd> mode tournage</span>
-            <span><kbd>C</kbd> caméra auto</span>
-            <span><kbd>T</kbd> visite guidée</span>
-            <span><kbd>J</kbd> jukebox</span>
-            <span><kbd>N</kbd> jour, soir, nuit</span>
-            <span><kbd>M</kbd> son</span>
-            <span><kbd>H</kbd> missions précédentes</span>
-            <span><kbd>Échap</kbd> fermer, sortir du tournage</span>
-            <span>🥚 Il y a un code secret… (pense aux vieux jeux vidéo)</span>
+            <b>단축키</b>
+            <span><kbd>V</kbd> 세로 화면(릴스)</span>
+            <span><kbd>F</kbd> 촬영 모드</span>
+            <span><kbd>C</kbd> 자동 카메라</span>
+            <span><kbd>T</kbd> 사무실 둘러보기</span>
+            <span><kbd>J</kbd> 주크박스</span>
+            <span><kbd>N</kbd> 낮, 저녁, 밤</span>
+            <span><kbd>M</kbd> 소리</span>
+            <span><kbd>H</kbd> 지난 미션</span>
+            <span><kbd>Esc</kbd> 닫기, 촬영 모드 끝내기</span>
+            <span>🥚 비밀 코드가 있어요… (옛날 게임을 떠올려 보세요)</span>
           </div>
         </div>
       </div>

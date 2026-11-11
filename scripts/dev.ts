@@ -1,4 +1,4 @@
-// npm run dev : le pont (avec redémarrage auto) et Vite (rechargement à chaud) en même temps.
+// npm run dev: 브리지(자동 재시작)와 Vite(핫 리로드)를 함께 띄운다.
 import { spawn } from 'node:child_process';
 
 const procs = [

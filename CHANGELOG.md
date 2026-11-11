@@ -1,12 +1,23 @@
-# Les versions
+# 버전 기록
 
-## v0.1.0 (14 octobre 2026)
+## 한국어 포크 (작업 중)
 
-La première version publique.
+[Le Bureau des agents](https://github.com/devlikemasta/bureau-des-agents) v0.1.0을 한국어로 옮긴다.
 
-- Max, le chef de projet, et son équipe de vrais sous-agents Claude Code : recherche, code, design, rédaction, analyse.
-- Le bureau en pixel art, dessiné en code : les robots vont à leur poste, et chaque bulle montre ce qu'ils font vraiment.
-- Les rapports, les fichiers rendus, les sites créés affichés dans un écran (ordinateur ou téléphone), le code et ses versions.
-- Le plan au tableau et son historique, toute l'équipe et ses outils, l'historique des agents passés au bureau.
-- Rejouer une mission sans relancer l'équipe, une démo hors ligne.
-- Le mode tournage (caméra automatique, cadre vertical), la visite guidée avec la voix de Max, le jukebox, et quelques surprises.
+- 화면 문구, 에이전트 지시문과 보고서, 오프라인 데모 미션, 문서, 코드 주석을 한국어로.
+- 맥스의 목소리: 프랑스어 mp3(`public/voice/`)를 지우고 브라우저 음성 합성(Web Speech API, `ko-KR`)으로. 한국어 음성이 없으면 자막만.
+- `docs/`의 스크린샷과 GIF를 한국어 화면으로 다시 찍음.
+- 받아쓰기 `ko-KR`, 날짜·시각 `ko-KR`.
+- 한글 글꼴: Galmuri(픽셀), Pretendard(본문).
+- 기본 폴더 `~/Documents/에이전트 사무실`, 미션 폴더 `미션/YYYY-MM-DD HH시 MM분 · 제목`.
+
+## v0.1.0 (2026년 10월 14일, 원 프로젝트)
+
+첫 공개 버전.
+
+- 팀장 맥스와 진짜 Claude Code 서브에이전트 팀: 리서치, 코드, 디자인, 글쓰기, 분석.
+- 코드로 그린 픽셀 아트 사무실: 로봇이 자기 자리로 가고, 말풍선마다 실제로 하는 일이 나온다.
+- 보고서, 팀이 만든 파일, 팀이 만든 사이트를 화면(컴퓨터 또는 휴대폰)에 띄우기, 코드와 버전.
+- 화이트보드의 계획과 그 기록, 팀 전체와 도구, 사무실을 거쳐 간 에이전트의 기록.
+- 팀을 다시 부르지 않고 미션 다시 보기, 오프라인 데모.
+- 촬영 모드(자동 카메라, 세로 화면), 맥스의 목소리로 사무실 둘러보기, 주크박스, 그리고 몇 가지 깜짝 요소.

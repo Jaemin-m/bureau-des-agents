@@ -1,4 +1,4 @@
-name: Vérification
+name: 검사
 
 on:
   push:

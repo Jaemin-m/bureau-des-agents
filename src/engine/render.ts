@@ -1,7 +1,6 @@
-// Le dessin d'une image du bureau : la pièce, puis les meubles et les robots rangés du fond vers
-// l'avant (ceux du fond passent derrière), les effets, et enfin la lumière (le soir et la nuit,
-// la pièce s'assombrit et ce sont les écrans, les lampes et le néon qui éclairent).
-// Tout se dessine sur une toute petite image (352 × 256 pixels), agrandie sans flou : ça ne coûte presque rien.
+// 사무실 한 장면 그리기: 방, 그다음 뒤에서 앞 순서로 정렬한 가구와 로봇(뒤쪽이 뒤로 가려진다),
+// 효과, 마지막으로 조명(저녁과 밤에는 방이 어두워지고 화면, 조명, 네온이 빛을 낸다).
+// 모두 아주 작은 이미지(352 × 256 픽셀)에 그린 뒤 흐림 없이 확대한다. 비용이 거의 들지 않는다.
 import type { ActKind } from '../../shared/protocol.ts';
 import { furniturePlacement } from './furniture.ts';
 import { BOARD, CLOCK, FURNITURE, H, NEON, T, W, WINDOWS, type Furn } from './layout.ts';
@@ -20,7 +19,7 @@ const SCREEN: Record<ActKind, string> = {
 
 const AMBIENT: Record<TimeOfDay, string> = { day: '#ffffff', evening: '#a596b2', night: '#3b3961' };
 
-/** Les couleurs du néon (clique dessus pour passer à la suivante). */
+/** 네온 색(클릭하면 다음 색으로). */
 export const NEON_COLORS: [string, string][] = [
   [P.orange, P.orangeLight], ['#ff5fa2', '#ffc2dd'], ['#3fd8ff', '#c8f4ff'], ['#3ddc97', '#c6f7de'], ['#a98bff', '#e2d8ff'],
 ];
@@ -49,19 +48,19 @@ export class Renderer {
     if (tod === 'day') this.clouds(g, t);
     this.clockHands(g, now);
     this.board(g, world, t);
-    // le néon (sa couleur change quand on clique dessus ; il grésille de temps en temps)
+    // 네온(클릭하면 색이 바뀌고, 가끔 지직거린다)
     const [tube, core] = NEON_COLORS[world.neonIndex];
     if (Math.sin(t * 0.9) <= 0.985) neon(g, tube, core);
-    // les écriteaux : le nom du coin, et combien d'agents y travaillent en ce moment
+    // 간판: 구역 이름과 지금 그 구역에서 일하는 에이전트 수
     const busy = new Map<string, number>();
     for (const a of world.actors.values()) if (a.seated && a.role !== 'chef') busy.set(a.role, (busy.get(a.role) ?? 0) + 1);
     signs(g, (role) => busy.get(role) ?? 0);
 
-    // qui est assis à quel bureau
+    // 누가 어느 책상에 앉아 있는지
     const atDesk = new Map<string, Actor>();
     for (const a of world.actors.values()) if (a.seated && a.seat) atDesk.set(a.seat.deskId, a);
 
-    // du fond vers l'avant
+    // 뒤에서 앞으로
     const items: { y: number; k: number; draw: () => void }[] = [];
     for (const p of this.placed) {
       const shake = (world.wiggles.get(p.f.id) ?? 0) > t ? Math.round(Math.sin(t * 42)) : 0;
@@ -84,7 +83,7 @@ export class Renderer {
   private actor(g: G, a: Actor, world: World) {
     const seated = a.seated && !!a.seat;
     const x = Math.round(a.x);
-    // sur la musique, ceux qui ne marchent pas hochent la tête en rythme
+    // 음악이 나오면 걷고 있지 않은 로봇은 박자에 맞춰 고개를 까딱인다
     const y = Math.round(a.y) - (world.musicOn && world.time < world.bobUntil && !a.moving ? 1 : 0);
     g.globalAlpha = a.alpha;
     if (!seated) {
@@ -97,7 +96,7 @@ export class Renderer {
     g.globalAlpha = 1;
   }
 
-  /** Les parties vivantes des meubles : écrans allumés, voyants, imprimante, rapports sur le bureau du chef. */
+  /** 가구 중 움직이는 부분: 켜진 화면, 표시등, 프린터, 팀장 책상의 보고서. */
   private furnitureLive(g: G, p: Placed, world: World, who: Actor | null, t: number) {
     const f = p.f;
     if (f.kind === 'desk' && who) {
@@ -105,7 +104,7 @@ export class Renderer {
       const col = on && who.act ? SCREEN[who.act] : '#5b6b8c';
       switch (f.role) {
         case 'code': {
-          // le reflet de l'écran sur les bords des moniteurs
+          // 모니터 가장자리에 비친 화면 빛
           for (const mx of [1, 22]) {
             g.fillStyle = col;
             g.fillRect(p.x + mx, p.y + 1, 9, 1);
@@ -138,7 +137,7 @@ export class Renderer {
     }
     if (f.kind === 'chefDesk') {
       if (who) this.logo(g, p.x + 31, p.y + 10, true, t);
-      // les rapports rendus, empilés dans la corbeille
+      // 제출된 보고서가 서류함에 쌓인다
       const n = Math.min(world.inbox, 7);
       for (let i = 0; i < n; i++) {
         g.fillStyle = P.ink;
@@ -173,7 +172,7 @@ export class Renderer {
     }
   }
 
-  /** Les néons de l'arche du jukebox : éteints au repos, ils défilent et pulsent sur la musique. */
+  /** 주크박스 아치의 네온: 쉴 때는 꺼져 있고, 음악이 나오면 흐르듯 깜빡인다. */
   private jukeboxLights(g: G, p: Placed, world: World, t: number) {
     const on = world.musicOn;
     const arcs: [number, string, string][] = [[11, '#ff5fa2', '#5a2a3e'], [9, P.orange, '#5a3a24'], [7, '#3fd8ff', '#1f3e4a']];
@@ -188,11 +187,11 @@ export class Renderer {
       }
     });
     if (on) {
-      // le disque tourne
+      // 레코드가 돈다
       const a = t * 8;
       g.fillStyle = P.orangeLight;
       g.fillRect(p.x + 16 + Math.round(Math.cos(a) * 3), p.y + 20 + Math.round(Math.sin(a) * 1.5), 1, 1);
-      // les barres du vumètre
+      // 레벨 미터 막대
       for (let i = 0; i < 5; i++) {
         const h = 1 + Math.round((world.musicLevel * 4) * (0.6 + 0.4 * Math.sin(t * 9 + i * 1.7)));
         g.fillStyle = i % 2 ? '#ff5fa2' : P.orange;
@@ -201,7 +200,7 @@ export class Renderer {
     }
   }
 
-  /** La boule à facettes du mode soirée. */
+  /** 저녁 모드의 미러볼. */
   private discoBall(g: G, t: number) {
     const cx = 176, cy = 30;
     g.fillStyle = '#8a8ea2';
@@ -216,7 +215,7 @@ export class Renderer {
     }
   }
 
-  /** Les taches de lumière colorées qui tournent sur le sol pendant le mode soirée. */
+  /** 저녁 모드에서 바닥을 도는 색색의 빛 조각. */
   private discoSpots(g: G, t: number, left: number) {
     const fade = Math.min(1, left / 1.5);
     g.globalCompositeOperation = 'lighter';
@@ -233,7 +232,7 @@ export class Renderer {
     g.globalCompositeOperation = 'source-over';
   }
 
-  /** Deux petits nuages qui passent derrière les fenêtres, en journée. */
+  /** 낮에 창 너머로 지나가는 작은 구름 두 개. */
   private clouds(g: G, t: number) {
     for (const w of WINDOWS) {
       g.save();
@@ -252,7 +251,7 @@ export class Renderer {
     }
   }
 
-  /** Le petit cube orange au dos de l'ordinateur, qui s'allume quand l'agent travaille. */
+  /** 컴퓨터 뒷면의 작은 주황 큐브. 에이전트가 일할 때 켜진다. */
   private logo(g: G, x: number, y: number, on: boolean, t: number) {
     g.fillStyle = on ? (Math.sin(t * 6) > -0.6 ? P.orange : P.orangeHi) : '#8a5a3e';
     g.fillRect(x, y, 2, 2);
@@ -281,7 +280,7 @@ export class Renderer {
     }
   }
 
-  /** En journée : de grands rayons de soleil qui tombent des fenêtres. */
+  /** 낮: 창으로 쏟아지는 커다란 햇살. */
   private sunbeams(g: G) {
     g.save();
     g.beginPath();
@@ -317,46 +316,46 @@ export class Renderer {
       l.fillStyle = grd;
       l.fillRect(x - r, y - r, r * 2, r * 2);
     };
-    // le néon (il grésille de temps en temps)
+    // 네온(가끔 지직거린다)
     const flick = Math.sin(t * 0.9) > 0.985 ? 0.25 : 1;
     const neonCol = NEON_COLORS[world.neonIndex][0];
     add(NEON.x + 12, NEON.y + 12, 52, neonCol, 0.75 * flick);
-    // les fenêtres : coucher de soleil ou clair de lune
+    // 창: 노을빛 또는 달빛
     for (const w of WINDOWS) add(w.x + w.w / 2, w.y + w.h + 8, 58, night ? '#7080d0' : '#ff9a6a', night ? 0.42 : 0.55);
-    // le tableau du plan, éclairé
+    // 조명을 받은 계획 칠판
     add(176, 28, 52, '#fff6e8', night ? 0.28 : 0.22);
-    // la lampe du chef et le liseré orange de son bureau
+    // 팀장의 스탠드와 책상의 주황 테두리
     add(9 * T + 12, 7 * T - 6, 40, '#ffd9a0', 0.8);
     add(11 * T, 7 * T + 14, 44, P.orange, 0.32);
-    // les lampadaires, le café, le serveur
+    // 스탠드 조명, 커피 머신, 서버
     if (!world.lampsOff.has('lamp')) add(1 * T + 8, 14 * T - 12, 52, '#ffcf8a', 0.85);
     if (!world.lampsOff.has('lamp-r')) add(20 * T + 8, 14 * T - 12, 52, '#ffcf8a', 0.85);
-    // le jukebox, qui pulse sur la musique
+    // 음악에 맞춰 깜빡이는 주크박스
     if (world.musicOn) add(15 * T, 13 * T + 4, 30 + world.musicLevel * 18, ['#ff5fa2', P.orange, '#3fd8ff'][Math.floor(t * 1.5) % 3], 0.35 + world.musicLevel * 0.45);
-    // les yeux du chat brillent dans le noir
+    // 어둠 속에서 빛나는 고양이 눈
     add(world.cat.x + (world.cat.right ? 4 : -4), world.cat.y - 8, 4, P.orange, 0.5);
     add(16 * T + 14, 14 * T - 8, 14, P.orange, 0.5);
     add(14 * T + 4, 3 * T + 6, 18, '#5fd0ff', 0.35);
     add(11 * T, 15 * T + 8, 30, '#ffe2b8', 0.4);
     if (t < world.printUntil) add(12 * T + 8, 4 * T - 2, 16, '#9effa8', 0.6);
-    // les écrans éclairent les visages
+    // 화면 빛이 얼굴을 비춘다
     for (const a of atDesk.values()) {
       const on = t - a.actAt < 9;
       const col = on && a.act ? SCREEN[a.act] : '#8fa4d0';
       const sx = a.seat!.x, sy = a.seat!.y - 12;
       add(sx, sy, on ? 26 : 18, a.role === 'design' && on ? '#ff9fd0' : col, on ? 0.75 : 0.35);
     }
-    // un projecteur doux suit Max (le patron reste toujours bien visible)
+    // 은은한 조명이 맥스를 따라간다(팀장은 언제나 잘 보여야 한다)
     const chef = world.chef;
     add(chef.x, (chef.seated && chef.seat ? chef.seat.y : chef.y) - 8, 26, '#ffe2c4', 0.42);
-    // les yeux des robots
+    // 로봇의 눈
     for (const a of world.actors.values()) {
       if (a.alpha < 0.3) continue;
       add(a.x, (a.seated && a.seat ? a.seat.y : a.y) - 13, 7, P.orange, 0.55);
     }
     g.globalCompositeOperation = 'multiply';
     g.drawImage(this.light, 0, 0);
-    // un léger halo sur ce qui brille
+    // 빛나는 것 주변의 옅은 후광
     g.globalCompositeOperation = 'lighter';
     const glow = (x: number, y: number, r: number, color: string, a: number) => {
       const grd = g.createRadialGradient(x, y, 0, x, y, r);
@@ -371,7 +370,7 @@ export class Renderer {
     g.globalCompositeOperation = 'source-over';
   }
 
-  /** Le plan, au feutre sur le tableau : une ligne par étape, cochée quand elle est faite. */
+  /** 칠판에 마커로 쓴 계획: 단계마다 한 줄, 끝나면 체크한다. */
   private board(g: G, world: World, t: number) {
     const items = world.plan.slice(0, 5);
     const x0 = BOARD.x + 4;
@@ -379,22 +378,22 @@ export class Renderer {
       const y = BOARD.y + 12 + i * 4;
       const done = it.status === 'completed';
       const doing = it.status === 'in_progress';
-      // la case
+      // 체크 칸
       g.fillStyle = done ? '#2fbf71' : doing ? (Math.floor(t * 3) % 2 ? P.orange : P.orangeDark) : '#8a8ea2';
       g.fillRect(x0, y, 3, 3);
       if (!done) { g.fillStyle = '#f4f5f9'; g.fillRect(x0 + 1, y + 1, 1, 1); }
-      // la ligne écrite à la main
+      // 손글씨 줄
       const len = Math.max(18, Math.min(78, Math.round(it.text.length * 1.5)));
       const ink = done ? '#b4b7c6' : doing ? '#3a2f44' : '#2b2836';
       g.fillStyle = ink;
       for (let k = 0; k < len; k++) {
-        if ((k * 7 + i * 3) % 11 === 0) continue; // des petits blancs entre les « mots »
+        if ((k * 7 + i * 3) % 11 === 0) continue; // “단어” 사이의 작은 여백
         g.fillRect(x0 + 6 + k, y + 1 + (Math.sin((k + i * 5) * 0.9) > 0.6 ? -1 : 0), 1, 1);
       }
       if (done) { g.fillStyle = '#2fbf71'; g.fillRect(x0 + 5, y + 1, len + 2, 1); }
     });
     if (world.plan.length > 5) { g.fillStyle = '#8a8ea2'; g.fillRect(x0 + 6, BOARD.y + 32, 1, 1); g.fillRect(x0 + 8, BOARD.y + 32, 1, 1); g.fillRect(x0 + 10, BOARD.y + 32, 1, 1); }
-    // qui fait quoi : une petite tête de robot par agent, en bas à droite du tableau, cochée quand il a rendu son travail
+    // 누가 무엇을 하는지: 칠판 오른쪽 아래에 에이전트마다 작은 로봇 머리, 일을 넘기면 체크한다
     const team = world.assignments.slice(-12);
     team.forEach((a, i) => {
       const x = BOARD.x + BOARD.w - 8 - (team.length - 1 - i) * 6;

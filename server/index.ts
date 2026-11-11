@@ -1,10 +1,10 @@
-// Le pont entre le bureau et Claude Code. Il sert le bureau (dossier dist/) et ouvre une connexion
-// WebSocket sur /ws. Il n'écoute que sur ton ordinateur (127.0.0.1), et refuse toute page qui ne vient
-// pas du bureau lui-même : un site web ne peut pas lancer ton équipe à ta place.
+// 사무실과 Claude Code 사이의 브리지. 사무실(dist/ 폴더)을 제공하고 /ws에 WebSocket 연결을 연다.
+// 사용자 컴퓨터(127.0.0.1)에서만 연결을 받고, 사무실 자신이 아닌 페이지는 모두 거부한다.
+// 다른 웹사이트가 사용자 대신 팀을 움직일 수 없다.
 //
-//   node server/index.ts            le bureau sur http://localhost:4848
-//   node server/index.ts --open     … et l'ouvre dans le navigateur
-//   node server/index.ts --dev      seulement le pont (le bureau est servi par Vite, port 5174)
+//   node server/index.ts            http://localhost:4848 에 사무실
+//   node server/index.ts --open     … 그리고 브라우저로 연다
+//   node server/index.ts --dev      브리지만(사무실은 Vite가 5174 포트로 제공)
 import { execFile } from 'node:child_process';
 import { existsSync, statSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
@@ -38,12 +38,12 @@ const TYPES: Record<string, string> = {
   '.csv': 'text/plain; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.htm': 'text/html; charset=utf-8', '.ttf': 'font/ttf', '.otf': 'font/otf',
 };
 
-// L'aperçu des sites faits par l'équipe : servis à part, dans un bac à sable (origine opaque) :
-// leurs scripts tournent, mais ils ne peuvent ni lire le bureau, ni se connecter au pont.
+// 팀이 만든 사이트의 미리보기: 샌드박스(불투명 출처)에서 따로 제공한다.
+// 스크립트는 돌지만 사무실을 읽거나 브리지에 연결할 수는 없다.
 const PREVIEW_CSP = "sandbox allow-scripts allow-forms allow-popups allow-modals; frame-ancestors 'self'";
 
 const claude = await findClaude();
-// la version du bureau compilé : un onglet resté ouvert se recharge quand elle change
+// 빌드된 사무실의 버전: 바뀌면 열려 있던 탭이 새로고침한다
 const BUILD = (() => { try { return String(Math.round(statSync(path.join(DIST, 'index.html')).mtimeMs)); } catch { return 'dev'; } })();
 const clients = new Set<WebSocket>();
 
@@ -55,11 +55,11 @@ function broadcast(m: ServerMsg) {
 const bureau = new Bureau(claude, broadcast, process.env.BUREAU_DIR);
 await bureau.init();
 
-// ── Le serveur web (le bureau compilé) ──
+// ── 웹 서버(빌드된 사무실) ──
 const server = http.createServer(async (req, res) => {
   const url0 = new URL(req.url ?? '/', 'http://x');
   if (url0.pathname.startsWith('/apercu/')) { await preview(url0, res); return; }
-  if (DEV) { res.writeHead(404).end(`Mode développement : le bureau est sur http://localhost:${DEV_PORT}`); return; }
+  if (DEV) { res.writeHead(404).end(`개발 모드: 사무실은 http://localhost:${DEV_PORT} 에 있어요`); return; }
   try {
     const url = url0;
     let file = path.normalize(path.join(DIST, decodeURIComponent(url.pathname)));
@@ -71,16 +71,16 @@ const server = http.createServer(async (req, res) => {
       'Content-Type': TYPES[ext] ?? 'application/octet-stream',
       'Cache-Control': ext === '.html' ? 'no-cache' : 'public, max-age=3600',
       'X-Content-Type-Options': 'nosniff',
-      // aucun script venu d'ailleurs : même un lien piégé dans un rapport ne peut rien exécuter
+      // 외부 스크립트 금지: 보고서 속 함정 링크도 아무것도 실행하지 못한다
       ...(ext === '.html' ? { 'Content-Security-Policy': CSP } : {}),
     });
     res.end(body);
   } catch {
-    res.writeHead(500).end('Le bureau n’est pas compilé : lance « npm start ».');
+    res.writeHead(500).end('사무실이 빌드되지 않았어요. “npm start”를 실행해 주세요.');
   }
 });
 
-/** /apercu/<mission>/<chemin> : un fichier de la mission, dans le bac à sable. */
+/** /apercu/<mission>/<경로>: 샌드박스 안의 미션 파일. */
 async function preview(url: URL, res: http.ServerResponse) {
   try {
     const parts = url.pathname.split('/').slice(2).map((p) => decodeURIComponent(p));
@@ -88,7 +88,7 @@ async function preview(url: URL, res: http.ServerResponse) {
     let rel = parts.join('/');
     if (!rel || rel.endsWith('/')) rel += 'index.html';
     const file = bureau.previewPath(missionId, rel);
-    if (!file) { res.writeHead(404, { 'Content-Security-Policy': PREVIEW_CSP }).end('Introuvable dans le dossier de la mission.'); return; }
+    if (!file) { res.writeHead(404, { 'Content-Security-Policy': PREVIEW_CSP }).end('미션 폴더에서 찾을 수 없어요.'); return; }
     const body = await readFile(file);
     res.writeHead(200, {
       'Content-Type': TYPES[path.extname(file).toLowerCase()] ?? 'application/octet-stream',
@@ -102,8 +102,8 @@ async function preview(url: URL, res: http.ServerResponse) {
   }
 }
 
-// ── La connexion avec le bureau ──
-// Seul le bureau lui-même peut se connecter (et, en développement, la page servie par Vite).
+// ── 사무실과의 연결 ──
+// 사무실 자신만 연결할 수 있다(개발 중에는 Vite가 제공하는 페이지도).
 const allowedOrigins = new Set([`http://localhost:${PORT}`, `http://127.0.0.1:${PORT}`, ...(DEV ? [`http://localhost:${DEV_PORT}`, `http://127.0.0.1:${DEV_PORT}`] : [])]);
 const wss = new WebSocketServer({ noServer: true, maxPayload: 1_000_000 });
 
@@ -187,7 +187,7 @@ async function handle(m: ClientMsg, send: (m: ServerMsg) => void) {
 function listen(port: number) {
   server.once('error', (e: NodeJS.ErrnoException) => {
     if (e.code === 'EADDRINUSE') {
-      console.error(`  Le port ${port} est déjà pris : le bureau tourne peut-être déjà (http://localhost:${port}).`);
+      console.error(`  ${port} 포트를 이미 쓰고 있어요. 사무실이 벌써 실행 중일 수 있어요(http://localhost:${port}).`);
       process.exit(1);
     }
     throw e;
@@ -195,11 +195,11 @@ function listen(port: number) {
   server.listen(port, HOST, () => {
     const url = `http://localhost:${port}`;
     console.log('');
-    console.log('  🏢  Le Bureau des agents');
-    console.log(`  ➜  ${DEV ? `Pont prêt (le bureau : http://localhost:${DEV_PORT})` : url}`);
-    console.log(`  📁  Les missions : ${bureau.missionsDir}`);
-    console.log(claude ? `  ✓  Claude Code ${claude.version} (${claude.path})` : '  ✗  Claude Code introuvable : le bureau tournera en démo.');
-    console.log('  ⏹  Pour arrêter : Ctrl + C');
+    console.log('  🏢  에이전트 사무실');
+    console.log(`  ➜  ${DEV ? `브리지 준비 완료(사무실: http://localhost:${DEV_PORT})` : url}`);
+    console.log(`  📁  미션 폴더: ${bureau.missionsDir}`);
+    console.log(claude ? `  ✓  Claude Code ${claude.version} (${claude.path})` : '  ✗  Claude Code를 찾을 수 없어요. 사무실이 데모로 실행돼요.');
+    console.log('  ⏹  멈추려면: Ctrl + C');
     console.log('');
     if (args.has('--open') && !DEV) {
       const opener = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'explorer' : 'xdg-open';

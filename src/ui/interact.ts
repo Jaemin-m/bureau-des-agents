@@ -1,4 +1,4 @@
-// Ce qui se passe quand on clique dans le bureau : chaque objet a une utilité (ou une surprise).
+// 사무실 안을 클릭했을 때 일어나는 일: 물건마다 쓸모(또는 깜짝 장치)가 있다.
 import { jukebox } from '../audio/music.ts';
 import { sfx } from '../audio/sfx.ts';
 import { say } from '../audio/voice.ts';
@@ -9,14 +9,14 @@ import { savePref, useOffice, type Tod } from '../state/store.ts';
 const TOD_NEXT: Record<Tod, Tod> = { auto: 'day', day: 'evening', evening: 'night', night: 'auto' };
 
 const QUOTES = [
-  'Objectif du trimestre : zéro tâche répétitive.',
-  'Règle n°1 du bureau : on délègue tout ce qui se délègue.',
-  'Ici, personne ne compte ses heures. Personne n’en a besoin.',
+  '이번 분기 목표: 반복 업무 0개.',
+  '사무실 규칙 1번: 맡길 수 있는 건 다 맡긴다.',
+  '여기선 아무도 야근 시간을 안 세요. 셀 필요가 없거든요.',
 ];
 
 let jukeClicks: number[] = [];
 
-/** Le mode soirée : la boule à facettes, la musique, et toute l'équipe qui danse. */
+/** 저녁 모드: 미러볼, 음악, 그리고 춤추는 팀 전체. */
 export function party() {
   world.disco(16);
   if (!jukebox.playing) jukebox.play(2);
@@ -44,7 +44,7 @@ export function interact(hit: Hit) {
   }
   const id = hit.id;
   if (id.startsWith('desk-') || id.startsWith('chair-desk-')) {
-    // le bureau d'un agent : sa fiche s'il y est assis, sinon le coin et ses outils
+    // 에이전트 책상: 앉아 있으면 그 에이전트 카드, 아니면 그 구역과 도구 소개
     const deskId = id.startsWith('chair-') ? id.slice(6) : id;
     const who = [...world.actors.values()].find((a) => a.seated && a.seat?.deskId === deskId);
     sfx('open');
@@ -74,7 +74,7 @@ export function interact(hit: Hit) {
     case 'easel': case 'bin': case 'tableLow': case 'sofa': world.wiggle(id, 0, 0); sfx('tick'); return;
     case 'poster': st.toast('info', QUOTES[Math.floor(Math.random() * QUOTES.length)]); sfx('click'); return;
     case 'jukebox': {
-      // cinq clics rapides : c'est la fête
+      // 빠르게 다섯 번 클릭하면 파티가 시작된다
       const now = Date.now();
       jukeClicks = [...jukeClicks.filter((t) => now - t < 2500), now];
       if (jukeClicks.length >= 5) { jukeClicks = []; useOffice.setState({ modal: null }); party(); return; }

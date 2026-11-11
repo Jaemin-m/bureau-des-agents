@@ -1,21 +1,21 @@
-name: Un bug
-description: Quelque chose ne marche pas comme prévu.
+name: 버그
+description: 뭔가 예상대로 동작하지 않아요.
 labels: [bug]
 body:
   - type: textarea
     id: quoi
     attributes:
-      label: Ce qui se passe
-      description: Ce que tu as fait, ce que tu as vu, et ce que tu attendais. Une capture d'écran aide beaucoup.
+      label: 무슨 일이 있었나요
+      description: 무엇을 했고, 무엇을 봤고, 무엇을 기대했는지 적어 주세요. 스크린샷이 있으면 큰 도움이 돼요.
     validations:
       required: true
   - type: input
     id: systeme
     attributes:
-      label: Ton ordinateur
+      label: 내 컴퓨터
       placeholder: "macOS 27, Windows 12, Ubuntu 26.04…"
   - type: input
     id: versions
     attributes:
-      label: Versions
-      description: Le résultat de `node -v` et de `claude --version`.
+      label: 버전
+      description: "`node -v`와 `claude --version`의 결과."

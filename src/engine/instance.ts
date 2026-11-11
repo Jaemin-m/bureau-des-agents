@@ -1,4 +1,4 @@
-// Le monde et son dessinateur n'existent qu'une fois : ils survivent aux rafraîchissements de React.
+// 세계와 그것을 그리는 쪽은 딱 하나씩만 있다: React가 다시 렌더링해도 살아남는다.
 import { bus } from '../state/bus.ts';
 import type { Tod } from '../state/store.ts';
 import { Camera, Director } from './camera.ts';
@@ -14,7 +14,7 @@ export const director = new Director(camera, world);
 bus.on((ev, live) => { world.apply(ev, live); director.event(ev, live); });
 bus.onReset(() => { world.resetAll(); camera.wide(); });
 
-/** L'heure du bureau : celle de ton ordinateur (en « auto »), ou celle que tu as choisie. */
+/** 사무실 시간: 내 컴퓨터 시각(“자동”) 또는 직접 고른 시간대. */
 export function timeOfDay(pref: Tod): TimeOfDay {
   if (pref !== 'auto') return pref;
   const h = new Date().getHours();

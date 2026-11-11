@@ -1,4 +1,4 @@
-// Trouver son chemin entre les bureaux (A*, en quatre directions, comme dans les jeux en pixel art).
+// 책상 사이 길 찾기(A*, 네 방향, 픽셀 아트 게임처럼).
 
 export type Tile = [number, number];
 
@@ -40,7 +40,7 @@ export function findPath(grid: boolean[][], from: Tile, to: Tile): Tile[] | null
       if (!ok(nx, ny)) continue;
       const nk = key(nx, ny);
       if (closed.has(nk)) continue;
-      // un petit bonus pour aller tout droit : les trajets ont moins de zigzags
+      // 직진에 작은 보너스: 지그재그가 줄어든다
       const turn = came.has(bestK) ? (() => { const p = came.get(bestK)!; const px = p % cols, py = Math.floor(p / cols); return (best.x - px === dx && best.y - py === dy) ? 0 : 0.2; })() : 0;
       const g = best.g + 1 + turn;
       if (g < (gScore.get(nk) ?? Infinity)) {

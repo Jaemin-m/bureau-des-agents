@@ -1,5 +1,5 @@
-// La mémoire du bureau, côté navigateur : la mission en cours, l'équipe, le plan, les rendus, ce que
-// dit Max. Chaque événement venu du pont est rangé ici, puis transmis au moteur du jeu (les robots).
+// 브라우저 쪽 사무실 기억: 진행 중인 미션, 팀, 계획, 결과물, 맥스가 하는 말.
+// 브리지에서 온 이벤트를 여기에 정리한 뒤 게임 엔진(로봇)에 넘긴다.
 import { create } from 'zustand';
 import { countStats, emptyStats } from '../../shared/activity.ts';
 import type {
@@ -46,7 +46,7 @@ export interface Toast { id: number; kind: 'info' | 'error'; text: string }
 
 export type Tod = 'auto' | 'day' | 'evening' | 'night';
 
-/** Les fenêtres qu'on ouvre en cliquant sur le bureau (un robot, le tableau, l'horloge…). */
+/** 사무실을 클릭하면 열리는 창(로봇, 칠판, 시계…). */
 export type Modal =
   | { kind: 'agent'; id: string }
   | { kind: 'board' }
@@ -65,7 +65,7 @@ interface S {
   quota: Quota | null;
   missions: MissionInfo[];
   mission: MissionInfo | null;
-  /** vrai pendant une rediffusion (ou la démo) */
+  /** 다시 보기(또는 데모) 중이면 true */
   replaying: boolean;
   chef: ChefView;
   agents: Record<string, AgentView>;
@@ -76,29 +76,29 @@ interface S {
   stats: MissionStats;
   feed: FeedLine[];
   final: { ok: boolean; text: string; ms: number; stopped?: boolean; at: number } | null;
-  /** quand l'équipe s'est mise au travail (pour le chrono) ; null = au repos */
+  /** 팀이 일을 시작한 시각(타이머용). null = 쉬는 중 */
   busySince: number | null;
   workMs: number;
-  // l'interface
+  // 인터페이스
   showFinal: boolean;
   viewer: { missionId: string; file: string; text?: string; truncated?: boolean; version?: string } | null;
   modal: Modal | null;
-  /** les versions de chaque rendu (clé : mission|fichier) */
+  /** 결과물마다의 버전(키: 미션|파일) */
   versions: Record<string, VersionInfo[]>;
   teamHistory: TeamEntry[] | null;
-  /** chaque version du plan, dans l'ordre (le tableau garde l'historique) */
+  /** 계획의 모든 버전, 순서대로(칠판이 기록을 남긴다) */
   planHistory: { at: number; items: PlanItem[] }[];
   music: { playing: boolean; index: number; volume: number };
-  /** la voix de Max (ElevenLabs) */
+  /** 맥스의 목소리(브라우저 음성 합성) */
   voiceOn: boolean;
-  /** en mode tournage, la caméra suit l'action toute seule */
+  /** 촬영 모드에서는 카메라가 알아서 행동을 따라간다 */
   cameraAuto: boolean;
-  /** la visite guidée en cours (le texte que Max dit) */
+  /** 진행 중인 사무실 둘러보기(맥스가 하는 말) */
   tour: { step: number; text: string } | null;
   historyOpen: boolean;
   settingsOpen: boolean;
   vertical: boolean;
-  /** écran en hauteur (téléphone) : même mise en page que le cadre vertical */
+  /** 세로로 긴 화면(휴대폰): 세로 프레임과 같은 배치 */
   portrait: boolean;
   filming: boolean;
   sound: boolean;
@@ -115,7 +115,7 @@ interface S {
 const pref = <T,>(key: string, fallback: T): T => {
   try { const v = localStorage.getItem('bureau:' + key); return v === null ? fallback : (JSON.parse(v) as T); } catch { return fallback; }
 };
-export const savePref = (key: string, v: unknown) => { try { localStorage.setItem('bureau:' + key, JSON.stringify(v)); } catch { /* navigation privée */ } };
+export const savePref = (key: string, v: unknown) => { try { localStorage.setItem('bureau:' + key, JSON.stringify(v)); } catch { /* 시크릿 모드 */ } };
 
 const emptyChef = (): ChefView => ({ say: '', sayAt: 0, typing: '', thinkingAt: 0, act: null, acts: [] });
 
@@ -227,7 +227,7 @@ export const useOffice = create<S>((set, get) => ({
         get().toast(m.kind, m.text);
         break;
       case 'replay':
-        // géré par le lecteur (net/replay.ts)
+        // 재생기(net/replay.ts)가 처리한다
         break;
     }
   },
@@ -238,13 +238,13 @@ export const useOffice = create<S>((set, get) => ({
       const line: FeedLine = { id: ++feedId, at, who, text, kind };
       return [...get().feed, line].slice(-MAX_FEED);
     };
-    const agentName = (who: string) => (who === 'chef' ? 'Max' : s.agents[who]?.name ?? 'Un agent');
+    const agentName = (who: string) => (who === 'chef' ? '맥스' : s.agents[who]?.name ?? '에이전트');
     switch (ev.k) {
       case 'start': {
         const first = s.feed.length === 0;
         set({
           chef: { ...s.chef, say: '', typing: '', thinkingAt: at }, final: null, showFinal: false,
-          busySince: at, feed: feed('toi', ev.text, 'user'),
+          busySince: at, feed: feed('나', ev.text, 'user'),
         });
         if (live && !first) sfx('send');
         if (live) void say('parti');
@@ -260,7 +260,7 @@ export const useOffice = create<S>((set, get) => ({
         else if (s.agents[ev.who]) set({ agents: { ...s.agents, [ev.who]: { ...s.agents[ev.who], say: ev.text, sayAt: at } } });
         break;
       case 'say':
-        if (ev.who === 'chef') set({ chef: { ...s.chef, say: ev.text, sayAt: at, typing: '' }, feed: feed('Max', ev.text, 'chef') });
+        if (ev.who === 'chef') set({ chef: { ...s.chef, say: ev.text, sayAt: at, typing: '' }, feed: feed('맥스', ev.text, 'chef') });
         else if (s.agents[ev.who]) set({ agents: { ...s.agents, [ev.who]: { ...s.agents[ev.who], say: ev.text, sayAt: at } } });
         break;
       case 'plan':
@@ -276,7 +276,7 @@ export const useOffice = create<S>((set, get) => ({
         const stats = { ...s.stats };
         countStats(stats, ev);
         const firstOfRound = !s.order.some((id) => s.agents[id]?.status === 'working' || s.agents[id]?.status === 'reporting');
-        set({ agents: { ...s.agents, [ev.id]: a }, order: [...s.order, ev.id], stats, feed: feed('Max', `appelle ${ev.name} : ${ev.task}`, 'hire') });
+        set({ agents: { ...s.agents, [ev.id]: a }, order: [...s.order, ev.id], stats, feed: feed('맥스', `${ev.name} 호출: ${ev.task}`, 'hire') });
         if (live) sfx('spawn');
         if (live && firstOfRound) void say('equipe');
         break;
@@ -303,7 +303,7 @@ export const useOffice = create<S>((set, get) => ({
       case 'report': {
         const a = s.agents[ev.who];
         if (!a) break;
-        set({ agents: { ...s.agents, [ev.who]: { ...a, report: ev.text, status: 'reporting' } }, feed: feed(a.name, 'rend son rapport à Max', 'report') });
+        set({ agents: { ...s.agents, [ev.who]: { ...a, report: ev.text, status: 'reporting' } }, feed: feed(a.name, '맥스에게 보고서 제출', 'report') });
         if (live) sfx('paper');
         break;
       }
@@ -315,7 +315,7 @@ export const useOffice = create<S>((set, get) => ({
       }
       case 'file': {
         const files = [...s.files.filter((f) => f.path !== ev.file.path), ev.file].sort((a, b) => a.at - b.at);
-        set({ files, feed: ev.isNew ? feed(agentName(ev.file.by), `a rangé ${ev.file.name}`, 'file') : get().feed });
+        set({ files, feed: ev.isNew ? feed(agentName(ev.file.by), `${ev.file.name} 저장`, 'file') : get().feed });
         if (live && ev.isNew) sfx('print');
         break;
       }
@@ -335,16 +335,16 @@ export const useOffice = create<S>((set, get) => ({
         const workMs = s.workMs + (s.busySince ? Math.max(0, at - s.busySince) : 0);
         set({
           final: { ok: ev.ok, text: ev.text, ms: ev.ms, stopped: ev.stopped, at }, busySince: null, workMs, asks: {},
-          showFinal: false, feed: feed('Max', ev.ok ? 'Mission accomplie !' : ev.stopped ? 'Mission arrêtée.' : 'La mission s’est mal terminée.', 'end'),
+          showFinal: false, feed: feed('맥스', ev.ok ? '미션 완료!' : ev.stopped ? '미션을 멈췄어요.' : '미션이 제대로 끝나지 않았어요.', 'end'),
         });
         if (live) sfx(ev.ok ? 'done' : 'error');
         if (live && ev.ok) setTimeout(() => { void say('accomplie', true); }, 900);
-        // d'abord Max fait la fête (confettis), puis la carte du rendu s'ouvre
+        // 먼저 맥스가 축하하고(색종이), 그다음 결과물 카드가 열린다
         if (live && ev.ok) setTimeout(() => { if (get().final?.at === at) set({ showFinal: true }); }, 3200);
         break;
       }
       case 'error':
-        set({ feed: feed('Max', ev.message, 'error') });
+        set({ feed: feed('맥스', ev.message, 'error') });
         if (live) get().toast('error', ev.message);
         break;
     }
@@ -352,5 +352,5 @@ export const useOffice = create<S>((set, get) => ({
   },
 }));
 
-/** Les membres de l'équipe, dans l'ordre où ils sont arrivés. */
+/** 도착한 순서대로 정렬한 팀원. */
 export const teamList = (s: S) => s.order.map((id) => s.agents[id]).filter(Boolean);

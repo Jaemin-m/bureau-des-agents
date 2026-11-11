@@ -1,5 +1,5 @@
-// Le markdown des rapports, affiché sans risque : pas de HTML brut, des liens web seulement (ouverts
-// dans un nouvel onglet), pas d'images distantes.
+// 보고서 마크다운을 안전하게 보여 준다: 원본 HTML은 막고, 링크는 웹 주소만(새 탭으로 연다),
+// 외부 이미지는 불러오지 않는다.
 import { Marked } from 'marked';
 
 const SAFE_URL = /^(https?:\/\/|mailto:)/i;

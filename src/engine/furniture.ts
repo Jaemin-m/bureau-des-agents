@@ -1,6 +1,5 @@
-// Les meubles du bureau, dessinés pixel par pixel. Chaque meuble devient une petite image (gardée en
-// mémoire), posée sur sa case. Les parties qui bougent (écrans, voyants, papier qui sort de
-// l'imprimante) sont dessinées à chaque image par le moteur, par-dessus.
+// 사무실 가구를 픽셀 하나하나 그린다. 가구마다 작은 이미지가 되어(메모리에 보관) 자기 칸에 놓인다.
+// 움직이는 부분(화면, 표시등, 프린터에서 나오는 종이)은 엔진이 매 프레임 그 위에 그린다.
 import type { Role } from '../../shared/protocol.ts';
 import { ROLES } from '../../shared/activity.ts';
 import type { Furn } from './layout.ts';
@@ -9,14 +8,14 @@ import { g2d, hline, makeCanvas, mix, outline, P, px, rect, rng, vline, type G }
 
 export interface Sprite {
   c: HTMLCanvasElement;
-  /** position du coin haut gauche de l'image, par rapport au coin haut gauche de la case */
+  /** 칸의 왼쪽 위를 기준으로 한 이미지 왼쪽 위 위치 */
   ox: number;
   oy: number;
-  /** ligne de tri (profondeur), par rapport au haut de la case */
+  /** 칸 위쪽을 기준으로 한 정렬선(깊이) */
   sort: number;
 }
 
-/** Un petit ovale plein, au pixel près. */
+/** 픽셀 단위로 채운 작은 타원. */
 function ellipse(g: G, cx: number, cy: number, rx: number, ry: number, color: string) {
   g.fillStyle = color;
   for (let y = -ry; y <= ry; y++) {
@@ -25,14 +24,14 @@ function ellipse(g: G, cx: number, cy: number, rx: number, ry: number, color: st
   }
 }
 
-// ── Les objets posés sur les bureaux ──
+// ── 책상 위 물건 ──
 
-/** Un ordinateur portable vu de dos (l'écran fait face au robot assis derrière). */
+/** 뒤에서 본 노트북(화면은 뒤에 앉은 로봇을 향한다). */
 function laptop(g: G, x: number, y: number, w = 12) {
   rect(g, x, y, w, 7, '#3a3646');
   hline(g, x, y, w, '#56516a');
   vline(g, x + w - 1, y + 1, 6, '#2b2836');
-  // le logo (un petit cube) s'allume quand l'agent travaille : ici, éteint
+  // 로고(작은 큐브)는 에이전트가 일할 때 켜진다: 여기서는 꺼진 상태
   rect(g, x + w / 2 - 1, y + 2, 2, 2, '#5b4a44');
   rect(g, x - 1, y + 7, w + 2, 1, '#8f8aa1');
 }
@@ -63,7 +62,7 @@ function mug(g: G, x: number, y: number, color = P.orange) {
   hline(g, x, y, 4, '#ffffff');
 }
 
-/** Un écran vu de dos, sur son pied. */
+/** 뒤에서 본 받침대 위 모니터. */
 function monitorBack(g: G, x: number, y: number) {
   rect(g, x, y, 9, 8, '#2b2836');
   hline(g, x, y, 9, '#45405a');
@@ -103,7 +102,7 @@ function calculator(g: G, x: number, y: number) {
   for (let j = 0; j < 2; j++) for (let i = 0; i < 2; i++) px(g, x + 1 + i * 2, y + 3 + j, '#cfcbd9');
 }
 
-/** Le petit écran de tableau de bord de l'analyste (tourné vers toi). */
+/** 분석가의 작은 대시보드 화면(나를 향한다). */
 function dashboard(g: G, x: number, y: number) {
   rect(g, x, y, 9, 8, '#2b2836');
   rect(g, x + 1, y + 1, 7, 6, '#141a2c');
@@ -111,32 +110,32 @@ function dashboard(g: G, x: number, y: number) {
   rect(g, x + 1, y + 11, 7, 1, '#4b465c');
 }
 
-/** Une tablette graphique posée à plat. */
+/** 바닥에 눕혀 둔 드로잉 태블릿. */
 function tablet(g: G, x: number, y: number) {
   rect(g, x, y, 13, 5, '#2b2836');
   rect(g, x + 1, y + 1, 11, 3, P.screenOff);
   hline(g, x, y, 13, '#45405a');
 }
 
-// ── Les meubles ──
+// ── 가구 ──
 
 function deskSprite(role: Role, seed: number): Sprite {
   const c = makeCanvas(32, 28);
   const g = g2d(c);
   const r = rng(seed + 7);
-  // plateau
+  // 상판
   rect(g, 1, 8, 30, 10, P.wood);
   hline(g, 1, 8, 30, P.woodHi);
   hline(g, 1, 17, 30, P.woodLight);
   for (let i = 0; i < 9; i++) hline(g, 2 + Math.floor(r() * 22), 10 + Math.floor(r() * 6), 3 + Math.floor(r() * 5), mix(P.wood, P.woodDark, 0.22));
-  // façade et pieds
+  // 앞판과 다리
   rect(g, 1, 18, 30, 6, P.woodFront);
   hline(g, 1, 23, 30, P.woodDark);
   rect(g, 19, 20, 8, 1, P.woodDark);
   px(g, 22, 21, P.woodHi);
   rect(g, 2, 24, 2, 3, P.woodLeg);
   rect(g, 28, 24, 2, 3, P.woodLeg);
-  // ce qu'il y a sur le bureau dépend du métier
+  // 책상 위 물건은 직무마다 다르다
   switch (role) {
     case 'recherche':
       laptop(g, 10, 8);
@@ -167,7 +166,7 @@ function deskSprite(role: Role, seed: number): Sprite {
       laptop(g, 10, 8);
   }
   outline(c, P.ink);
-  // ombre au sol
+  // 바닥 그림자
   g.fillStyle = P.shadow;
   g.fillRect(2, 27, 28, 1);
   return { c, ox: 0, oy: -12, sort: 14 };
@@ -180,19 +179,19 @@ function chefDeskSprite(): Sprite {
   hline(g, 1, 8, 62, P.ebonyHi);
   hline(g, 1, 17, 62, '#4a4254');
   rect(g, 1, 18, 62, 9, P.ebonyFront);
-  // le liseré orange (il s'allume la nuit)
+  // 주황 테두리(밤에 켜진다)
   hline(g, 2, 25, 60, P.orangeDark);
-  // la plaque « chef »
+  // “팀장” 명패
   rect(g, 27, 20, 10, 3, P.orange);
   hline(g, 28, 21, 2, P.orangeDeep);
   hline(g, 31, 21, 1, P.orangeDeep);
   hline(g, 33, 21, 3, P.orangeDeep);
-  // la lampe de bureau
+  // 책상 스탠드
   rect(g, 5, 14, 6, 2, '#3a3646');
   for (let i = 0; i < 6; i++) px(g, 8 + Math.floor(i / 2), 13 - i, P.metal);
   rect(g, 9, 4, 7, 3, '#2b2836');
   hline(g, 10, 7, 5, '#ffd27a');
-  // l'ordinateur et la corbeille des rendus
+  // 컴퓨터와 결과물 서류함
   laptop(g, 26, 8, 12);
   rect(g, 45, 11, 14, 5, P.metalDark);
   rect(g, 46, 11, 12, 4, '#1f1c27');
@@ -238,12 +237,12 @@ function chefChairSprite(): Sprite {
   return { c, ox: 6, oy: -9, sort: 14 };
 }
 
-/** Une plante touffue, feuille par feuille (toujours la même pour une graine donnée). */
+/** 잎 하나하나 그린 무성한 화분(같은 시드면 늘 같은 모양). */
 function plantBigSprite(seed: number): Sprite {
   const c = makeCanvas(20, 30);
   const g = g2d(c);
   const r = rng(seed);
-  // le feuillage
+  // 잎
   ellipse(g, 10, 11, 8, 8, P.leafDark);
   for (let i = 0; i < 14; i++) {
     const a = r() * Math.PI * 2;
@@ -257,7 +256,7 @@ function plantBigSprite(seed: number): Sprite {
   }
   for (let i = 0; i < 5; i++) px(g, 5 + Math.floor(r() * 9), 4 + Math.floor(r() * 8), P.leafLight);
   for (let i = 0; i < 6; i++) px(g, 6 + Math.floor(r() * 9), 13 + Math.floor(r() * 5), P.leafDeep);
-  // la tige et le pot
+  // 줄기와 화분
   rect(g, 9, 18, 2, 3, P.leafDeep);
   rect(g, 5, 21, 10, 2, P.potHi);
   rect(g, 6, 23, 8, 5, P.pot);
@@ -267,7 +266,7 @@ function plantBigSprite(seed: number): Sprite {
   return { c, ox: -2, oy: -14, sort: 14 };
 }
 
-/** Une sansevière (feuilles droites et pointues) dans un pot blanc. */
+/** 흰 화분에 심은 산세베리아(곧고 뾰족한 잎). */
 function plantTallSprite(seed: number): Sprite {
   const c = makeCanvas(14, 30);
   const g = g2d(c);
@@ -352,16 +351,16 @@ function coffeeSprite(): Sprite {
   for (const x of [15, 31]) vline(g, x, 14, 10, '#bdb9cb');
   for (const x of [11, 19, 27, 35]) rect(g, x, 18, 2, 1, '#9f9ab0');
   hline(g, 0, 24, 48, '#bdb9cb');
-  // la machine à café
+  // 커피 머신
   rect(g, 5, 0, 12, 9, '#2b2836');
   hline(g, 5, 0, 12, '#45405a');
   rect(g, 7, 2, 8, 2, '#1a1822');
   rect(g, 9, 5, 4, 4, '#1a1822');
   rect(g, 10, 7, 2, 2, '#f1eef6');
-  // les tasses
+  // 컵
   mug(g, 22, 5);
   mug(g, 29, 5, '#4fb3ff');
-  // une petite plante
+  // 작은 화분
   rect(g, 39, 5, 6, 4, P.pot);
   ellipse(g, 42, 3, 3, 2, P.leaf);
   px(g, 41, 2, P.leafHi);
@@ -469,28 +468,28 @@ function binSprite(): Sprite {
   return { c, ox: 4, oy: 5, sort: 15 };
 }
 
-/** Le jukebox : une arche de néons (allumés par le moteur quand la musique joue), un vinyle, une grille. */
+/** 주크박스: 네온 아치(음악이 나오면 엔진이 켠다), 레코드판, 그릴. */
 function jukeboxSprite(): Sprite {
   const c = makeCanvas(32, 38);
   const g = g2d(c);
-  // l'arche en bois
+  // 나무 아치
   for (let y = 0; y < 16; y++) {
     const half = Math.round(Math.sqrt(Math.max(0, 15 * 15 - (15 - y) * (15 - y))));
     rect(g, 16 - half, y, half * 2, 1, '#8a5530');
   }
   rect(g, 1, 15, 30, 19, '#8a5530');
   vline(g, 30, 8, 26, '#6a3f22');
-  // l'intérieur de l'arche (les néons sont dessinés par-dessus)
+  // 아치 안쪽(네온은 그 위에 그린다)
   for (let y = 3; y < 16; y++) {
     const half = Math.round(Math.sqrt(Math.max(0, 12 * 12 - (15 - y) * (15 - y))));
     rect(g, 16 - half, y, half * 2, 1, '#2a1f2a');
   }
-  // la fenêtre du disque
+  // 레코드 창
   rect(g, 6, 16, 20, 9, '#c9cbd6');
   rect(g, 7, 17, 18, 7, '#141019');
   rect(g, 11, 18, 10, 5, '#0b0910');
   rect(g, 15, 20, 2, 1, P.orange);
-  // la grille du haut-parleur
+  // 스피커 그릴
   rect(g, 5, 26, 22, 7, '#5a3520');
   for (let x = 6; x < 27; x += 2) vline(g, x, 27, 5, '#3d2416');
   rect(g, 0, 34, 32, 3, '#3a3646');
@@ -529,7 +528,7 @@ export function furnitureSprite(f: Furn): Sprite {
   return s;
 }
 
-/** Le coin haut gauche (en pixels) d'un meuble, et sa ligne de tri. */
+/** 가구의 왼쪽 위(픽셀)와 정렬선. */
 export function furniturePlacement(f: Furn) {
   const s = furnitureSprite(f);
   return { s, x: f.tx * T + s.ox, y: f.ty * T + s.oy, sortY: f.ty * T + s.sort };

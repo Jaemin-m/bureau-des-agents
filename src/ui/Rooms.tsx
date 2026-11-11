@@ -1,6 +1,6 @@
-// Les fenêtres qu'on ouvre en cliquant dans le bureau. Tout y vient de Claude Code, pour de vrai :
-// la fiche d'un agent (sa mission, chacune de ses actions, son rapport), le plan de Max et son
-// historique, l'équipe et ses outils, la machine, les rendus et l'aperçu des sites créés.
+// 사무실을 클릭하면 열리는 창들. 내용은 전부 진짜 Claude Code에서 온다:
+// 에이전트 카드(맡은 일, 모든 작업, 보고서), 맥스의 계획과 그 기록,
+// 팀과 도구, 머신, 결과물, 만든 사이트의 미리보기.
 import { useEffect, useMemo, useState } from 'react';
 import { ROLE_TOOLS, ROLES, TOOL_INFO } from '../../shared/activity.ts';
 import type { PlanItem, Role } from '../../shared/protocol.ts';
@@ -26,7 +26,7 @@ function Shell({ title, sub, wide, children, onClose }: { title: React.ReactNode
       <div className={`modal room ${wide ? 'wide' : ''}`} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <div className="room-title"><b>{title}</b>{sub && <span>{sub}</span>}</div>
-          <button className="close" onClick={close} aria-label="Fermer">×</button>
+          <button className="close" onClick={close} aria-label="닫기">×</button>
         </div>
         <div className="modal-body">{children}</div>
       </div>
@@ -34,7 +34,7 @@ function Shell({ title, sub, wide, children, onClose }: { title: React.ReactNode
   );
 }
 
-/** Les fenêtres du bureau (une seule ouverte à la fois). */
+/** 사무실 창들(한 번에 하나만 열린다). */
 export function Rooms() {
   const modal = useOffice((s) => s.modal);
   if (!modal) return null;
@@ -50,12 +50,12 @@ export function Rooms() {
   }
 }
 
-// ── La fiche d'un agent ──
+// ── 에이전트 카드 ──
 function AgentRoom({ id }: { id: string }) {
   const a = useOffice((s) => s.agents[id]);
   const live = world.actors.get(id);
   const html = useMemo(() => (a?.report ? mdToHtml(tidy(a.report)) : ''), [a?.report]);
-  if (!a) return <Shell title="Cet agent n’est plus là">Il a quitté le bureau.</Shell>;
+  if (!a) return <Shell title="이 에이전트는 이제 없어요">사무실을 떠났어요.</Shell>;
   const role = ROLES[a.role];
   const working = a.status === 'working' || a.status === 'reporting';
   return (
@@ -63,29 +63,29 @@ function AgentRoom({ id }: { id: string }) {
       <div className="agent-hero" style={{ ['--c' as string]: role.color }}>
         <Avatar role={a.role} size={72} />
         <div>
-          <span className={`pill-status ${a.status}`}>{working ? (live?.seated ? 'Au travail' : 'En chemin') : a.status === 'done' ? 'A rendu son travail' : 'N’a pas pu finir'}</span>
-          <p className="now">{working && a.act ? <><i>{ICON[a.act.kind]}</i>{a.act.label}</> : a.status === 'done' ? 'Son rapport est sur le bureau de Max.' : working ? 'Il s’installe à son poste…' : ''}</p>
-          <p className="small muted">Un vrai sous-agent Claude Code (« {role.type || 'renfort'} »), avec ses propres outils : {ROLE_TOOLS[a.role].join(', ') || 'ceux de Max'}.</p>
+          <span className={`pill-status ${a.status}`}>{working ? (live?.seated ? '일하는 중' : '가는 중') : a.status === 'done' ? '일을 마쳤어요' : '끝내지 못했어요'}</span>
+          <p className="now">{working && a.act ? <><i>{ICON[a.act.kind]}</i>{a.act.label}</> : a.status === 'done' ? '보고서가 맥스의 책상 위에 있어요.' : working ? '자리에 앉는 중…' : ''}</p>
+          <p className="small muted">진짜 Claude Code 서브에이전트(“{role.type || 'renfort'}”)예요. 쓰는 도구: {ROLE_TOOLS[a.role].join(', ') || '맥스와 같은 도구'}.</p>
         </div>
       </div>
       <section className="room-sec">
-        <h4>Sa mission, écrite par Max</h4>
+        <h4>맥스가 맡긴 일</h4>
         <p className="brief">{tidy(a.prompt)}</p>
       </section>
       {a.acts.length > 0 && (
         <section className="room-sec">
-          <h4>Ce qu’il a fait <span className="count">{plural(a.acts.length, 'action', 'actions')}</span></h4>
+          <h4>한 일 <span className="count">작업 {plural(a.acts.length, '개')}</span></h4>
           <ActList acts={a.acts} />
         </section>
       )}
       {html && (
         <section className="room-sec">
-          <h4>Son rapport</h4>
+          <h4>보고서</h4>
           <div className="md report" dangerouslySetInnerHTML={{ __html: html }} />
         </section>
       )}
       {a.leftAt && (
-        <p className="small muted">{fmtDuration(a.leftAt - a.hiredAt)} de travail{a.tools ? ` · ${plural(a.tools, 'outil utilisé', 'outils utilisés')}` : ''}{a.tokens ? ` · ${a.tokens.toLocaleString('fr-FR')} jetons` : ''}</p>
+        <p className="small muted">{fmtDuration(a.leftAt - a.hiredAt)} 동안 일함{a.tools ? ` · 도구 ${plural(a.tools, '번')} 사용` : ''}{a.tokens ? ` · 토큰 ${a.tokens.toLocaleString('ko-KR')}개` : ''}</p>
       )}
     </Shell>
   );
@@ -108,9 +108,9 @@ function ActList({ acts }: { acts: ActView[] }) {
   );
 }
 
-// ── Le tableau : le plan, qui fait quoi, et l'historique du plan ──
+// ── 화이트보드: 계획, 누가 무엇을 하는지, 계획의 기록 ──
 function planChanges(prev: PlanItem[] | null, next: PlanItem[]): string[] {
-  if (!prev) return [`Max écrit le plan : ${plural(next.length, 'étape', 'étapes')}`];
+  if (!prev) return [`맥스가 계획을 써요: ${plural(next.length, '단계')}`];
   const out: string[] = [];
   for (const it of next) {
     const before = prev.find((p) => p.text === it.text);
@@ -128,15 +128,15 @@ function BoardRoom() {
   const done = plan.filter((p) => p.status === 'completed').length;
   const steps = useMemo(() => history.map((h, i) => ({ at: h.at, lines: planChanges(i ? history[i - 1].items : null, h.items) })).filter((x) => x.lines.length), [history]);
   return (
-    <Shell title="Le tableau de Max" sub={plan.length ? `${done} étape${done > 1 ? 's' : ''} faite${done > 1 ? 's' : ''} sur ${plan.length}` : 'Le plan de la mission, et qui fait quoi'}>
+    <Shell title="맥스의 화이트보드" sub={plan.length ? `${plan.length}단계 중 ${done}단계 완료` : '미션 계획과 누가 무엇을 하는지'}>
       {plan.length > 0 ? (
         <>
           <div className="progress"><i style={{ width: `${(done / plan.length) * 100}%` }} /></div>
           <ul className="plan big">{plan.map((p, i) => <li key={i} className={p.status}><i />{p.text}</li>)}</ul>
         </>
-      ) : <p className="muted">Pas encore de plan : Max en écrit un dès qu’une mission a plusieurs étapes.</p>}
+      ) : <p className="muted">아직 계획이 없어요. 미션에 단계가 여러 개면 맥스가 계획을 써요.</p>}
       <section className="room-sec">
-        <h4>Qui fait quoi <span className="count">{plural(team.length, 'agent', 'agents')}</span></h4>
+        <h4>누가 무엇을 <span className="count">에이전트 {plural(team.length, '명')}</span></h4>
         {team.length ? (
           <div className="who">
             {team.map((a) => (
@@ -144,15 +144,15 @@ function BoardRoom() {
                 <Avatar role={a.role} size={26} />
                 <b>{a.name}</b>
                 <span className="who-task">{a.task}</span>
-                <span className="who-state">{a.status === 'done' ? '✓ rapport rendu' : a.status === 'failed' ? '✕ pas fini' : a.status === 'reporting' ? '📄 rend son rapport' : '… au travail'}</span>
+                <span className="who-state">{a.status === 'done' ? '✓ 보고 완료' : a.status === 'failed' ? '✕ 못 끝냄' : a.status === 'reporting' ? '📄 보고하는 중' : '… 일하는 중'}</span>
               </button>
             ))}
           </div>
-        ) : <p className="muted small">Personne pour l’instant.</p>}
+        ) : <p className="muted small">아직 아무도 없어요.</p>}
       </section>
       {steps.length > 0 && (
         <section className="room-sec">
-          <h4>L’historique du plan</h4>
+          <h4>계획 기록</h4>
           <ol className="timeline">
             {steps.map((s, i) => (
               <li key={i}>
@@ -167,14 +167,14 @@ function BoardRoom() {
   );
 }
 
-// ── L'horloge ──
+// ── 시계 ──
 function useClock() {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => { const t = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(t); }, []);
   return now;
 }
 
-const TODS: [Tod, string][] = [['auto', 'Comme ton Mac'], ['day', '☀️ Jour'], ['evening', '🌇 Soir'], ['night', '🌙 Nuit']];
+const TODS: [Tod, string][] = [['auto', 'Mac 시간대로'], ['day', '☀️ 낮'], ['evening', '🌇 저녁'], ['night', '🌙 밤']];
 
 function ClockRoom() {
   const now = useClock();
@@ -186,12 +186,12 @@ function ClockRoom() {
   const mm = String(now.getMinutes()).padStart(2, '0');
   const ss = String(now.getSeconds()).padStart(2, '0');
   return (
-    <Shell title="L’horloge du bureau" sub={now.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}>
+    <Shell title="사무실 시계" sub={now.toLocaleDateString('ko-KR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}>
       <div className="big-clock"><span>{hh}</span><i>:</i><span>{mm}</span><small>{ss}</small></div>
       {mission && (busySince
-        ? <p className="center">Mission en cours depuis <b>{fmtClock(workMs + (now.getTime() - busySince))}</b> · {mission.title}</p>
-        : <p className="center">Dernière mission : <b>{fmtClock(workMs)}</b> de travail · {mission.title}</p>)}
-      <p className="center muted small">Ton équipe ne dort jamais : elle travaille à 3 h du matin comme à midi.</p>
+        ? <p className="center">미션 진행 시간 <b>{fmtClock(workMs + (now.getTime() - busySince))}</b> · {mission.title}</p>
+        : <p className="center">지난 미션: <b>{fmtClock(workMs)}</b> 동안 일함 · {mission.title}</p>)}
+      <p className="center muted small">팀은 잠들지 않아요. 새벽 3시에도 낮 12시처럼 일해요.</p>
       <div className="seg">
         {TODS.map(([v, l]) => (
           <button key={v} className={tod === v ? 'on' : ''} onClick={() => { sfx('click'); useOffice.setState({ tod: v }); savePref('tod', v); }}>{l}</button>
@@ -201,7 +201,7 @@ function ClockRoom() {
   );
 }
 
-// ── La machine (le serveur) : Claude Code, le modèle, l'abonnement ──
+// ── 머신(서버): Claude Code, 모델, 구독 ──
 function MachineRoom() {
   const claude = useOffice((s) => s.claude);
   const settings = useOffice((s) => s.settings);
@@ -210,47 +210,47 @@ function MachineRoom() {
   const dir = useOffice((s) => s.dir);
   const connection = useOffice((s) => s.connection);
   const rows: [string, React.ReactNode][] = [
-    ['Claude Code', claude?.found ? `${claude.version} · ${claude.path}` : connection === 'demo' ? 'Démo (rediffusion d’une vraie mission)' : 'introuvable'],
-    ['Connexion', 'ton abonnement Claude (aucune clé API, aucune facturation à l’usage)'],
-    ['Cerveau de Max', mission?.model ? `${mission.model} (réglage : ${settings.chefModel || 'par défaut'})` : settings.chefModel || 'par défaut'],
-    ['Cerveau de l’équipe', settings.teamModel === 'inherit' ? 'le même que Max' : settings.teamModel],
-    ['Permissions', settings.permission === 'auto' ? 'automatiques : l’agent lève la main pour les gestes risqués' : 'demandées avant chaque commande'],
-    ['Énergie (5 h)', quota ? `${Math.round(quota.fiveHour * 100)} % utilisés${quota.resetsAt ? `, rechargée à ${new Date(quota.resetsAt * 1000).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}` : ''}` : 'pas encore mesurée'],
-    ['Dossier du bureau', dir ? tilde(dir) : '—'],
-    ['Mission en cours', mission ? tilde(mission.folder) : 'aucune'],
+    ['Claude Code', claude?.found ? `${claude.version} · ${claude.path}` : connection === 'demo' ? '데모(실제 미션 다시 재생)' : '찾을 수 없음'],
+    ['연결', '내 Claude 구독(API 키 없음, 사용량 과금 없음)'],
+    ['맥스의 두뇌', mission?.model ? `${mission.model} (설정: ${settings.chefModel || '기본값'})` : settings.chefModel || '기본값'],
+    ['팀의 두뇌', settings.teamModel === 'inherit' ? '맥스와 같음' : settings.teamModel],
+    ['허락', settings.permission === 'auto' ? '자동: 위험한 작업만 에이전트가 물어봐요' : '명령마다 물어봐요'],
+    ['에너지(5시간)', quota ? `${Math.round(quota.fiveHour * 100)}% 사용${quota.resetsAt ? `, ${new Date(quota.resetsAt * 1000).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}에 충전` : ''}` : '아직 측정 전'],
+    ['사무실 폴더', dir ? tilde(dir) : '—'],
+    ['진행 중인 미션', mission ? tilde(mission.folder) : '없음'],
   ];
   return (
-    <Shell title="La machine" sub="Ce qui tourne derrière le bureau">
+    <Shell title="머신" sub="사무실 뒤에서 돌아가는 것">
       <dl className="kv">{rows.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
       <section className="room-sec">
-        <h4>Comment ça marche</h4>
-        <p className="small">Max est une vraie séance Claude Code, lancée sans fenêtre dans le dossier de la mission. Son équipe, ce sont de vrais sous-agents Claude Code, chacun avec ses consignes et seulement les outils de son métier. Chaque fois qu’un agent utilise un outil (une recherche, une page lue, un fichier écrit), Claude Code le raconte au bureau, qui le montre aussitôt : un robot qui tape, une bulle, un rapport posé sur le bureau du chef.</p>
-        <p className="small muted">Mode restreint : l’équipe ne sort jamais du dossier de la mission, et ni tes réglages ni tes autres agents ne s’invitent dans le bureau.</p>
+        <h4>어떻게 동작하나요</h4>
+        <p className="small">맥스는 미션 폴더에서 창 없이 실행되는 진짜 Claude Code 세션이에요. 팀원은 진짜 Claude Code 서브에이전트로, 각자 지시문과 자기 직무의 도구만 가지고 있어요. 에이전트가 도구를 쓸 때마다(검색, 페이지 읽기, 파일 쓰기) Claude Code가 사무실에 알려 주고, 사무실은 그걸 바로 보여 줘요. 타자 치는 로봇, 말풍선, 팀장 책상에 놓이는 보고서처럼요.</p>
+        <p className="small muted">제한 모드: 팀은 미션 폴더 밖으로 나가지 않고, 내 설정이나 다른 에이전트도 사무실에 끼어들지 않아요.</p>
       </section>
     </Shell>
   );
 }
 
-// ── Le jukebox ──
+// ── 주크박스 ──
 function JukeboxRoom() {
   const music = useOffice((s) => s.music);
   const tr = TRACKS[music.index];
   return (
-    <Shell title="Le jukebox" sub="De la house pour bosser (ou pour l’afterwork)">
+    <Shell title="주크박스" sub="일할 때 듣는 하우스 음악(퇴근 후에도)">
       <div className="now-playing">
         <div className={`vinyl ${music.playing ? 'spin' : ''}`}><i /></div>
         <div>
           <b>{tr.title}</b>
           <span>{tr.mood}</span>
           <div className="row">
-            <button className="btn small" onClick={() => jukebox.prev()} aria-label="Morceau précédent">⏮</button>
-            <button className="btn primary small" onClick={() => jukebox.toggle()}>{music.playing ? '⏸ Pause' : '▶ Lecture'}</button>
-            <button className="btn small" onClick={() => jukebox.next()} aria-label="Morceau suivant">⏭</button>
+            <button className="btn small" onClick={() => jukebox.prev()} aria-label="이전 곡">⏮</button>
+            <button className="btn primary small" onClick={() => jukebox.toggle()}>{music.playing ? '⏸ 일시정지' : '▶ 재생'}</button>
+            <button className="btn small" onClick={() => jukebox.next()} aria-label="다음 곡">⏭</button>
           </div>
         </div>
       </div>
       <label className="field volume">
-        <span>Volume</span>
+        <span>음량</span>
         <input type="range" min={0} max={1} step={0.01} value={music.volume} onChange={(e) => jukebox.setVolume(Number(e.target.value))} />
       </label>
       <ul className="tracks">
@@ -265,14 +265,14 @@ function JukeboxRoom() {
         ))}
       </ul>
       <div className="row">
-        <button className="btn" onClick={() => { useOffice.setState({ modal: null }); party(); }}>🪩 Mode soirée</button>
-        <span className="small muted">Morceaux originaux, composés pour le bureau avec ElevenLabs Music et Google Lyria.</span>
+        <button className="btn" onClick={() => { useOffice.setState({ modal: null }); party(); }}>🪩 저녁 모드</button>
+        <span className="small muted">이 사무실을 위해 ElevenLabs Music과 Google Lyria로 만든 오리지널 곡이에요.</span>
       </div>
     </Shell>
   );
 }
 
-// ── Toute l'équipe : les métiers et leurs outils, la mission en cours, l'historique ──
+// ── 팀 전체: 직무와 도구, 진행 중인 미션, 기록 ──
 function TeamRoom({ role }: { role?: Role }) {
   const [tab, setTab] = useState<'roles' | 'now' | 'history'>(role ? 'roles' : 'now');
   const team = useOffice(useShallow(teamList));
@@ -293,11 +293,11 @@ function TeamRoom({ role }: { role?: Role }) {
     return [...m.entries()];
   }, [history]);
   return (
-    <Shell title="Toute l’équipe" sub="De vrais agents Claude Code, chacun avec son métier et ses outils" wide>
+    <Shell title="팀 전체" sub="저마다 직무와 도구를 가진 진짜 Claude Code 에이전트" wide>
       <div className="seg tabs">
-        <button className={tab === 'now' ? 'on' : ''} onClick={() => setTab('now')}>Cette mission</button>
-        <button className={tab === 'roles' ? 'on' : ''} onClick={() => setTab('roles')}>Les métiers</button>
-        <button className={tab === 'history' ? 'on' : ''} onClick={() => setTab('history')}>L’historique</button>
+        <button className={tab === 'now' ? 'on' : ''} onClick={() => setTab('now')}>이번 미션</button>
+        <button className={tab === 'roles' ? 'on' : ''} onClick={() => setTab('roles')}>직무</button>
+        <button className={tab === 'history' ? 'on' : ''} onClick={() => setTab('history')}>기록</button>
       </div>
       {tab === 'now' && (team.length ? (
         <div className="who">
@@ -306,16 +306,16 @@ function TeamRoom({ role }: { role?: Role }) {
               <Avatar role={a.role} size={26} />
               <b>{a.name}</b>
               <span className="who-task">{ROLES[a.role].icon} {a.task}</span>
-              <span className="who-state">{a.status === 'done' ? '✓ rapport rendu' : a.status === 'failed' ? '✕ pas fini' : a.act ? a.act.label : '… au travail'}</span>
+              <span className="who-state">{a.status === 'done' ? '✓ 보고 완료' : a.status === 'failed' ? '✕ 못 끝냄' : a.act ? a.act.label : '… 일하는 중'}</span>
             </button>
           ))}
         </div>
-      ) : <p className="muted">Personne au bureau pour l’instant. Donne une mission à Max : il appellera les bons agents.</p>)}
+      ) : <p className="muted">아직 사무실에 아무도 없어요. 맥스에게 미션을 주면 알맞은 에이전트를 불러요.</p>)}
       {tab === 'roles' && (
         <div className="roles">
           {roles.map((r) => (
             <div key={r} className={`role-card ${role === r ? 'focus' : ''}`} style={{ ['--c' as string]: ROLES[r].color }}>
-              <div className="role-head"><Avatar role={r} size={34} /><div><b>{ROLES[r].icon} {ROLES[r].label}</b><span>{r === 'chef' ? 'Max' : `agent « ${ROLES[r].type} »`} · cerveau : {r === 'chef' ? settings.chefModel || 'par défaut' : settings.teamModel === 'inherit' ? 'comme Max' : settings.teamModel}</span></div>{working(r) > 0 && <em>{working(r)} au travail</em>}</div>
+              <div className="role-head"><Avatar role={r} size={34} /><div><b>{ROLES[r].icon} {ROLES[r].label}</b><span>{r === 'chef' ? '맥스' : `에이전트 “${ROLES[r].type}”`} · 두뇌: {r === 'chef' ? settings.chefModel || '기본값' : settings.teamModel === 'inherit' ? '맥스와 같음' : settings.teamModel}</span></div>{working(r) > 0 && <em>{working(r)}명 일하는 중</em>}</div>
               <p>{ROLES[r].what}</p>
               <div className="tools">{ROLE_TOOLS[r].map((t) => <span key={t} title={TOOL_INFO[t] ?? t}>{t}<small>{TOOL_INFO[t] ?? ''}</small></span>)}</div>
             </div>
@@ -323,9 +323,9 @@ function TeamRoom({ role }: { role?: Role }) {
         </div>
       )}
       {tab === 'history' && (
-        connection !== 'live' ? <p className="muted">L’historique vit sur ton ordinateur : lance le bureau avec Claude Code pour le voir.</p>
-          : !history ? <p className="muted">Chargement…</p>
-            : !missions.length ? <p className="muted">Pas encore d’historique.</p>
+        connection !== 'live' ? <p className="muted">기록은 내 컴퓨터에 있어요. 보려면 Claude Code와 함께 사무실을 실행하세요.</p>
+          : !history ? <p className="muted">불러오는 중…</p>
+            : !missions.length ? <p className="muted">아직 기록이 없어요.</p>
               : (
                 <div className="hist-team">
                   {missions.map(([id, m]) => (
@@ -351,17 +351,17 @@ function TeamRoom({ role }: { role?: Role }) {
   );
 }
 
-// ── L'imprimante : les rendus de la mission ──
+// ── 프린터: 미션 결과물 ──
 function FilesRoom() {
   const files = useOffice((s) => s.files);
   const mission = useOffice((s) => s.mission);
   const send = useOffice((s) => s.send);
   const replaying = useOffice((s) => s.replaying);
   if (!mission || !files.length) {
-    return <Shell title="Les rendus" sub="L’imprimante du bureau"><p className="muted">Rien d’imprimé pour l’instant : les fichiers de l’équipe arriveront ici.</p></Shell>;
+    return <Shell title="결과물" sub="사무실 프린터"><p className="muted">아직 출력된 게 없어요. 팀이 만든 파일이 여기로 와요.</p></Shell>;
   }
   return (
-    <Shell title="Les rendus" sub={`${plural(files.length, 'fichier', 'fichiers')} · ${mission.title}`}>
+    <Shell title="결과물" sub={`파일 ${plural(files.length, '개')} · ${mission.title}`}>
       <FileActions files={files} missionId={mission.id} disabled={replaying} send={send} />
     </Shell>
   );
@@ -376,22 +376,22 @@ export function FileActions({ files, missionId, disabled, send }: { files: Retur
           <span className="file-icon">{fileIcon(f.ext)}</span>
           <div className="file-id">
             <b title={f.path}>{f.name}</b>
-            <span className="small muted">{fmtSize(f.size)} · par {f.by === 'chef' ? 'Max' : agents[f.by]?.name ?? 'l’équipe'}</span>
+            <span className="small muted">{fmtSize(f.size)} · {f.by === 'chef' ? '맥스' : agents[f.by]?.name ?? '팀'}</span>
           </div>
           {!disabled && (f.ext === 'html' || f.ext === 'htm') && (
-            <button className="btn small primary" onClick={() => { sfx('open'); useOffice.setState({ modal: { kind: 'preview', missionId, file: f.path } }); }}>Voir le site</button>
+            <button className="btn small primary" onClick={() => { sfx('open'); useOffice.setState({ modal: { kind: 'preview', missionId, file: f.path } }); }}>사이트 보기</button>
           )}
           {!disabled && readable(f.ext) && (
-            <button className="btn small" onClick={() => { sfx('open'); useOffice.setState({ modal: null, viewer: { missionId, file: f.path } }); send({ t: 'read', missionId, file: f.path }); send({ t: 'versions', missionId, file: f.path }); }}>Lire</button>
+            <button className="btn small" onClick={() => { sfx('open'); useOffice.setState({ modal: null, viewer: { missionId, file: f.path } }); send({ t: 'read', missionId, file: f.path }); send({ t: 'versions', missionId, file: f.path }); }}>읽기</button>
           )}
-          {!disabled && <button className="btn small ghost" onClick={() => send({ t: 'open', missionId, file: f.path })}>Ouvrir</button>}
+          {!disabled && <button className="btn small ghost" onClick={() => send({ t: 'open', missionId, file: f.path })}>열기</button>}
         </div>
       ))}
     </div>
   );
 }
 
-// ── L'aperçu d'un site fait par l'équipe, dans un écran (bac à sable : il ne peut rien toucher) ──
+// ── 팀이 만든 사이트 미리보기 화면(샌드박스: 아무것도 건드릴 수 없다) ──
 function PreviewRoom({ missionId, file }: { missionId: string; file: string }) {
   const [device, setDevice] = useState<'desktop' | 'phone'>('desktop');
   const [nonce, setNonce] = useState(0);
@@ -405,13 +405,13 @@ function PreviewRoom({ missionId, file }: { missionId: string; file: string }) {
           <span className="dots"><i /><i /><i /></span>
           <span className="addr">🔒 {file}</span>
           <div className="seg small">
-            <button className={device === 'desktop' ? 'on' : ''} onClick={() => setDevice('desktop')}>💻 Ordinateur</button>
-            <button className={device === 'phone' ? 'on' : ''} onClick={() => setDevice('phone')}>📱 Téléphone</button>
+            <button className={device === 'desktop' ? 'on' : ''} onClick={() => setDevice('desktop')}>💻 컴퓨터</button>
+            <button className={device === 'phone' ? 'on' : ''} onClick={() => setDevice('phone')}>📱 휴대폰</button>
           </div>
-          <button className="btn small" onClick={() => setNonce((n) => n + 1)} title="Recharger">↻</button>
-          <button className="btn small" title="Le code de la page, et ses versions successives" onClick={() => { useOffice.setState({ modal: null, viewer: { missionId, file } }); send({ t: 'read', missionId, file }); send({ t: 'versions', missionId, file }); }}>&lt;/&gt; Code et versions</button>
-          <button className="btn small" onClick={() => send({ t: 'open', missionId, file })}>Ouvrir dans le navigateur</button>
-          <button className="close" onClick={close} aria-label="Fermer">×</button>
+          <button className="btn small" onClick={() => setNonce((n) => n + 1)} title="새로고침">↻</button>
+          <button className="btn small" title="페이지 코드와 버전 기록" onClick={() => { useOffice.setState({ modal: null, viewer: { missionId, file } }); send({ t: 'read', missionId, file }); send({ t: 'versions', missionId, file }); }}>&lt;/&gt; 코드와 버전</button>
+          <button className="btn small" onClick={() => send({ t: 'open', missionId, file })}>브라우저에서 열기</button>
+          <button className="close" onClick={close} aria-label="닫기">×</button>
         </div>
         <div className={`monitor-screen ${device}`}>
           <iframe key={nonce} title={file} src={src} sandbox="allow-scripts allow-forms allow-popups allow-modals" referrerPolicy="no-referrer" />

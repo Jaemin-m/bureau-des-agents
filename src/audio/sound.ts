@@ -1,4 +1,4 @@
-// Le bouton du son coupe tout : les bruitages, la musique du jukebox et la voix de Max.
+// 소리 버튼은 전부 끈다: 효과음, 주크박스 음악, 맥스의 목소리.
 import { useOffice } from '../state/store.ts';
 import { jukebox } from './music.ts';
 import { setMuted } from './sfx.ts';

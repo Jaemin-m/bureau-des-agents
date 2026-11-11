@@ -1,17 +1,17 @@
-name: Une idée
-description: Un meuble, un métier, une fonction, une surprise… propose ce que tu aimerais voir dans le bureau.
+name: 아이디어
+description: 가구, 직무, 기능, 깜짝 요소… 사무실에서 보고 싶은 걸 제안해 주세요.
 labels: [idée]
 body:
   - type: textarea
     id: idee
     attributes:
-      label: Ton idée
-      description: Ce que tu aimerais, et à quoi ça te servirait.
+      label: 내 아이디어
+      description: 원하는 것, 그리고 그게 어디에 도움이 되는지.
     validations:
       required: true
   - type: checkboxes
     id: aide
     attributes:
-      label: Coup de main
+      label: 도움
       options:
-        - label: Je veux bien la coder moi-même (avec Claude Code, c'est permis !)
+        - label: 제가 직접 만들어 볼게요 (Claude Code와 함께 해도 돼요!)

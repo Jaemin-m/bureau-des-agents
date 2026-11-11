@@ -1,9 +1,10 @@
-// Qu'y a-t-il sous la souris ? Un robot, le chat, un meuble, le tableau, l'horloge… Le plus en avant gagne.
+// 마우스 아래에 뭐가 있을까? 로봇, 고양이, 가구, 칠판, 시계… 가장 앞에 있는 것이 이긴다.
 import { ROLES } from '../../shared/activity.ts';
 import type { Role } from '../../shared/protocol.ts';
 import { textWidth } from './font.ts';
 import { furniturePlacement } from './furniture.ts';
-import { BOARD, CLOCK, DOOR, FURNITURE, NEON, POSTER, T, WINDOWS, ZONES } from './layout.ts';
+import { BOARD, CLOCK, DOOR, FURNITURE, NEON, POSTER, WINDOWS, ZONES } from './layout.ts';
+import { SIGN, SIGN_H, signPos } from './room.ts';
 import type { World } from './world.ts';
 
 export type Hit =
@@ -11,26 +12,24 @@ export type Hit =
   | { kind: 'cat'; label: string }
   | { kind: 'object'; id: string; label: string; role?: Role };
 
-const ZONE_SIGN: Record<string, string> = { recherche: 'RECHERCHE', code: 'CODE', design: 'DESIGN', redaction: 'RÉDACTION', analyse: 'ANALYSE', chef: 'CHEF' };
-
 function furnitureLabel(id: string, kind: string, role?: Role): string {
   switch (kind) {
-    case 'desk': return `Un bureau du coin ${ROLES[role ?? 'renfort'].label}`;
-    case 'chair': return `Un poste du coin ${ROLES[role ?? 'renfort'].label}`;
-    case 'chefDesk': return 'Le bureau de Max : les rapports de l’équipe';
-    case 'chefChair': return 'Le fauteuil de Max';
-    case 'rack': return 'Le serveur : Claude Code et ton abonnement';
-    case 'printer': return 'L’imprimante : les rendus de la mission';
-    case 'cooler': return 'La fontaine à eau';
-    case 'easel': return 'Le chevalet du studio design';
-    case 'plantBig': case 'plantTall': case 'plantSmall': return 'Une plante (elle aime qu’on la chatouille)';
-    case 'sofa': return 'Le canapé (la place préférée du chat)';
-    case 'tableLow': return 'La table basse';
-    case 'lamp': return 'Un lampadaire (clique pour l’éteindre)';
-    case 'shelf': return 'Les archives : les missions passées';
-    case 'coffee': return 'La machine à café';
-    case 'bin': return 'La corbeille';
-    case 'jukebox': return 'Le jukebox';
+    case 'desk': return `${ROLES[role ?? 'renfort'].label} 구역의 책상`;
+    case 'chair': return `${ROLES[role ?? 'renfort'].label} 구역의 자리`;
+    case 'chefDesk': return '맥스의 책상: 팀이 낸 보고서가 모여요';
+    case 'chefChair': return '맥스의 의자';
+    case 'rack': return '서버: Claude Code와 내 구독';
+    case 'printer': return '프린터: 미션 결과물';
+    case 'cooler': return '정수기';
+    case 'easel': return '디자인 스튜디오의 이젤';
+    case 'plantBig': case 'plantTall': case 'plantSmall': return '화분(간지럼 태우면 좋아해요)';
+    case 'sofa': return '소파(고양이가 제일 좋아하는 자리)';
+    case 'tableLow': return '낮은 탁자';
+    case 'lamp': return '스탠드 조명(클릭하면 꺼져요)';
+    case 'shelf': return '기록 보관함: 지난 미션';
+    case 'coffee': return '커피 머신';
+    case 'bin': return '휴지통';
+    case 'jukebox': return '주크박스';
   }
   return id;
 }
@@ -43,32 +42,32 @@ const placed = FURNITURE.map((f) => {
 const inRect = (x: number, y: number, r: { x: number; y: number; w: number; h: number }) => x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h;
 
 export function hitAt(world: World, x: number, y: number): Hit | null {
-  // les robots (le plus en avant d'abord)
+  // 로봇(가장 앞에 있는 것부터)
   const actors = [...world.actors.values()].sort((a, b) => (b.seated && b.seat ? b.seat.y : b.y) - (a.seated && a.seat ? a.seat.y : a.y));
   for (const a of actors) {
     const ay = a.seated && a.seat ? a.seat.y : a.y;
     if (a.alpha > 0.3 && x >= a.x - 7 && x <= a.x + 7 && y >= ay - 21 && y <= ay + 1) {
-      return { kind: 'actor', id: a.id, label: a.id === 'chef' ? 'Max, le chef de projet' : `${a.name} · ${ROLES[a.role].label}` };
+      return { kind: 'actor', id: a.id, label: a.id === 'chef' ? '팀장 맥스' : `${a.name} · ${ROLES[a.role].label}` };
     }
   }
-  if (world.cat.hit(x, y)) return { kind: 'cat', label: 'Pixel, le chat du bureau' };
-  // les meubles
+  if (world.cat.hit(x, y)) return { kind: 'cat', label: '사무실 고양이 픽셀' };
+  // 가구
   for (const p of placed) {
     if (!inRect(x, y, { x: p.x + 1, y: p.y + 1, w: p.w - 2, h: p.h - 2 })) continue;
-    // un pixel transparent du dessin ne compte pas : on regarde le meuble suivant
+    // 그림의 투명한 픽셀은 치지 않는다: 다음 가구를 본다
     return { kind: 'object', id: p.f.id, label: furnitureLabel(p.f.id, p.f.kind, p.f.role), role: p.f.role };
   }
-  // le mur du fond et le sol
-  if (inRect(x, y, { x: BOARD.x - 2, y: BOARD.y - 2, w: BOARD.w + 4, h: BOARD.h + 6 })) return { kind: 'object', id: 'board', label: 'Le tableau : le plan de Max' };
-  if (inRect(x, y, { x: CLOCK.x - 1, y: CLOCK.y - 1, w: 16, h: 16 })) return { kind: 'object', id: 'clock', label: 'L’horloge' };
-  if (inRect(x, y, { x: NEON.x, y: NEON.y - 3, w: 26, h: 26 })) return { kind: 'object', id: 'neon', label: 'Le néon VibesMoney (clique pour changer sa couleur)' };
-  if (inRect(x, y, POSTER)) return { kind: 'object', id: 'poster', label: 'L’affiche des objectifs' };
-  for (const w of WINDOWS) if (inRect(x, y, { x: w.x - 3, y: w.y - 3, w: w.w + 6, h: w.h + 8 })) return { kind: 'object', id: 'window', label: 'La fenêtre (jour, soir ou nuit)' };
-  if (inRect(x, y, DOOR)) return { kind: 'object', id: 'door', label: 'La porte : c’est par là qu’arrive l’équipe' };
+  // 뒷벽과 바닥
+  if (inRect(x, y, { x: BOARD.x - 2, y: BOARD.y - 2, w: BOARD.w + 4, h: BOARD.h + 6 })) return { kind: 'object', id: 'board', label: '칠판: 맥스의 계획' };
+  if (inRect(x, y, { x: CLOCK.x - 1, y: CLOCK.y - 1, w: 16, h: 16 })) return { kind: 'object', id: 'clock', label: '시계' };
+  if (inRect(x, y, { x: NEON.x, y: NEON.y - 3, w: 26, h: 26 })) return { kind: 'object', id: 'neon', label: 'VibesMoney 네온(클릭하면 색이 바뀌어요)' };
+  if (inRect(x, y, POSTER)) return { kind: 'object', id: 'poster', label: '목표 포스터' };
+  for (const w of WINDOWS) if (inRect(x, y, { x: w.x - 3, y: w.y - 3, w: w.w + 6, h: w.h + 8 })) return { kind: 'object', id: 'window', label: '창문(낮, 저녁, 밤)' };
+  if (inRect(x, y, DOOR)) return { kind: 'object', id: 'door', label: '문: 팀원들이 여기로 들어와요' };
   for (const z of ZONES) {
-    const w = textWidth(ZONE_SIGN[z.role] ?? z.label) + 10;
-    const sx = z.x * T + 4, sy = z.role === 'chef' ? (z.y + z.h) * T - 12 : z.y * T + 3;
-    if (inRect(x, y, { x: sx, y: sy, w, h: 9 })) return { kind: 'object', id: `zone:${z.role}`, label: `Le coin ${ROLES[z.role].label} : qui y travaille, avec quels outils`, role: z.role };
+    const w = textWidth(SIGN[z.role] ?? z.label) + 10;
+    const s = signPos(z);
+    if (inRect(x, y, { x: s.x, y: s.y, w, h: SIGN_H })) return { kind: 'object', id: `zone:${z.role}`, label: `${ROLES[z.role].label} 구역: 누가 어떤 도구로 일하는지`, role: z.role };
   }
   return null;
 }

@@ -1,5 +1,5 @@
 blank_issues_enabled: true
 contact_links:
-  - name: Discuter, montrer ton bureau, demander de l'aide
-    url: https://github.com/devlikemasta/bureau-des-agents/discussions
-    about: L'onglet Discussions, pour tout ce qui n'est ni un bug ni une idée précise.
+  - name: 이야기 나누기, 내 사무실 자랑하기, 도움 구하기
+    url: https://github.com/Jaemin-m/bureau-des-agents/discussions
+    about: 버그도 구체적인 아이디어도 아닌 모든 이야기는 Discussions 탭에서.

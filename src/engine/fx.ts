@@ -1,5 +1,5 @@
-// Les effets : la lumière de téléportation à la porte, les étincelles, les confettis, les petites
-// données qui arrivent d'internet par la fenêtre, la vapeur du café, les feuilles qui volent jusqu'au chef.
+// 효과: 문 앞의 순간 이동 빛, 반짝이, 색종이, 창문으로 들어오는 인터넷의 작은 데이터,
+// 커피 김, 팀장에게 날아가는 종이.
 import { icon, type IconName } from './icons.ts';
 import { P } from './pixels.ts';
 
@@ -11,7 +11,7 @@ interface Particle {
   size: number;
   gravity: number;
   icon?: IconName;
-  /** pour les trajets courbes (données, feuilles) */
+  /** 곡선 경로용(데이터, 종이) */
   from?: { x: number; y: number }; to?: { x: number; y: number }; arc?: number; delay?: number;
   onEnd?: () => void;
 }
@@ -19,10 +19,10 @@ interface Particle {
 export class Fx {
   list: Particle[] = [];
 
-  /** vrai s'il se passe quelque chose (la vapeur du café, discrète, ne compte pas) */
+  /** 뭔가 일어나고 있으면 true(은은한 커피 김은 치지 않는다) */
   get busy() { return this.list.some((p) => p.kind !== 'steam'); }
 
-  /** La colonne de lumière d'une arrivée ou d'un départ. */
+  /** 도착하거나 떠날 때의 빛기둥. */
   beam(x: number, y: number, color = P.orangeLight) {
     this.list.push({ kind: 'beam', x, y, vx: 0, vy: 0, life: 0, max: 0.9, color, size: 1, gravity: 0 });
     for (let i = 0; i < 14; i++) {
@@ -53,7 +53,7 @@ export class Fx {
     }
   }
 
-  /** Une pluie de confettis qui tombe du plafond, sur tout le bureau. */
+  /** 천장에서 사무실 전체로 쏟아지는 색종이. */
   rain(width: number, n = 140) {
     const colors = [P.orange, P.orangeLight, '#ffffff', '#4fb3ff', '#3ddc97', '#ff6fa8', '#ffd166', '#a98bff'];
     for (let i = 0; i < n; i++) {
@@ -68,7 +68,7 @@ export class Fx {
     this.list.push({ kind: 'icon', x, y, vx: 0, vy: -12, life: 0, max: 1.3, color: '', size: 1, gravity: 0, icon: name });
   }
 
-  /** Des petits paquets de données qui voyagent d'un point à un autre (internet → le bureau). */
+  /** 한 점에서 다른 점으로 날아가는 작은 데이터 꾸러미(인터넷 → 사무실). */
   data(from: { x: number; y: number }, to: { x: number; y: number }, color = '#7fd6ff', n = 5) {
     for (let i = 0; i < n; i++) {
       this.list.push({
@@ -78,7 +78,7 @@ export class Fx {
     }
   }
 
-  /** Une feuille qui vole en cloche, puis se pose (et prévient quand elle arrive). */
+  /** 포물선을 그리며 날아가 내려앉는 종이(도착하면 알린다). */
   paper(from: { x: number; y: number }, to: { x: number; y: number }, onEnd?: () => void) {
     this.list.push({ kind: 'paper', x: from.x, y: from.y, vx: 0, vy: 0, life: 0, max: 0.7, color: P.paper, size: 1, gravity: 0, from, to, arc: -18, onEnd });
   }

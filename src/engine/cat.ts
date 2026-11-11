@@ -1,5 +1,5 @@
-// Pixel, le chat du bureau : un chat noir aux yeux orange (les couleurs de la maison). Il se promène,
-// s'assoit, et fait de longues siestes sur le canapé. Clique dessus : il miaule.
+// 사무실 고양이 픽셀: 주황 눈의 검은 고양이(사무실 대표 색). 돌아다니다 앉기도 하고,
+// 소파에서 오래 낮잠을 잔다. 클릭하면 야옹 한다.
 import { findPath, type Tile } from './path.ts';
 import { g2d, makeCanvas, outline, rect, px } from './pixels.ts';
 import { T, tileFeet } from './layout.ts';
@@ -14,7 +14,7 @@ function build(pose: CatPose, frame: number, right: boolean): HTMLCanvasElement 
   const c = makeCanvas(16, 12);
   const g = g2d(c);
   if (pose === 'sleep') {
-    // roulé en boule, la queue autour
+    // 꼬리를 감고 동그랗게 웅크린 모습
     rect(g, 3, 6, 10, 4, BODY);
     rect(g, 4, 5, 8, 1, BODY);
     rect(g, 4, 5, 6, 1, RIM);
@@ -36,7 +36,7 @@ function build(pose: CatPose, frame: number, right: boolean): HTMLCanvasElement 
     rect(g, 11, 8, 3, 1, BODY);
     px(g, 13, 7, BODY);
   } else {
-    // de profil, vers la droite
+    // 옆모습, 오른쪽을 본다
     const f = frame % 2;
     rect(g, 3, 4, 8, 4, BODY);
     hlineRim(g, 3, 4, 8);
@@ -45,11 +45,11 @@ function build(pose: CatPose, frame: number, right: boolean): HTMLCanvasElement 
     px(g, 13, 1, BODY);
     px(g, 12, 3, EYE);
     px(g, 13, 4, '#ff9fb3');
-    // la queue, dressée
+    // 꼿꼿이 세운 꼬리
     px(g, 2, 3, BODY);
     px(g, 1, 2, BODY);
     px(g, 1, 1, BODY);
-    // les pattes
+    // 다리
     for (const [x, up] of [[4, f], [6, 1 - f], [9, f], [11, 1 - f]] as [number, number][]) rect(g, x, 8, 1, up ? 1 : 2, BODY);
   }
   outline(c, '#0b0910');
@@ -74,7 +74,7 @@ function sprite(pose: CatPose, frame: number, right: boolean) {
   return c;
 }
 
-/** Le canapé (là où il dort) et les endroits où il aime traîner. */
+/** 소파(잠자는 곳)와 즐겨 어슬렁거리는 자리. */
 const SOFA = { x: 3 * T + 4, y: 14 * T + 4, from: [3, 13] as Tile };
 const HAUNTS: Tile[] = [[9, 10], [12, 10], [7, 13], [14, 13], [17, 13], [10, 9], [3, 9], [18, 9], [8, 6]];
 
@@ -110,7 +110,7 @@ export class Cat {
     }
     if (this.pose === 'sleep' && Math.floor(this.t * 0.8) !== Math.floor((this.t - dt) * 0.8)) onZ(this.x + 6, this.y - 10);
     if (time < this.until) return false;
-    // en route : vers un coin du bureau, ou vers le canapé pour une sieste
+    // 이동: 사무실 구석으로, 또는 낮잠 자러 소파로
     this.toSofa = Math.random() < 0.3;
     const target = this.toSofa ? SOFA.from : HAUNTS[Math.floor(Math.random() * HAUNTS.length)];
     const tiles = findPath(grid, this.tile, target);
@@ -120,7 +120,7 @@ export class Cat {
     return true;
   }
 
-  /** Clic : il s'arrête, regarde, et miaule. */
+  /** 클릭: 멈춰서 쳐다보고 야옹 한다. */
   pet(time: number) {
     this.path = [];
     this.pose = 'sit';
@@ -130,7 +130,7 @@ export class Cat {
 
   get frame() { return Math.floor(this.t * 6) % 2; }
 
-  /** Sur le canapé, il passe devant (sinon le dossier le cacherait). */
+  /** 소파 위에서는 앞에 그린다(아니면 등받이에 가려진다). */
   get sortY() { return this.pose === 'sleep' && !this.path.length && Math.abs(this.x - SOFA.x) < 2 ? 14 * T + 15 : this.y; }
 
   draw(g: CanvasRenderingContext2D) {
@@ -140,6 +140,6 @@ export class Cat {
     g.drawImage(s, Math.round(this.x) - 8, Math.round(this.y) - 11);
   }
 
-  /** La zone où l'on peut cliquer (en pixels du bureau). */
+  /** 클릭할 수 있는 영역(사무실 픽셀 단위). */
   hit(x: number, y: number) { return Math.abs(x - this.x) < 8 && y > this.y - 12 && y < this.y + 2; }
 }

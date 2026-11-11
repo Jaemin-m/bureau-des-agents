@@ -1,5 +1,5 @@
-// L'écran du bureau : la barre du haut, le bureau en pixel art (avec le panneau de l'équipe à droite),
-// et Max en bas, à qui tu parles. Le cadre vertical (9:16) sert à filmer un reel.
+// 사무실 화면: 상단 바, 픽셀 아트 사무실(오른쪽에 팀 패널), 아래에는 말을 거는 맥스.
+// 세로 화면(9:16)은 릴스 촬영용이다.
 import { useEffect, useRef, useState } from 'react';
 import { jukebox } from './audio/music.ts';
 import { sfx } from './audio/sfx.ts';
@@ -19,7 +19,7 @@ const KONAMI = ['arrowup', 'arrowup', 'arrowdown', 'arrowdown', 'arrowleft', 'ar
 
 const TOD_NEXT: Record<Tod, Tod> = { auto: 'day', day: 'evening', evening: 'night', night: 'auto' };
 
-/** En mode tournage : un bouton pour en sortir, qui n'apparaît que quand la souris bouge (l'image reste propre). */
+/** 촬영 모드에서 나가는 버튼. 마우스를 움직일 때만 보인다(화면을 깔끔하게 유지). */
 function ExitFilming() {
   const [shown, setShown] = useState(true);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -36,9 +36,9 @@ function ExitFilming() {
   }, []);
   return (
     <div className={`exit-filming ${shown ? 'shown' : ''}`}>
-      <button onClick={() => { useOffice.setState({ cameraAuto: !cameraAuto }); savePref('cameraAuto', !cameraAuto); }}>{cameraAuto ? '🎥 Caméra auto : oui' : '🎥 Caméra auto : non'}</button>
-      <button onClick={() => void startTour()}>🎤 Visite guidée</button>
-      <button className="quit" onClick={() => useOffice.setState({ filming: false })}>✕ Quitter le tournage (F ou Échap)</button>
+      <button onClick={() => { useOffice.setState({ cameraAuto: !cameraAuto }); savePref('cameraAuto', !cameraAuto); }}>{cameraAuto ? '🎥 자동 카메라: 켜짐' : '🎥 자동 카메라: 꺼짐'}</button>
+      <button onClick={() => void startTour()}>🎤 사무실 둘러보기</button>
+      <button className="quit" onClick={() => useOffice.setState({ filming: false })}>✕ 촬영 끝내기 (F 또는 Esc)</button>
     </div>
   );
 }
@@ -47,7 +47,7 @@ export function App() {
   const vertical = useOffice((s) => s.vertical || s.portrait);
   const filming = useOffice((s) => s.filming);
 
-  // sur un écran en hauteur (téléphone), la mise en page verticale s'impose
+  // 세로로 긴 화면(휴대폰)에서는 세로 레이아웃을 쓴다
   useEffect(() => {
     const onResize = () => useOffice.setState({ portrait: window.innerWidth / Math.max(1, window.innerHeight) < 0.8 });
     window.addEventListener('resize', onResize);
@@ -62,7 +62,7 @@ export function App() {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const s = useOffice.getState();
       const k = e.key.toLowerCase();
-      // le code secret (↑ ↑ ↓ ↓ ← → ← → B A) : le mode soirée
+      // 비밀 코드(↑ ↑ ↓ ↓ ← → ← → B A): 저녁 모드
       combo = [...combo, k].slice(-KONAMI.length);
       if (combo.join() === KONAMI.join()) { combo = []; party(); return; }
       if (k === 'escape') {

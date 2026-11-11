@@ -1,8 +1,8 @@
-// La pièce elle-même : le parquet, les tapis de chaque coin, les murs, les grandes fenêtres sur la
-// ville (le ciel suit l'heure), le néon VibesMoney, le tableau du plan, l'horloge et la porte.
-// Tout ça ne bouge pas : c'est dessiné une fois, puis recopié à chaque image.
+// 방 자체: 마룻바닥, 구역마다 깔린 러그, 벽, 도시가 보이는 큰 창(하늘은 시간을 따른다),
+// VibesMoney 네온, 계획 칠판, 시계, 문.
+// 모두 움직이지 않으니 한 번만 그려 두고 매 프레임 복사한다.
 import { ROLES } from '../../shared/activity.ts';
-import { pixelText, textWidth } from './font.ts';
+import { pixelText, TEXT_H, textWidth } from './font.ts';
 import { BOARD, CLOCK, H, NEON, T, W, WINDOWS, ZONES } from './layout.ts';
 import { g2d, hline, lighten, makeCanvas, mix, P, px, rect, rng, vline, type G } from './pixels.ts';
 
@@ -18,7 +18,7 @@ function floor(g: G) {
   const r = rng(42);
   const top = 3 * T;
   const colors = [P.floor1, P.floor2, P.floor3, P.floor1];
-  // des lames de parquet de 6 pixels, aux raccords décalés
+  // 6픽셀 폭 마루 널, 이음매는 엇갈리게
   for (let y = top; y < H; y += 6) {
     let x = -Math.floor(r() * 20);
     while (x < W) {
@@ -41,12 +41,12 @@ function rug(g: G, x: number, y: number, w: number, h: number, color: string) {
   const px0 = x * T + 2, py0 = y * T + 2, pw = w * T - 4, ph = h * T - 4;
   rect(g, px0 + 1, py0, pw - 2, ph, base);
   rect(g, px0, py0 + 1, pw, ph - 2, base);
-  // bordure
+  // 테두리
   hline(g, px0 + 1, py0, pw - 2, edge);
   hline(g, px0 + 1, py0 + ph - 1, pw - 2, edge);
   vline(g, px0, py0 + 1, ph - 2, edge);
   vline(g, px0 + pw - 1, py0 + 1, ph - 2, edge);
-  // un liseré intérieur, et un motif discret
+  // 안쪽 테두리선과 은은한 무늬
   hline(g, px0 + 3, py0 + 3, pw - 6, inner);
   hline(g, px0 + 3, py0 + ph - 4, pw - 6, inner);
   vline(g, px0 + 3, py0 + 3, ph - 6, inner);
@@ -57,7 +57,7 @@ function rug(g: G, x: number, y: number, w: number, h: number, color: string) {
 function backWall(g: G) {
   rect(g, 0, 0, W, 5, P.wallTop);
   rect(g, 0, 5, W, 39, P.wallFace);
-  // boiseries : un panneau bas plus sombre, une cimaise
+  // 벽 판재: 아래쪽 더 어두운 판, 그 위 몰딩
   rect(g, 0, 31, W, 13, P.wallFace2);
   hline(g, 0, 30, W, P.wallHi);
   hline(g, 0, 31, W, P.wallLine);
@@ -65,7 +65,7 @@ function backWall(g: G) {
   hline(g, 0, 5, W, P.wallHi);
   rect(g, 0, 44, W, 4, P.baseboard);
   hline(g, 0, 44, W, P.wallHi);
-  // l'ombre du mur sur le sol
+  // 바닥에 드리운 벽 그림자
   g.fillStyle = 'rgba(8,6,16,0.35)';
   g.fillRect(0, 48, W, 2);
   g.fillStyle = 'rgba(8,6,16,0.18)';
@@ -75,10 +75,10 @@ function backWall(g: G) {
 function windowPane(g: G, wx: number, wy: number, ww: number, wh: number, tod: TimeOfDay, seed: number) {
   const sky = SKY[tod];
   const r = rng(seed);
-  // cadre
+  // 창틀
   rect(g, wx - 3, wy - 3, ww + 6, wh + 6, '#1a1724');
   rect(g, wx - 2, wy - 2, ww + 4, wh + 4, '#3b3550');
-  // le ciel, en bandes (comme dans les vieux jeux)
+  // 하늘은 띠 모양으로(옛날 게임처럼)
   const bh = Math.ceil(wh / sky.bands.length);
   sky.bands.forEach((c, i) => rect(g, wx, wy + i * bh, ww, bh, c));
   if (tod === 'evening') {
@@ -97,7 +97,7 @@ function windowPane(g: G, wx: number, wy: number, ww: number, wh: number, tod: T
       hline(g, cx, cy + 3, cw, '#dcecf8');
     }
   }
-  // la ville au loin
+  // 멀리 보이는 도시
   let x = wx;
   while (x < wx + ww) {
     const bw = 4 + Math.floor(r() * 8);
@@ -110,13 +110,13 @@ function windowPane(g: G, wx: number, wy: number, ww: number, wh: number, tod: T
     }
     x += bw;
   }
-  // montants et traverse
+  // 세로 창살과 가로대
   vline(g, wx + Math.floor(ww / 2), wy, wh, '#3b3550');
   vline(g, wx + Math.floor(ww / 2) + 1, wy, wh, '#2a2538');
   hline(g, wx, wy + 11, ww, '#3b3550');
-  // un reflet sur la vitre
+  // 유리에 비친 빛
   for (let i = 0; i < 6; i++) px(g, wx + 4 + i, wy + 14 - i, 'rgba(255,255,255,0.18)');
-  // l'appui de fenêtre
+  // 창턱
   rect(g, wx - 4, wy + wh + 2, ww + 8, 3, '#4a4560');
   hline(g, wx - 4, wy + wh + 2, ww + 8, '#625c7c');
 }
@@ -127,57 +127,66 @@ function whiteboard(g: G) {
   rect(g, x - 1, y - 1, w + 2, h + 2, '#c2c5d4');
   hline(g, x - 1, y - 1, w + 2, '#e6e8f0');
   rect(g, x, y, w, h, '#f4f5f9');
-  // un reflet en biais
+  // 비스듬한 반사광
   for (let i = 0; i < 18; i++) px(g, x + w - 30 + i, y + 2 + Math.floor(i / 2), '#ffffff');
-  // le rebord et les feutres
+  // 받침대와 마커
   rect(g, x + 4, y + h + 2, w - 8, 2, '#8a8ea2');
   hline(g, x + 4, y + h + 2, w - 8, '#b3b6c6');
   rect(g, x + 12, y + h + 1, 5, 1, '#e5484d');
   rect(g, x + 19, y + h + 1, 5, 1, '#3d8ad1');
   rect(g, x + 26, y + h + 1, 5, 1, '#2b2836');
   rect(g, x + w - 18, y + h + 1, 6, 2, '#e9e5ef');
-  // le titre, au feutre orange
-  pixelText(g, 'LE PLAN', x + 4, y + 3, P.orangeDark);
-  hline(g, x + 4, y + 9, textWidth('LE PLAN'), P.orange);
+  // 제목은 주황 마커로
+  pixelText(g, '계획', x + 4, y + 1, P.orangeDark);
+  hline(g, x + 4, y + TEXT_H + 2, textWidth('계획'), P.orange);
 }
 
-const SIGN: Record<string, string> = { recherche: 'RECHERCHE', code: 'CODE', design: 'DESIGN', redaction: 'RÉDACTION', analyse: 'ANALYSE', chef: 'CHEF' };
+/** 각 구역 간판의 글자. hits.ts도 같은 문구로 클릭 영역을 잡는다. */
+export const SIGN: Record<string, string> = { recherche: '리서치', code: '코드', design: '디자인', redaction: '글쓰기', analyse: '분석', chef: '팀장' };
 
-/** Les écriteaux posés au coin de chaque tapis, avec le nombre d'agents au travail dans le coin. */
+/** 간판 높이: 글자(TEXT_H) 위아래로 2픽셀씩. */
+export const SIGN_H = TEXT_H + 4;
+
+/** 간판의 왼쪽 위(픽셀). 팀장 간판은 러그 아래쪽, 나머지는 러그 위쪽 모서리에 붙는다. */
+export function signPos(z: { role: string; x: number; y: number; h: number }) {
+  return { x: z.x * T + 4, y: z.role === 'chef' ? (z.y + z.h) * T - SIGN_H - 3 : z.y * T + 3 };
+}
+
+/** 러그 모서리에 세운 간판. 그 구역에서 일하는 에이전트 수도 함께 보여 준다. */
 export function signs(g: G, busy: (role: string) => number) {
   for (const z of ZONES) {
     const n = busy(z.role);
-    const label = (SIGN[z.role] ?? z.label.toUpperCase()) + (n > 0 && z.role !== 'chef' ? ` ${n}` : '');
+    const label = (SIGN[z.role] ?? z.label) + (n > 0 && z.role !== 'chef' ? ` ${n}` : '');
     const color = ROLES[z.role].color;
     const w = textWidth(label) + 6;
-    const x = z.x * T + 4, y = z.role === 'chef' ? (z.y + z.h) * T - 12 : z.y * T + 3;
-    rect(g, x + 1, y, w - 2, 9, '#120f19');
-    rect(g, x, y + 1, w, 7, '#120f19');
+    const { x, y } = signPos(z);
+    rect(g, x + 1, y, w - 2, SIGN_H, '#120f19');
+    rect(g, x, y + 1, w, SIGN_H - 2, '#120f19');
     hline(g, x + 1, y, w - 2, mix(color, '#120f19', 0.45));
     pixelText(g, label, x + 3, y + 2, lighten(color, 0.15));
   }
 }
 
-/** Le néon : la tête du robot VibesMoney, en tubes de couleur (orange par défaut). */
+/** 네온: VibesMoney 로봇 머리를 색 튜브로(기본은 주황). */
 export function neon(g: G, tube: string, core: string) {
   const { x, y } = NEON;
-  // antenne
+  // 안테나
   vline(g, x + 12, y, 3, tube);
   rect(g, x + 11, y - 2, 3, 2, tube);
-  // contour de la tête
+  // 머리 윤곽
   rect(g, x + 1, y + 3, 23, 1, tube);
   rect(g, x + 1, y + 20, 23, 1, tube);
   rect(g, x + 1, y + 3, 1, 18, tube);
   rect(g, x + 23, y + 3, 1, 18, tube);
   hline(g, x + 2, y + 4, 21, core);
-  // la visière et les yeux
+  // 바이저와 눈
   rect(g, x + 5, y + 8, 15, 1, tube);
   rect(g, x + 5, y + 15, 15, 1, tube);
   rect(g, x + 5, y + 8, 1, 8, tube);
   rect(g, x + 19, y + 8, 1, 8, tube);
   rect(g, x + 8, y + 10, 3, 3, core);
   rect(g, x + 14, y + 10, 3, 3, core);
-  // le petit support au mur
+  // 벽에 단 작은 받침
   px(g, x + 3, y + 22, '#3b3550');
   px(g, x + 21, y + 22, '#3b3550');
 }
@@ -200,7 +209,7 @@ function poster(g: G) {
   const x = 252, y = 12;
   rect(g, x, y, 10, 14, '#c08a57');
   rect(g, x + 1, y + 1, 8, 12, '#16121f');
-  // une courbe qui monte, en orange
+  // 주황색 상승 곡선
   const pts = [[2, 10], [3, 9], [4, 9], [5, 7], [6, 6], [7, 4], [8, 3]];
   for (const [px_, py_] of pts) px(g, x + px_, y + py_, P.orange);
   px(g, x + 8, y + 2, P.orangeLight);
@@ -213,7 +222,7 @@ function sideWalls(g: G) {
     vline(g, inner, 5, H - 5, '#2c2740');
     vline(g, x0 === 0 ? inner + 1 : inner + 1, 5, H - 5, '#1d1a28');
   }
-  // l'ombre des murs de côté sur le sol
+  // 바닥에 드리운 옆벽 그림자
   g.fillStyle = 'rgba(8,6,16,0.25)';
   g.fillRect(T, 3 * T, 2, H - 4 * T);
   g.fillRect(W - T - 2, 3 * T, 2, H - 4 * T);
@@ -225,18 +234,18 @@ function frontWall(g: G) {
   rect(g, 12 * T, y, W - 12 * T, T, P.wallTop);
   hline(g, 0, y, 10 * T, '#2c2740');
   hline(g, 12 * T, y, W - 12 * T, '#2c2740');
-  // l'encadrement de la porte
+  // 문틀
   for (const x of [10 * T - 2, 12 * T]) {
     rect(g, x, y - 2, 2, T + 2, '#3b3550');
     vline(g, x, y - 2, T + 2, '#4d4666');
   }
-  // le paillasson orange
+  // 주황 현관 매트
   const mx = 10 * T + 2, my = 14 * T + 3;
   rect(g, mx, my, 2 * T - 4, 10, P.orangeDeep);
   for (let i = 0; i < 4; i++) hline(g, mx + 2, my + 2 + i * 2, 2 * T - 8, i % 2 ? P.orangeDark : P.orange);
 }
 
-/** Dessine toute la pièce (sans les meubles) dans une image de la taille du bureau. */
+/** 가구를 뺀 방 전체를 사무실 크기의 이미지 하나에 그린다. */
 export function drawRoom(tod: TimeOfDay): HTMLCanvasElement {
   const c = makeCanvas(W, H);
   const g = g2d(c);

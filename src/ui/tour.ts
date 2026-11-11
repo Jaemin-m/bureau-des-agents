@@ -1,18 +1,18 @@
-// La visite guidée : Max présente son bureau, coin par coin, avec sa voix (ElevenLabs). La caméra suit,
-// et s'il n'y a pas de mission en cours, une équipe de démonstration s'installe le temps de la visite.
-import { say, stopVoice, type Line } from '../audio/voice.ts';
+// 사무실 둘러보기: 맥스가 구역마다 사무실을 소개하고, 브라우저 음성으로 읽는다. 카메라가 따라가고,
+// 진행 중인 미션이 없으면 둘러보는 동안 시연용 팀이 자리에 앉는다.
+import { LINES, say, stopVoice, type Line } from '../audio/voice.ts';
 import { camera, world } from '../engine/instance.ts';
 import { useOffice } from '../state/store.ts';
 
-const STEPS: { line: Line; text: string; shot: [number, number, number] }[] = [
-  { line: 'visite-1', text: 'Bienvenue dans mon bureau ! Moi, c’est Max, le chef. Ici, une équipe d’agents IA bosse pour toi, jour et nuit.', shot: [176, 186, 1.9] },
-  { line: 'visite-2', text: 'Là, c’est la recherche. Mes chercheurs fouillent internet pour toi. Les prix, tes concurrents, les avis clients.', shot: [64, 104, 1.7] },
-  { line: 'visite-3', text: 'Ici, l’atelier code. Ils construisent tes sites, tes outils, tes automatisations.', shot: [288, 76, 1.95] },
-  { line: 'visite-4', text: 'Le studio design. Tout ce qui doit être beau passe par ici.', shot: [276, 124, 1.95] },
-  { line: 'visite-5', text: 'La rédaction. Tes posts, tes mails, tes scripts vidéo.', shot: [64, 188, 1.95] },
-  { line: 'visite-6', text: 'Et l’analyse. Les chiffres, les tableaux, et les conclusions qui comptent.', shot: [258, 188, 1.95] },
-  { line: 'visite-7', text: 'Sur ce tableau, j’écris le plan de chaque mission. Et chaque rapport finit sur mon bureau.', shot: [176, 46, 2.05] },
-  { line: 'visite-8', text: 'Toi, tu me dis ce que tu veux. Je monte l’équipe. Et tu regardes.', shot: [176, 128, 1] },
+const STEPS: { line: Line; shot: [number, number, number] }[] = [
+  { line: 'visite-1', shot: [176, 186, 1.9] },
+  { line: 'visite-2', shot: [64, 104, 1.7] },
+  { line: 'visite-3', shot: [288, 76, 1.95] },
+  { line: 'visite-4', shot: [276, 124, 1.95] },
+  { line: 'visite-5', shot: [64, 188, 1.95] },
+  { line: 'visite-6', shot: [258, 188, 1.95] },
+  { line: 'visite-7', shot: [176, 46, 2.05] },
+  { line: 'visite-8', shot: [176, 128, 1] },
 ];
 
 let run = 0;
@@ -29,12 +29,13 @@ export async function startTour() {
     if (run !== id) return;
     const s = STEPS[i];
     camera.shot(s.shot[0], s.shot[1], s.shot[2], 60);
-    useOffice.setState({ tour: { step: i, text: s.text } });
+    const text = LINES[s.line];
+    useOffice.setState({ tour: { step: i, text } });
     if (i === 0 || i === STEPS.length - 1) world.chef.happyUntil = world.time + 2;
     const t0 = Date.now();
     await say(s.line, true);
-    // sans la voix (ou si elle est coupée), on laisse le temps de lire
-    const minMs = 900 + s.text.length * 38;
+    // 음성이 없거나 꺼져 있어도 자막을 읽을 시간은 준다(한글은 글자당 정보가 많아 글자당 시간을 넉넉히)
+    const minMs = 900 + text.length * 75;
     const spent = Date.now() - t0;
     if (spent < minMs) await wait(minMs - spent);
     await wait(350);

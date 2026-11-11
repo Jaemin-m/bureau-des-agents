@@ -1,5 +1,5 @@
-// En cadre vertical (pour filmer un reel), sous le bureau : le plan de Max et la rangée de l'équipe,
-// lisibles en grand sur un téléphone.
+// 세로 화면(릴스 촬영용)에서 사무실 아래에 놓이는 줄: 맥스의 계획과 팀원 목록을
+// 휴대폰에서도 크게 읽히도록 보여 준다.
 import { useShallow } from 'zustand/react/shallow';
 import { ROLES } from '../../shared/activity.ts';
 import { teamList, useOffice } from '../state/store.ts';
@@ -25,7 +25,7 @@ export function Strips() {
     <div className="strips">
       {plan.length > 0 && (
         <div className="strip-plan">
-          <b>Le plan <span>{done}/{plan.length}</span></b>
+          <b>계획 <span>{done}/{plan.length}</span></b>
           <ul>{plan.slice(0, 4).map((p, i) => <li key={i} className={p.status}><i />{p.text}</li>)}</ul>
         </div>
       )}

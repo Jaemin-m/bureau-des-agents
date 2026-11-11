@@ -1,0 +1,20 @@
+/* 한글 픽셀 글꼴 Galmuri(quiple, SIL OFL 1.1). 패키지의 galmuri.css는 모든 변형을 빌드에 넣으니, 쓰는 것만 선언한다.
+   Galmuri7: 캔버스 간판(engine/font.ts). Galmuri11: 화면의 픽셀 글자(--pixel). */
+@font-face {
+  font-family: Galmuri7;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../node_modules/galmuri/dist/Galmuri7.woff2') format('woff2');
+}
+@font-face {
+  font-family: Galmuri11;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url('../node_modules/galmuri/dist/Galmuri11.woff2') format('woff2');
+}
+@font-face {
+  font-family: Galmuri11;
+  font-weight: 700 900;
+  font-display: swap;
+  src: url('../node_modules/galmuri/dist/Galmuri11-Bold.woff2') format('woff2');
+}

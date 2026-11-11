@@ -1,10 +1,9 @@
-// Le chef du bureau = un vrai processus Claude Code, lancé sans interface (« -p »), qui parle en JSON
-// ligne par ligne :
-//   - on lui écrit tes messages sur son entrée (stream-json) ;
-//   - il raconte tout sur sa sortie : réflexion, texte, outils, membres de l'équipe appelés, rapports ;
-//   - quand il a besoin d'une permission, il la demande (control_request) et attend la réponse du bureau.
-// Il tourne avec le compte connecté à Claude Code, donc ton abonnement : on retire toute clé API de son
-// environnement pour qu'il ne bascule jamais en facturation à l'usage.
+// 사무실 팀장 = 화면 없이(“-p”) 실행한 진짜 Claude Code 프로세스. 한 줄에 하나씩 JSON으로 말한다.
+//   - 사용자의 메시지를 입력(stream-json)으로 써 준다.
+//   - 출력으로 모든 것을 알려 준다: 생각, 글, 도구, 부른 팀원, 보고서.
+//   - 허락이 필요하면 요청(control_request)을 보내고 사무실의 답을 기다린다.
+// Claude Code에 로그인한 계정, 즉 사용자의 구독으로 돌아간다. 사용량 과금으로 넘어가지 않도록
+// 환경에서 API 키를 모두 뺀다.
 import { spawn, execFile, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import os from 'node:os';
@@ -21,7 +20,7 @@ function run(file: string, args: string[]): Promise<string> {
   });
 }
 
-/** Trouve l'exécutable `claude` (sans passer par les alias du terminal). */
+/** 실행 파일 `claude`를 찾는다(터미널 별칭은 거치지 않는다). */
 export async function findClaude(): Promise<ClaudeBinary | null> {
   const home = os.homedir();
   const fromPath = (process.env.PATH ?? '').split(path.delimiter).filter(Boolean).map((d) => path.join(d, 'claude'));
@@ -31,7 +30,7 @@ export async function findClaude(): Promise<ClaudeBinary | null> {
     try {
       const out = await run(c, ['--version']);
       return { path: c, version: out.trim().split(/\s+/)[0] ?? out.trim() };
-    } catch { /* on essaie le suivant */ }
+    } catch { /* 다음 후보를 시도한다 */ }
   }
   return null;
 }
@@ -42,20 +41,20 @@ export interface ProcessOptions {
   permissionMode: string;
   model?: string;
   resume?: string;
-  /** les outils de la séance (mode restreint : rien d'autre n'existe) */
+  /** 세션의 도구(제한 모드: 이것 말고는 없다) */
   tools: string[];
-  /** ce qui ne demande jamais la permission */
+  /** 허락을 묻지 않는 도구 */
   allowedTools: string[];
-  /** l'équipe (option --agents) */
+  /** 팀(--agents 옵션) */
   agents: string;
-  /** les consignes du chef, ajoutées à celles de Claude Code */
+  /** 팀장 지시문. Claude Code의 지시문 뒤에 덧붙인다 */
   appendSystemPrompt: string;
   useApiKey: boolean;
 }
 
 type Json = Record<string, any>;
 
-/** Le processus Claude Code d'une mission. */
+/** 미션 하나의 Claude Code 프로세스. */
 export class ClaudeProcess {
   private proc: ChildProcessWithoutNullStreams | null = null;
   private stderr = '';
@@ -77,24 +76,24 @@ export class ClaudeProcess {
     const o = this.opts;
     const args = ['-p', '--input-format', 'stream-json', '--output-format', 'stream-json', '--verbose',
       '--include-partial-messages', '--permission-prompt-tool', 'stdio', '--permission-mode', o.permissionMode,
-      // mode restreint : seuls les outils listés existent, les outils de fichiers restent dans le dossier
-      // de la mission, et ni tes réglages ni tes agents personnels ne s'invitent dans le bureau
+      // 제한 모드: 목록에 있는 도구만 존재하고, 파일 도구는 미션 폴더 안에 머문다.
+      // 사용자의 개인 설정이나 개인 에이전트도 사무실에 끼어들지 않는다
       '--restricted', '--tools', o.tools.join(','),
       '--agents', o.agents,
       '--append-system-prompt', o.appendSystemPrompt];
     if (o.model) args.push('--model', o.model);
     if (o.resume) args.push('--resume', o.resume);
     if (o.allowedTools.length) args.push('--allowedTools', o.allowedTools.join(','));
-    // pas de questions à choix multiples : le chef pose ses questions dans la conversation
+    // 객관식 질문은 없다: 팀장은 대화 안에서 질문한다
     args.push('--disallowedTools', 'AskUserQuestion');
     const env: NodeJS.ProcessEnv = {
       ...process.env,
       BUREAU_DES_AGENTS: '1',
-      // seule l'équipe du bureau peut être appelée (pas les agents génériques de Claude Code)
+      // 사무실 팀만 부를 수 있다(Claude Code의 범용 에이전트는 안 된다)
       CLAUDE_AGENT_SDK_DISABLE_BUILTIN_AGENTS: '1',
-      // les membres de l'équipe n'appellent pas eux-mêmes d'autres agents : c'est le rôle du chef
+      // 팀원은 직접 다른 에이전트를 부르지 않는다. 그건 팀장의 일이다
       CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH: '1',
-      // l'équipe travaille au premier plan : le chef attend les rapports, puis assemble le rendu
+      // 팀은 포그라운드에서 일한다: 팀장은 보고서를 기다렸다가 결과물을 합친다
       CLAUDE_CODE_DISABLE_BACKGROUND_TASKS: '1',
     };
     if (!o.useApiKey) { delete env.ANTHROPIC_API_KEY; delete env.ANTHROPIC_AUTH_TOKEN; }
@@ -112,11 +111,11 @@ export class ClaudeProcess {
       this.exited = true;
       this.onExit(code, signal, this.stderr);
     };
-    // « close » arrive une fois la sortie entièrement lue (contrairement à « exit »)
+    // “close”는 출력을 끝까지 읽은 뒤에 온다(“exit”와 다르다)
     p.on('close', (code, signal) => done(code, signal));
-    // impossible de lancer claude (supprimé, plus exécutable…) : c'est une fin, en erreur
+    // claude를 실행할 수 없다(삭제됨, 실행 권한 없음…): 오류로 끝난다
     p.on('error', (e) => { this.stderr += String(e); done(1, null); });
-    p.stdin.on('error', () => { /* processus déjà parti : « close » s'en charge */ });
+    p.stdin.on('error', () => { /* 프로세스가 이미 끝났다: “close”가 처리한다 */ });
   }
 
   private write(o: Json) {
@@ -134,14 +133,14 @@ export class ClaudeProcess {
       type: 'control_response',
       response: {
         subtype: 'success', request_id: requestId,
-        response: allow ? { behavior: 'allow', updatedInput: input ?? {} } : { behavior: 'deny', message: 'Le patron a dit non. Trouve une autre façon de faire, ou demande-lui.' },
+        response: allow ? { behavior: 'allow', updatedInput: input ?? {} } : { behavior: 'deny', message: '대표님이 허락하지 않았어요. 다른 방법을 찾거나 대표님에게 물어보세요.' },
       },
     });
   }
 
-  /** Une demande de contrôle qu'on ne sait pas traiter : on répond tout de suite pour ne pas le bloquer. */
+  /** 처리할 줄 모르는 제어 요청: 막히지 않도록 바로 답한다. */
   refuseControl(requestId: string) {
-    this.write({ type: 'control_response', response: { subtype: 'error', request_id: requestId, error: 'Non pris en charge par le Bureau des agents' } });
+    this.write({ type: 'control_response', response: { subtype: 'error', request_id: requestId, error: '에이전트 사무실에서 지원하지 않아요' } });
   }
 
   interrupt() {
@@ -155,7 +154,7 @@ export class ClaudeProcess {
     setTimeout(() => { if (!this.exited) p.kill('SIGTERM'); }, 5000);
   }
 
-  /** Arrêt immédiat (quand le pont s'arrête). */
+  /** 즉시 멈춘다(브리지가 멈출 때). */
   kill() {
     if (this.alive) this.proc!.kill('SIGTERM');
   }
@@ -164,22 +163,22 @@ export class ClaudeProcess {
 export interface TurnResult { ok: boolean; text: string; ms: number; subtype: string }
 
 /**
- * Traduit ce que raconte Claude Code en événements du bureau.
- * `who` vaut « chef » (l'agent principal) ou l'identifiant de l'appel Agent qui a fait venir un membre
- * de l'équipe (on le retrouve dans parent_tool_use_id sur tous ses messages).
+ * Claude Code가 하는 말을 사무실 이벤트로 바꾼다.
+ * `who`는 “chef”(메인 에이전트)이거나, 팀원을 부른 Agent 호출의 식별자다
+ * (그 팀원의 모든 메시지의 parent_tool_use_id에 들어 있다).
  */
 export class Normalizer {
-  private whoOfTool = new Map<string, string>();      // appel d'outil → qui l'a fait
-  private agentOfTask = new Map<string, string>();    // task_id → membre de l'équipe
+  private whoOfTool = new Map<string, string>();      // 도구 호출 → 누가 했는지
+  private agentOfTask = new Map<string, string>();    // task_id → 팀원
   private reported = new Set<string>();
-  private typing = new Map<string, string>();         // texte en cours d'écriture, par agent
+  private typing = new Map<string, string>();         // 에이전트별로 쓰고 있는 글
   private typingSentAt = new Map<string, number>();
-  private pendingInputs = new Map<string, unknown>(); // demandes de permission → entrée de l'outil
-  /** les membres de l'équipe présents (appelés, pas encore repartis) */
+  private pendingInputs = new Map<string, unknown>(); // 허락 요청 → 도구 입력
+  /** 지금 있는 팀원(불려 와서 아직 떠나지 않음) */
   readonly present = new Set<string>();
-  /** qui a écrit quel fichier en dernier (pour attribuer les fichiers du dossier) */
+  /** 어떤 파일을 마지막으로 누가 썼는지(폴더 파일의 작성자를 정할 때 쓴다) */
   readonly writers = new Map<string, string>();
-  /** vrai dès que Claude Code a démarré (message init) */
+  /** Claude Code가 시작되면(init 메시지) 참 */
   started = false;
   sessionId = '';
 
@@ -187,7 +186,7 @@ export class Normalizer {
   private onQuota: (q: Quota) => void;
   private onResult: (r: TurnResult) => void;
   private folder: string;
-  /** les prénoms déjà pris dans cette mission (partagés entre les reprises) */
+  /** 이 미션에서 이미 쓴 이름(이어서 할 때도 공유한다) */
   private names: Set<string>;
 
   constructor(opts: { emit: (ev: OfficeEvent) => void; onQuota: (q: Quota) => void; onResult: (r: TurnResult) => void; folder: string; names: Set<string> }) {
@@ -209,7 +208,7 @@ export class Normalizer {
     return name;
   }
 
-  /** Renvoie l'identifiant de la demande de contrôle qu'il faut refuser (inconnue), sinon null. */
+  /** 거절해야 할(알 수 없는) 제어 요청의 식별자를 돌려준다. 없으면 null. */
   handle(m: Json): string | null {
     switch (m.type) {
       case 'system': this.system(m); break;
@@ -237,7 +236,7 @@ export class Normalizer {
         break;
       }
       case 'control_cancel_request': {
-        // Claude Code retire sa demande (interruption, fin de tour) : on range la bulle
+        // Claude Code가 요청을 거둬들였다(중단, 턴 종료): 말풍선을 치운다
         const id = String(m.request_id ?? '');
         if (this.pendingInputs.has(id)) {
           this.pendingInputs.delete(id);
@@ -332,7 +331,7 @@ export class Normalizer {
       const who = this.whoOfTool.get(id);
       if (who === undefined) continue;
       if (this.present.has(id)) {
-        // le rapport d'un membre de l'équipe revient au chef : s'il n'a pas été rendu en direct, on le prend ici
+        // 팀원의 보고서가 팀장에게 돌아온다: 실시간으로 받지 못했다면 여기서 가져온다
         const r = (m.tool_use_result ?? {}) as Json;
         if (!this.reported.has(id)) {
           const text = typeof r.handbackReport?.text === 'string' ? r.handbackReport.text : textOf(c.content);

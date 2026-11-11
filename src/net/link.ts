@@ -1,5 +1,5 @@
-// La connexion au pont (le serveur local qui pilote Claude Code). Sans pont (site public, téléphone),
-// le bureau passe en démo : il rejoue une vraie mission enregistrée.
+// 브리지(Claude Code를 조종하는 로컬 서버)와의 연결. 브리지가 없으면(공개 사이트, 휴대폰)
+// 사무실은 데모 모드가 되어 녹화한 실제 미션을 다시 재생한다.
 import type { ClientMsg, Logged, MissionInfo, ServerMsg } from '../../shared/protocol.ts';
 import { useOffice } from '../state/store.ts';
 
@@ -12,7 +12,7 @@ let build = '';
 
 export function sendToBridge(m: ClientMsg) {
   if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify(m));
-  else useOffice.getState().toast('error', 'Le bureau n’est pas relié à Claude Code : lance « npm start » dans le dossier du bureau.');
+  else useOffice.getState().toast('error', '사무실이 Claude Code와 연결되지 않았어요. 사무실 폴더에서 “npm start”를 실행해 주세요.');
 }
 
 export function connect() {
@@ -31,7 +31,7 @@ export function connect() {
     try { m = JSON.parse(String(e.data)); } catch { return; }
     if (m.t === 'replay') { playReplay(m.mission, m.log, 1); return; }
     if (m.t === 'hello' && m.build && m.build !== 'dev') {
-      // le bureau a été mis à jour depuis l'ouverture de l'onglet : on recharge la page
+      // 탭을 연 뒤 사무실이 업데이트됐다: 페이지를 다시 불러온다
       if (build && build !== m.build) { location.reload(); return; }
       build = m.build;
     }
@@ -50,8 +50,8 @@ export function connect() {
 }
 
 /**
- * Rejoue une mission enregistrée, avec son rythme d'origine (les longues pauses sont raccourcies).
- * Pratique pour filmer : la même mission, autant de fois qu'on veut, sans relancer l'équipe.
+ * 녹화한 미션을 원래 속도로 다시 재생한다(긴 공백은 줄인다).
+ * 촬영할 때 편하다: 팀을 다시 돌리지 않고 같은 미션을 몇 번이고 볼 수 있다.
  */
 export function playReplay(mission: MissionInfo, log: Logged[], speed = 1, opts: { loop?: boolean; onEnd?: () => void } = {}) {
   player?.stop();
@@ -74,7 +74,7 @@ export function playReplay(mission: MissionInfo, log: Logged[], speed = 1, opts:
     const l = log[i++];
     useOffice.getState().apply(l.ev, start + virt, true);
     if (i < log.length) {
-      // le temps réel entre deux événements, accéléré, et jamais plus de 2,5 s d'attente
+      // 두 이벤트 사이의 실제 간격을 빠르게 하되 최대 2.5초까지만 기다린다
       const gap = Math.min(2500, Math.max(0, log[i].at - l.at) / speed);
       virt += gap;
       timer = setTimeout(step, gap);
@@ -85,24 +85,24 @@ export function playReplay(mission: MissionInfo, log: Logged[], speed = 1, opts:
   return player;
 }
 
-/** Reprend la rediffusion depuis le début, à une autre vitesse. */
+/** 다시 보기를 처음부터 다른 속도로 재생한다. */
 export function replaySpeed(speed: number) {
   if (!lastReplay) return;
   playReplay(lastReplay.mission, lastReplay.log, speed, { loop: useOffice.getState().connection === 'demo' });
 }
 
-/** Arrête la rediffusion et revient au bureau en direct. */
+/** 다시 보기를 멈추고 실시간 사무실로 돌아간다. */
 export function stopReplay() {
   player?.stop();
   player = null;
   useOffice.setState({ replaying: false });
   if (ws?.readyState === WebSocket.OPEN) {
-    // on redemande l'état du bureau : le plus simple est de se reconnecter
+    // 사무실 상태를 다시 받는다: 다시 연결하는 게 가장 간단하다
     ws.close();
   } else useOffice.getState().resetMission(null);
 }
 
-/** Sans pont : la démo rejoue en boucle une vraie mission enregistrée. */
+/** 브리지가 없을 때: 데모가 녹화한 실제 미션을 반복 재생한다. */
 async function startDemo() {
   try {
     const res = await fetch('/demo/mission.json');
@@ -110,8 +110,8 @@ async function startDemo() {
     const data = (await res.json()) as { mission: MissionInfo; log: Logged[] };
     useOffice.setState({
       connection: 'demo',
-      send: () => useOffice.getState().toast('info', 'C’est une démo : installe le Bureau des agents pour lancer ta propre équipe.'),
+      send: () => useOffice.getState().toast('info', '데모 화면이에요. 에이전트 사무실을 설치하면 내 팀을 직접 움직일 수 있어요.'),
     });
     playReplay(data.mission, data.log, 1, { loop: true });
-  } catch { /* pas de démo disponible */ }
+  } catch { /* 데모가 없다 */ }
 }

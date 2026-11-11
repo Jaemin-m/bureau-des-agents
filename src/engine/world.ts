@@ -1,6 +1,6 @@
-// Le monde du bureau : les robots, ce qu'ils font, où ils vont. Chaque événement venu de Claude Code
-// devient une petite mise en scène : un membre de l'équipe arrive par la porte, va à son bureau, tape
-// ou lit selon ce qu'il fait vraiment, se lève pour rendre son rapport au chef, puis repart.
+// 사무실의 세계: 로봇들이 무엇을 하고 어디로 가는지. Claude Code에서 온 이벤트 하나하나가 작은 장면이 된다.
+// 팀원이 문으로 들어와 자기 책상으로 가고, 실제로 하는 일에 따라 타이핑하거나 읽고,
+// 일어나서 팀장에게 보고서를 낸 뒤 다시 나간다.
 import type { ActKind, OfficeEvent, PlanItem, Role } from '../../shared/protocol.ts';
 import { Cat } from './cat.ts';
 import { Fx } from './fx.ts';
@@ -20,7 +20,7 @@ type Task =
   | { t: 'call'; fn: () => void }
   | { t: 'fade'; to: number; ms: number };
 
-const WALK_SPEED = 58; // pixels par seconde
+const WALK_SPEED = 58; // 초당 픽셀
 
 export class Actor {
   id: string;
@@ -74,7 +74,7 @@ export class Actor {
     return [Math.max(0, Math.floor(this.x / T)), Math.max(0, Math.min(15, Math.floor((this.y - 2) / T)))];
   }
 
-  /** Le haut de la tête (pour accrocher les bulles). */
+  /** 머리 꼭대기(말풍선을 다는 자리). */
   get head(): Pt { return { x: this.x, y: this.y - 22 }; }
 
   get busy() { return !!this.cur || this.tasks.length > 0; }
@@ -88,26 +88,26 @@ export class World {
   private deliverTaken = new Set<number>();
   time = 0;
   speed = 1;
-  /** les rapports posés sur le bureau du chef */
+  /** 팀장 책상에 놓인 보고서 수 */
   inbox = 0;
   printUntil = 0;
   boardUntil = 0;
   missionActive = false;
   plan: PlanItem[] = [];
-  /** qui fait quoi : écrit au tableau, coché quand l'agent a rendu son travail */
+  /** 누가 무엇을 하는지: 칠판에 적고, 에이전트가 일을 넘기면 체크한다 */
   assignments: { id: string; role: Role; name: string; task: string; status: 'working' | 'done' | 'failed' }[] = [];
   private planSize = -1;
-  // ── la vie du bureau (et ses œufs de Pâques) ──
+  // ── 사무실의 일상(과 이스터 에그) ──
   cat = new Cat();
-  /** la couleur du néon (clique dessus pour en changer) */
+  /** 네온 색(클릭하면 바뀐다) */
   neonIndex = 0;
-  /** les meubles qui frémissent (plantes…) : identifiant → jusqu'à quand */
+  /** 흔들리는 가구(화분 등): 식별자 → 언제까지 */
   wiggles = new Map<string, number>();
-  /** les lampes éteintes */
+  /** 꺼진 조명 */
   lampsOff = new Set<string>();
-  /** le mode soirée (boule à facettes, tout le monde danse) */
+  /** 저녁 모드(미러볼이 내려오고 모두 춤춘다) */
   discoUntil = 0;
-  /** la musique du jukebox : est-ce qu'elle joue, et l'énergie des basses (0 à 1) */
+  /** 주크박스 음악: 재생 중인지, 그리고 저음 세기(0~1) */
   musicOn = false;
   musicLevel = 0;
   bobUntil = 0;
@@ -129,7 +129,7 @@ export class World {
     for (const fn of this.rosterListeners) fn();
   }
 
-  /** Le bureau vide, Max à l'accueil (début, nouvelle mission, rediffusion). */
+  /** 빈 사무실, 안내 데스크에 선 맥스(시작, 새 미션, 다시 보기). */
   resetAll() {
     this.actors.clear();
     this.seatOf.clear();
@@ -143,11 +143,11 @@ export class World {
     this.assignments = [];
     this.planSize = -1;
     const p = SPOTS.receptionPx;
-    this.actors.set('chef', new Actor('chef', 'chef', 'Max', p.x, p.y));
+    this.actors.set('chef', new Actor('chef', 'chef', '맥스', p.x, p.y));
     this.rosterChanged();
   }
 
-  // ── Les tâches ──
+  // ── 할 일 ──
   private queue(a: Actor, ...tasks: Task[]) { a.tasks.push(...tasks); }
 
   private startTask(a: Actor, task: Task) {
@@ -179,7 +179,7 @@ export class World {
     a.y = f.y;
   }
 
-  /** Avance une tâche. Renvoie vrai quand elle est finie. */
+  /** 할 일 하나를 진행한다. 끝나면 true를 돌려준다. */
   private runTask(a: Actor, task: Task, dt: number): boolean {
     switch (task.t) {
       case 'walk':
@@ -218,7 +218,7 @@ export class World {
     }
   }
 
-  // ── Les places ──
+  // ── 자리 ──
   private assignSeat(role: Role): Seat | null {
     const free = (r: Role | null) => SEATS.find((s) => (r === null || s.role === r) && !this.seatOf.has(s.id)) ?? null;
     return free(role) ?? (role === 'renfort' ? free(null) : null);
@@ -234,11 +234,11 @@ export class World {
     return { x: w.x + w.w / 2, y: w.y + w.h - 4 };
   }
 
-  /** Les rapports se posent ici, dans la corbeille du bureau du chef. */
+  /** 보고서는 여기, 팀장 책상의 서류함에 놓인다. */
   get inboxPt(): Pt { return { x: 9 * T + 52, y: 7 * T - 2 }; }
   get printerPt(): Pt { return { x: 12 * T + 8, y: 4 * T - 4 }; }
 
-  // ── Les événements ──
+  // ── 이벤트 ──
   apply(ev: OfficeEvent, live: boolean) {
     const chef = this.chef;
     switch (ev.k) {
@@ -261,7 +261,7 @@ export class World {
         const fresh = n !== this.planSize;
         this.planSize = n;
         if (live && fresh) {
-          // Max va écrire le plan au tableau
+          // 맥스가 칠판에 계획을 쓰러 간다
           chef.tasks = chef.tasks.filter((t) => t.t !== 'sit');
           this.queue(chef,
             { t: 'walk', tile: SPOTS.board, face: 'up', then: SPOTS.boardPx },
@@ -295,7 +295,7 @@ export class World {
           );
           if (seat) this.queue(a, { t: 'walk', tile: seat.tile }, { t: 'sit', seat });
           else this.queue(a, { t: 'walk', tile: a.standSpot!, face: 'down' });
-          // Max se tourne vers celui qu'il appelle
+          // 맥스는 자기가 부른 팀원을 반긴다
           chef.happyUntil = this.time + 0.8;
         } else if (seat) this.snapSeat(a, seat);
         else { const f = tileFeet(a.standSpot!); a.x = f.x; a.y = f.y; }
@@ -388,7 +388,7 @@ export class World {
     a.alpha = 1;
   }
 
-  /** Il se lève, prend son rapport et va le poser sur le bureau du chef. */
+  /** 일어나서 보고서를 들고 팀장 책상에 두러 간다. */
   private deliver(a: Actor) {
     let spot = SPOTS.deliver.findIndex((_, i) => !this.deliverTaken.has(i));
     if (spot < 0) spot = Math.floor(Math.random() * SPOTS.deliver.length);
@@ -409,7 +409,7 @@ export class World {
     );
   }
 
-  /** Il repart par la porte (et libère son bureau). */
+  /** 문으로 나간다(쓰던 책상은 비워 준다). */
   private exit(a: Actor) {
     this.queue(a,
       { t: 'call', fn: () => { if (a.seat) this.seatOf.delete(a.seat.id); } },
@@ -429,25 +429,25 @@ export class World {
     this.rosterChanged();
   }
 
-  // ── Une image ──
-  /** Fait avancer le monde. Renvoie vrai si quelque chose bouge (pour savoir à quel rythme redessiner). */
+  // ── 한 프레임 ──
+  /** 세계를 한 걸음 진행한다. 움직이는 게 있으면 true를 돌려준다(다시 그리는 속도를 정하는 데 쓴다). */
   update(dtReal: number): boolean {
     const dt = Math.min(0.1, dtReal) * this.speed;
     this.time += dt;
     this.fx.update(dt);
     let moving = this.fx.busy || this.time < this.printUntil || this.time < this.boardUntil;
     const chef = this.chef;
-    // la vapeur du café
+    // 커피 김
     if (this.time > this.steamAt) { this.steamAt = this.time + 0.35; this.fx.steam(16 * T + 11, 13 * T + 4); }
-    // le chat
+    // 고양이
     if (this.cat.update(dt, this.time, this.grid, (x, y) => this.fx.floatIcon(x, y, 'zzz'))) moving = true;
-    // le jukebox : des notes qui s'envolent quand il joue
+    // 주크박스: 재생 중이면 음표가 날아오른다
     if (this.musicOn && this.time > this.noteAt) {
       this.noteAt = this.time + 0.7 + Math.random() * 0.5;
       this.fx.floatIcon(14 * T + 10 + Math.random() * 12, 13 * T + 2, Math.random() < 0.5 ? 'note' : 'note2');
     }
     if (this.musicOn) moving = true;
-    // le mode soirée : des étincelles, et tout le monde danse
+    // 저녁 모드: 반짝이가 날리고 모두 춤춘다
     if (this.time < this.discoUntil) {
       moving = true;
       if (Math.random() < 0.25) this.fx.sparkle(32 + Math.random() * 288, 60 + Math.random() * 160, 2, ['#ff6fa8', '#4fb3ff', '#ffd166', '#3ddc97', '#ff8a3d'][Math.floor(Math.random() * 5)]);
@@ -461,7 +461,7 @@ export class World {
         this.fx.floatIcon(a.x, a.y - 24, iconFor(a.act));
       }
     }
-    // Max salue de temps en temps quand il attend à l'accueil
+    // 안내 데스크에서 기다리는 맥스는 가끔 손을 흔든다
     if (!this.missionActive && !chef.busy && !chef.seated && this.time > this.waveAt) {
       this.waveAt = this.time + 9 + Math.random() * 6;
       this.queue(chef, { t: 'wait', ms: 1200, pose: 'wave', dir: 'down' });
@@ -479,7 +479,7 @@ export class World {
     return moving;
   }
 
-  // ── Les petits gestes du bureau (quand on clique sur les objets) ──
+  // ── 사무실의 작은 반응(물건을 클릭했을 때) ──
   neonNext() {
     this.neonIndex = (this.neonIndex + 1) % 5;
     this.fx.sparkle(97 + 12, 11 + 11, 10, '#ffffff');
@@ -504,16 +504,16 @@ export class World {
     if (this.lampsOff.has(id)) this.lampsOff.delete(id); else this.lampsOff.add(id);
   }
 
-  /** Le mode soirée : la boule à facettes descend, et toute l'équipe danse. */
+  /** 저녁 모드: 미러볼이 내려오고 팀 전체가 춤춘다. */
   disco(seconds = 16) {
     this.discoUntil = this.time + seconds;
     for (const a of this.actors.values()) a.cheerUntil = this.discoUntil;
     this.fx.rain(22 * T, 70);
   }
 
-  /** Pour la visite guidée sans mission : un agent par coin, assis à son bureau, qui travaille. */
+  /** 미션 없이 사무실을 둘러볼 때: 구역마다 에이전트 한 명이 책상에 앉아 일한다. */
   demoTeam(on: boolean) {
-    const demo: [string, Role, string][] = [['demo-1', 'recherche', 'Iris'], ['demo-2', 'recherche', 'Hugo'], ['demo-3', 'code', 'Ada'], ['demo-4', 'design', 'Frida'], ['demo-5', 'redaction', 'Colette'], ['demo-6', 'analyse', 'Marie']];
+    const demo: [string, Role, string][] = [['demo-1', 'recherche', '아이리스'], ['demo-2', 'recherche', '위고'], ['demo-3', 'code', '에이다'], ['demo-4', 'design', '프리다'], ['demo-5', 'redaction', '콜레트'], ['demo-6', 'analyse', '마리']];
     if (on) {
       for (const [id, role, name] of demo) {
         if (this.actors.has(id)) continue;
@@ -537,7 +537,7 @@ export class World {
     this.fx.floatIcon(this.cat.x, this.cat.y - 12, 'heart');
   }
 
-  /** La musique : appelé à chaque image avec l'énergie des basses. */
+  /** 음악: 매 프레임 저음 세기와 함께 호출된다. */
   setMusic(on: boolean, level: number, beat: boolean) {
     this.musicOn = on;
     this.musicLevel = level;
@@ -571,10 +571,10 @@ export class World {
       default: a.frame = 0;
     }
     if (pose === 'carry' && a.moving) {
-      // en marchant avec sa feuille : on garde la pose « porter », jambes en mouvement
+      // 종이를 들고 걸을 때: “들기” 자세는 그대로 두고 다리만 움직인다
       a.frame = Math.floor(ft * 8) % 4;
     }
-    // le regard
+    // 시선
     if (t > a.nextBlink) { a.blinkUntil = t + 0.12; a.nextBlink = t + 2.2 + Math.random() * 3.5; }
     if (t > a.nextLook) {
       const opts: Eyes[] = ['left', 'right', 'open', 'open', 'up'];

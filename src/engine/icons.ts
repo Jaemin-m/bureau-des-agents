@@ -1,5 +1,5 @@
-// Les petites icônes qui s'envolent au-dessus des robots quand ils font quelque chose
-// (une loupe pour une recherche, un globe pour une page web, une feuille pour un fichier…).
+// 로봇이 뭔가 할 때 머리 위로 떠오르는 작은 아이콘
+// (검색은 돋보기, 웹 페이지는 지구본, 파일은 종이…).
 import type { ActKind } from '../../shared/protocol.ts';
 import { fromRows, outline, P } from './pixels.ts';
 
@@ -181,7 +181,7 @@ export function icon(name: IconName): HTMLCanvasElement {
   let c = cache.get(name);
   if (!c) {
     const src = fromRows(ROWS[name], pal);
-    // une marge d'un pixel pour le contour
+    // 윤곽선을 위한 1픽셀 여백
     const m = document.createElement('canvas');
     m.width = src.width + 2;
     m.height = src.height + 2;
