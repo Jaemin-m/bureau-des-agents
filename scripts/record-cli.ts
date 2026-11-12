@@ -663,13 +663,12 @@ async function officeReal(ctx: Ctx, agent: 'claude' | 'codex') {
   const hello = path.join(mission.folder, 'hello.txt');
   const helloText = existsSync(hello) ? readFileSync(hello, 'utf8') : null;
   const raws = readdirSync(rec).filter((f) => f.endsWith('.raw.jsonl')).sort();
-  const rawOf = (f: string) => readFileSync(path.join(rec, f), 'utf8');
-  const leadRaw = raws.find((f) => /-1-claude\.raw\.jsonl$/.test(f));
-  const planCalls = leadRaw ? (rawOf(leadRaw).match(/\\"name\\":\\"mcp__office__office_plan\\"/g) ?? []).length : 0;
   const mcp = readFileSync(path.join(rec, 'lead-mcp.jsonl'), 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l) as Json);
   const logged = readFileSync(path.join(rec, `${mission.id}.logged.jsonl`), 'utf8');
   const events = logged.split('\n').filter(Boolean).map((l) => (JSON.parse(l) as { ev: Json }).ev);
   const hires = events.filter((e) => e.k === 'hire').map((e) => e.agent);
+  const planCalls = events.filter((e) => e.k === 'act' && e.who === 'chef' && e.tool === 'mcp__office__office_plan').length;
+  const leaks = [tmp, os.homedir()].filter((p) => logged.includes(p));
 
   const scrub = makeScrub([[mission.folder, '/work/mission'], [path.join(tmp, 'office'), '<TMP>/office'], [tmp, '<TMP>/office-run']]);
   const out = path.join(FIXTURES, 'scenarios');
@@ -681,7 +680,7 @@ async function officeReal(ctx: Ctx, agent: 'claude' | 'codex') {
     sessions: raws.map((f) => f.replace(mission!.id, '<MISSION>')),
     mcp: { requests: mcp.length, methods: [...new Set(mcp.map((r) => r.method))], origins: [...new Set(mcp.map((r) => r.origin))], userAgents: [...new Set(mcp.map((r) => r.userAgent))] },
     settle: events.find((e) => e.k === 'settle')?.text ?? null, end: events.find((e) => e.k === 'end') ?? null,
-    kinds: events.map((e) => e.k).join(' '), answered: answered.size,
+    kinds: events.map((e) => e.k).join(' '), answered: answered.size, pathsInLog: leaks.length,
   };
   writeFileSync(path.join(out, `real-u7-${agent}.meta.json`), scrub(JSON.stringify(observed, null, 2)) + '\n');
   console.log(`  [office:${agent}] 상태 ${mission.status}, office_plan ${planCalls}번, 일꾼 ${hires.join(',')}, hello.txt ${JSON.stringify(helloText)}, MCP 요청 ${mcp.length}개(Origin ${JSON.stringify(observed.mcp.origins)}), ${Math.round(observed.ms / 1000)}초`);

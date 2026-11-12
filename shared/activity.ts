@@ -138,11 +138,11 @@ export function countStats(s: MissionStats, ev: OfficeEvent) {
   else if (ev.kind === 'bash') s.commands++;
 }
 
-/** 미션 폴더의 전체 경로가 나오는 곳을 모두 “.”로 바꾼다. */
+/** 미션 폴더의 전체 경로가 나오는 곳을 모두 “.”로 바꾼다. JSON으로 쓴 글에서도 된다(따옴표가 `\"`가 된다). */
 export function relToFolder(text: string, folder: string): string {
   if (!folder) return text;
   const esc = folder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return text.replace(new RegExp(esc + '(?=$|[/"\'\\s])', 'g'), '.').replace(/(^|[\s"'])\.\//g, '$1');
+  return text.replace(new RegExp(esc + '(?=$|[/"\'\\s\\\\])', 'g'), '.').replace(/(^|[\s"'])\.\//g, '$1');
 }
 
 /** 실행될 명령을 그대로, 읽기 쉽게만 바꾼 것(미션 폴더는 “.”가 된다). 숨기는 것은 없다. */

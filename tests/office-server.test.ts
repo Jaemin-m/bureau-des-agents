@@ -55,7 +55,7 @@ test('진짜 서버: 소켓으로 시작, MCP로 계획, claude 다음 codex, se
       launches: [{
         match: 'BRIEF-COPY',
         // 맥스가 note 소식으로 한 턴을 다 마친 뒤에 끝나야, 마지막 소식이 따로 온다(소식은 1.5초씩 모은다)
-        steps: turn({ wait: 2500 }, { writeFile: { path: 'b.txt', content: '안녕\n' } }, { command: { run: "/bin/zsh -lc 'cp a.txt b.txt'" } },
+        steps: turn({ wait: 2500 }, { writeFile: { path: 'b.txt', content: '안녕\n' } }, { command: { run: "/bin/zsh -lc 'cd \"{{cwd}}\" && cp a.txt b.txt'" } },
           { handback: { block: { status: 'done', summary: 'SUMMARY-COPY b.txt' } } }),
       }] satisfies LaunchScript[],
     },
