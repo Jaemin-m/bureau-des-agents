@@ -346,6 +346,17 @@ test('소식은 디바운스로 모아서 한 번에 깨운다', () => {
   assert.match(wake.turn, /모든 할 일이 끝났어요/);
 });
 
+test('타이머가 1ms 일찍 깨어도 소식을 전한다: 타이머는 한 번뿐이라 다시 오지 않는다', () => {
+  const sim = planned([spec('a')], { newsDebounceMs: 1500 });
+  const w = sim.workerFor('a');
+  sim.beginTurn(w);
+  const first = sim.endTurn(w, '끝 a');
+  const timer = first.effects.find((e): e is Extract<Effect, { k: 'timer' }> => e.k === 'timer')!;
+  sim.now = timer.at - 1;
+  sim.do({ k: 'timer_fired', timer });
+  assert.match(sim.take('send_turn', LEAD).turn, /끝 a/);
+});
+
 /** 무작위 입력 수천 개: 불법 단계 이동(던짐)이 없고, 매 걸음 불변식과 멱등성이 지켜진다. */
 test('무작위 걸음: 어떤 순서로 와도 던지지 않고, converge는 늘 고정점에 있다', () => {
   const seen = new Set<string>();

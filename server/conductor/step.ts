@@ -194,7 +194,11 @@ function apply(d: Draft, input: Input): Reply | Same {
     case 'effect_failed': return effectFailed(d, input.effect, input.why);
     case 'timer_fired': {
       const { then } = input.timer;
-      if (then.k === 'wake') return { ok: true };
+      if (then.k === 'wake') {
+        // 노드의 타이머는 Date.now()보다 1ms쯤 일찍 깨어날 수 있다. 타이머는 한 번뿐이라, 그때 아직 안 됐다고 보면 다시 깨우는 이가 없다.
+        if (s.wakeAt !== null && s.wakeAt <= input.timer.at) s.wakeAt = Math.min(s.wakeAt, d.ctx.now);
+        return { ok: true };
+      }
       const w = workerOf(s, then.who);
       if (!w || w.gen !== then.gen || w.phase.k !== 'stopping' || w.phase.killed) return { same: { ok: true } };
       w.phase = { ...w.phase, killed: true };
