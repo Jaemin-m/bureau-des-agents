@@ -192,7 +192,7 @@ export class Conductor {
     if (typeof b === 'string') return { ok: false, error: b };
     const r = await this.git(() => mergeIntoBase(b.ref));
     if (r.kind === 'refused') return { ok: false, error: this.scrub(r.why) };
-    this.post({ k: 'task_result', task: key, patch: { merged: true } });
+    for (const k of this.sameBranch(b.task)) this.post({ k: 'task_result', task: k, patch: { merged: true } });
     return { ok: true, text: `${b.ref.branch}를 ${b.ref.repo.baseBranch}에 합쳤어요.` };
   }
 
@@ -208,7 +208,7 @@ export class Conductor {
     // 내보내기의 보관과 작업 폴더 정리(retire)가 같은 줄 앞에 서 있다
     const r = await this.git(() => archive(b.ref));
     if (r.kind === 'failed') return { ok: false, error: r.why };
-    this.post({ k: 'task_result', task: key, patch: { archived: true } });
+    for (const k of this.sameBranch(b.task)) this.post({ k: 'task_result', task: k, patch: { archived: true } });
     return { ok: true, text: '브랜치를 보관함으로 옮겼어요. 지우지 않았으니 언제든 되살릴 수 있어요.' };
   }
 
@@ -221,6 +221,11 @@ export class Conductor {
     const ref = this.refOf(t.seat);
     if (ref?.kind !== 'branch') return '이 할 일에는 브랜치가 없어요.';
     return { ref, task: t };
+  }
+
+  /** 같은 일꾼이 같은 브랜치에서 한 끝난 일들: 이어서 시킨 일도 같은 브랜치라서 하나를 합치거나 버리면 모두 그렇게 된다. */
+  private sameBranch(task: Task): string[] {
+    return Object.values(this.state.tasks).filter((t) => t.run.k === 'done' && t.seat === task.seat).map((t) => t.key);
   }
 
   private refOf(who: string | undefined): WorkspaceRef | null {
