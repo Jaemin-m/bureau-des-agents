@@ -474,7 +474,7 @@ function turnEnded(d: Draft, w: Worker, outcome: 'ok' | 'error' | 'interrupted',
   };
   s.questions[q.id] = q;
   setPhase(d, w, { k: 'blocked', on: { reason: 'question', question: q.id } });
-  d.ev.push({ k: 'msg', id: mint(d, 'm'), from: w.id, to: q.audience === 'user' ? 'user' : LEAD, kind: 'note', text: asked });
+  d.ev.push({ k: 'msg', id: mint(d, 'm'), from: w.id, to: q.audience === 'user' ? 'user' : LEAD, kind: 'question', text: asked });
   if (q.audience === 'user') askUser(d, q);
   else s.news.push({ id: mint(d, 'n'), line: `${label(w)}가 할 일 '${t.key}'에서 질문했어요(${q.id}). office_message로 답해 주세요.`, data: asked, question: q.id });
   return { ok: true };

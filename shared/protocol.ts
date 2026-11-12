@@ -50,7 +50,7 @@ export type TaskRun =
 export interface TaskNode { key: string; title: string; after: string[]; role?: Role; agent?: AgentKind; run: TaskRun }
 
 /** 대화 한 줄의 종류. brief = 첫 지시, followup = 끝난 뒤 이어서 시키는 말, answer = 질문에 대한 답. */
-export type MsgKind = 'brief' | 'followup' | 'answer' | 'note' | 'news';
+export type MsgKind = 'brief' | 'followup' | 'answer' | 'question' | 'note' | 'news';
 
 /** 미션이 일하는 곳. `label`은 화면에 보이는 이름이고, 저장소의 전체 경로는 서버에만 있다. */
 export type MissionTarget = { kind: 'folder' } | { kind: 'repo'; label: string; baseBranch: string };

@@ -27,7 +27,7 @@ export const TASK_TEXT: Record<TaskStatus, string> = {
   waiting: '기다려요', ready: '곧 시작해요', running: '하는 중', blocked: '막혔어요', done: '끝났어요', failed: '실패했어요', cancelled: '취소됐어요',
 };
 
-export const MSG_TEXT: Record<MsgKind, string> = { brief: '지시', followup: '이어서 시킴', answer: '답', note: '메모', news: '소식' };
+export const MSG_TEXT: Record<MsgKind, string> = { brief: '지시', followup: '이어서 시킴', answer: '답', question: '질문', note: '메모', news: '소식' };
 
 /** 일꾼을 돌리는 CLI의 색 배지. */
 export function KindChip({ kind }: { kind: AgentKind }) {
