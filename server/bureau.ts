@@ -9,12 +9,12 @@ import { existsSync, readFileSync, renameSync, watch, writeFileSync, type FSWatc
 import { appendFile, copyFile, mkdir, readdir, readFile, rename, stat, unlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { countStats, emptyStats } from '../shared/activity.ts';
+import { claudePowers, countStats, emptyStats, ROLE_POWERS } from '../shared/activity.ts';
 import type { ClaudeInfo, FileInfo, Logged, MissionInfo, OfficeEvent, Quota, Role, ServerMsg, Settings, TeamEntry, VersionInfo } from '../shared/protocol.ts';
 import type { AdapterProbe, SessionSpec } from './agents/adapter.ts';
 import { openLegacyLead, type LegacyLead, type TurnResult } from './agents/registry.ts';
 import { openTap, type LoggedFrom, type WireTap } from './record.ts';
-import { agentsJson, ALWAYS_ALLOWED, chefPrompt, SESSION_TOOLS } from './team.ts';
+import { agentsJson, chefPrompt } from './team.ts';
 
 const RULES_FILE = '사무실 규칙.md';
 
@@ -239,7 +239,7 @@ export class Bureau {
     const sessionId = opts.fresh ? undefined : cur.mission.sessionId;
     cur.tap = openTap(cur.mission.id, ++cur.spawns);
     const spec: SessionSpec = {
-      cwd: folder, powers: { tools: SESSION_TOOLS, preapproved: ALWAYS_ALLOWED }, access: 'write',
+      cwd: folder, powers: claudePowers(ROLE_POWERS.chef, 'write'), access: 'write',
       autonomy: s.permission === 'ask' ? 'ask' : 'auto', systemPrompt: chefPrompt(readRules(this.dir)),
       model: s.chefModel || undefined, resume: sessionId ? { id: sessionId, cwd: folder } : undefined, tap: cur.tap ?? undefined,
     };

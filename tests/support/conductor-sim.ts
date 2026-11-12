@@ -1,8 +1,8 @@
 // step을 입력 하나씩 돌리는 작은 시뮬레이터. 매 걸음마다 불변식과 멱등성(converge를 한 번 더 돌려도 아무것도 안 나옴)을 확인한다.
 import assert from 'node:assert/strict';
 import type { OfficeEvent } from '../../shared/protocol.ts';
-import { DEFAULT_LIMITS, LEAD, busy, newMission, type Limits, type MissionState, type Opaque } from '../../server/conductor/model.ts';
-import { converge, step, type Effect, type Input, type Signal, type StepCtx, type StepResult } from '../../server/conductor/step.ts';
+import { DEFAULT_LIMITS, LEAD, busy, type Limits, type MissionState, type Opaque } from '../../server/conductor/model.ts';
+import { converge, createMission, step, type Effect, type Input, type Signal, type StepCtx, type StepResult } from '../../server/conductor/step.ts';
 
 export const ctxAt = (now: number): StepCtx => ({ now, installed: ['claude', 'codex', 'gemini'], salt: 'zz00' });
 
@@ -34,20 +34,31 @@ export function assertConverged(s: MissionState, now: number) {
 }
 
 export class Sim {
-  s: MissionState;
+  /** 첫 요청(start)을 받기 전에는 미션이 없다 */
+  s!: MissionState;
   now = 1_000;
   /** 아직 결과를 돌려주지 않은 효과 */
   open: Effect[] = [];
   events: OfficeEvent[] = [];
+  private limits: Limits;
 
   constructor(limits: Partial<Limits> = {}) {
-    this.s = newMission({ ...DEFAULT_LIMITS, newsDebounceMs: 0, ...limits });
+    this.limits = { ...DEFAULT_LIMITS, newsDebounceMs: 0, ...limits };
+  }
+
+  /** 첫 요청으로 미션을 만든다. */
+  start(opening: string): StepResult {
+    return this.record(createMission(opening, ctxAt(this.now), this.limits));
   }
 
   do(input: Input): StepResult {
     const before = structuredClone(this.s);
     const r = step(this.s, input, ctxAt(this.now));
     assert.deepEqual(this.s, before, 'step은 받은 상태를 바꾸지 않는다');
+    return this.record(r);
+  }
+
+  private record(r: StepResult): StepResult {
     checkInvariants(r.state);
     assertConverged(r.state, this.now);
     this.s = r.state;
@@ -81,7 +92,7 @@ export class Sim {
 
   /** 맥스에게 말하고 그의 턴을 시작시킨다. */
   tellLead(text: string) {
-    const r = this.do({ k: 'user_said', to: LEAD, text });
+    const r = this.s ? this.do({ k: 'user_said', to: LEAD, text }) : this.start(text);
     this.beginTurn(LEAD);
     return r;
   }

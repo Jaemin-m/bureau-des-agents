@@ -3,10 +3,11 @@ import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import type { WorkerPhase } from '../shared/protocol.ts';
-import { DEFAULT_LIMITS, NEXT_PHASE, moveTo, newMission, type MissionState, type Task, type TaskKey, type WorkerId } from '../server/conductor/model.ts';
+import { DEFAULT_LIMITS, NEXT_PHASE, moveTo, type MissionState, type Task, type TaskKey, type WorkerId } from '../server/conductor/model.ts';
+import { createMission } from '../server/conductor/step.ts';
 import { validatePlan, type PlanSpec } from '../server/conductor/dag.ts';
 import { fenceData, parseHandback, wakeText } from '../server/conductor/text.ts';
-import { random } from './support/conductor-sim.ts';
+import { ctxAt, random } from './support/conductor-sim.ts';
 
 const PHASES = Object.keys(NEXT_PHASE) as WorkerPhase[];
 
@@ -18,9 +19,12 @@ test('NEXT_PHASE: 표에 있는 이동만 되고, 나머지는 모두 던진다'
   assert.deepEqual(NEXT_PHASE.retired, [], '떠난 일꾼은 돌아오지 않는다');
 });
 
-test('server/conductor는 node:*를 불러오지 않는다(shell.ts만 예외)', () => {
+/** 입출력을 하는 셸 파일. 나머지는 모두 순수하다 */
+const SHELL = ['shell.ts', 'boot.ts', 'lead-mcp.ts'];
+
+test('server/conductor는 node:*를 불러오지 않는다(셸 파일만 예외)', () => {
   const dir = new URL('../server/conductor/', import.meta.url);
-  const files = readdirSync(dir).filter((f) => f.endsWith('.ts') && f !== 'shell.ts');
+  const files = readdirSync(dir).filter((f) => f.endsWith('.ts') && !SHELL.includes(f));
   assert.ok(files.length >= 4);
   for (const f of files) {
     const src = readFileSync(new URL(f, dir), 'utf8');
@@ -37,7 +41,7 @@ const task = (key: string, over: Partial<Task> = {}): Task => ({
 });
 const p = (key: string, more: Partial<PlanSpec> = {}): PlanSpec => ({ key, title: `${key} 하기`, brief: `${key}를 해 주세요.`, role: 'code', ...more });
 function stateWith(tasks: Task[], maxTasks = DEFAULT_LIMITS.maxTasks): MissionState {
-  const s = newMission({ ...DEFAULT_LIMITS, maxTasks });
+  const s = createMission('계획을 세워 주세요.', ctxAt(0), { ...DEFAULT_LIMITS, maxTasks }).state;
   for (const t of tasks) s.tasks[t.key] = t;
   return s;
 }

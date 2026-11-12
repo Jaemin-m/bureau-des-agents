@@ -6,7 +6,7 @@ import { NAMES, ROLES, cut } from '../../shared/activity.ts';
 import { taskStatus } from '../../shared/tasks.ts';
 import { type PlanSpec, validatePlan } from './dag.ts';
 import {
-  LEAD, busy, moveTo, type Access, type Lead, type Member, type Message, type MessageId, type MissionState, type Opaque, type Phase,
+  DEFAULT_LIMITS, LEAD, busy, moveTo, type Access, type Lead, type Limits, type Member, type Message, type MessageId, type MissionState, type Opaque, type Phase,
   type Question, type QuestionId, type RequestId, type Task, type TaskKey, type Who, type Worker, type WorkerId,
 } from './model.ts';
 import { answerText, briefText, followupText, parseHandback, resumeText, statusText, wakeText, withInbox } from './text.ts';
@@ -47,6 +47,8 @@ export type Input =
   | { k: 'lead_message'; to: string; text: string; replyTo?: string; requestId?: string }
   | { k: 'lead_cancel'; target: { task: string } | { worker: string } }
   | { k: 'lead_status' }
+  /** 미션을 놓아준다(새 미션, 새 미션 버튼, 서버 종료): 모두 내보내고 end를 낸다 */
+  | { k: 'release' }
   | { k: 'signal'; who: string; gen: number; sig: Signal }
   | { k: 'effect_ok'; effect: Effect; out?: Opaque }
   | { k: 'effect_failed'; effect: Effect; why: string }
@@ -82,6 +84,18 @@ export function step(state: MissionState, input: Input, ctx: StepCtx): StepResul
   return finish(d, state, r);
 }
 
+/** 미션은 첫 요청과 함께 태어나고 바로 일한다. 상태가 없는 미션은 없다. */
+export function createMission(opening: string, ctx: StepCtx, limits: Limits = DEFAULT_LIMITS): StepResult {
+  const s: MissionState = {
+    v: 1, status: 'working', seq: 0, tasks: {}, workers: {}, questions: {}, news: [], wakeAt: null, leadLast: '', requests: [], limits,
+    lead: { kind: 'lead', id: LEAD, agent: 'claude', gen: 0, residency: 'parked', inbox: [], startFailures: 0, turns: 0, phase: { k: 'idle' } },
+  };
+  const d: Draft = { s, ev: [], fx: [], ctx };
+  s.lead.inbox.push({ id: mint(d, 'm') as MessageId, from: 'user', kind: 'followup', text: opening });
+  d.ev.push({ k: 'start', text: opening });
+  return finish(d, null, { ok: true });
+}
+
 /** 입력 없이 converge만. 같은 상태에 두 번 돌려도 두 번째는 아무것도 내지 않는다. */
 export function converge(state: MissionState, ctx: StepCtx, reply: Reply = { ok: true }): StepResult {
   const d: Draft = { s: structuredClone(state), ev: [], fx: [], ctx };
@@ -89,12 +103,12 @@ export function converge(state: MissionState, ctx: StepCtx, reply: Reply = { ok:
 }
 
 /** 바뀐 것이 없으면 받은 상태 객체를 그대로 돌려준다(거절, 오래된 신호, 중복 요청을 호출자가 알아볼 수 있게). */
-function finish(d: Draft, before: MissionState, reply: Reply): StepResult {
+function finish(d: Draft, before: MissionState | null, reply: Reply): StepResult {
   reconcile(d);
   if (d.ev.some((e) => e.k === 'task')) d.ev.push({ k: 'plan', items: planItems(d.s) });
-  const changed = JSON.stringify(d.s) !== JSON.stringify(before);
+  const changed = before === null || JSON.stringify(d.s) !== JSON.stringify(before);
   if (changed) d.fx.push({ k: 'persist', key: 'persist' });
-  return { state: changed ? d.s : before, events: d.ev, effects: d.fx, reply };
+  return { state: changed || !before ? d.s : before, events: d.ev, effects: d.fx, reply };
 }
 
 // ── apply ─────────────────────────────────────────────────────────────────────
@@ -171,6 +185,7 @@ function apply(d: Draft, input: Input): Reply | Same {
     }
     case 'lead_cancel': return 'task' in input.target ? cancelTask(d, input.target.task) : cancelWorker(d, input.target.worker);
     case 'lead_status': return { same: { ok: true, text: statusText(s) } };
+    case 'release': return release(d);
     case 'signal': {
       const w = workerOf(s, input.who);
       if (!w || w.gen !== input.gen) return { same: { ok: false, error: '오래된 신호예요.' } };
@@ -214,6 +229,35 @@ function boot(d: Draft): Reply {
     }
     setPhase(d, w, { k: 'idle' }, note);
   }
+  return { ok: true };
+}
+
+/** 놓아주기: 프로세스를 모두 끝내고, 일꾼은 떠나고(leave), 열린 요청은 닫고, end를 낸다. 할 일은 기록에 그대로 남는다. */
+function release(d: Draft): Reply {
+  const { s } = d;
+  for (const w of allWorkers(s)) {
+    if (w.residency === 'live') {
+      d.fx.push({ k: 'kill', key: `kill:${w.id}:${w.gen}:release`, who: w.id, gen: w.gen });
+      w.residency = 'parked';
+    }
+    const p = w.phase;
+    if (p.k === 'blocked' && p.on.reason === 'approval') d.ev.push({ k: 'ask_done', requestId: p.on.requestId, allow: false, cancelled: true });
+    if (p.k === 'blocked' && p.on.reason === 'question') {
+      const q = s.questions[p.on.question];
+      if (q.state.k === 'open') {
+        q.state = { k: 'void' };
+        if (q.audience === 'user') d.ev.push({ k: 'ask_done', requestId: q.id, allow: false, cancelled: true });
+      }
+    }
+    if (p.k === 'working') setPhase(d, w, { k: 'stopping', then: 'retired', killed: true });
+    if (w.kind === 'member' && w.phase.k !== 'retired') land(d, w, 'retired');
+    if (w.kind === 'lead' && w.phase.k !== 'idle' && w.phase.k !== 'stopped' && w.phase.k !== 'failed') land(d, w, 'stopped');
+  }
+  for (const q of Object.values(s.questions)) if (q.state.k === 'open') q.state = { k: 'void' };
+  s.news = [];
+  s.wakeAt = null;
+  if (s.status === 'working') s.status = 'stopped';
+  d.ev.push({ k: 'end', ok: s.status === 'done', text: s.leadLast, ms: 0, ...(s.status === 'done' ? {} : { stopped: true }) });
   return { ok: true };
 }
 

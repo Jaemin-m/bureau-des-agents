@@ -1,12 +1,17 @@
 // 시나리오 도우미: 진짜 서버 코드를 가짜 에이전트(CLAUDE_BIN, CODEX_BIN)로 돌리고, 나온 이벤트를 모아서 단언할 수 있게 한다.
 // 지금은 Bureau(오늘의 서버)를 감싼다. 컨덕터로 넘어가면 이 파일의 `openOffice` 안쪽만 바뀌고 부르는 쪽은 그대로다.
 import assert from 'node:assert/strict';
-import { mkdtempSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, realpathSync } from 'node:fs';
+import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import type { Logged, OfficeEvent, ServerMsg } from '../../shared/protocol.ts';
 import { adapterFor } from '../../server/agents/registry.ts';
 import { Bureau } from '../../server/bureau.ts';
+import { LeadMcp } from '../../server/conductor/lead-mcp.ts';
+import type { Limits } from '../../server/conductor/model.ts';
+import { leadOfficeText } from '../../server/conductor/prompts.ts';
+import type { ConductorDeps } from '../../server/conductor/shell.ts';
 import type { Repo } from '../../server/workspaces.ts';
 import { fakeAgents, type FakeAgents, type Kind, type ScriptInput } from './fake-agent.ts';
 import { makeRepo, sh } from './git-fixture.ts';
@@ -95,5 +100,86 @@ export async function openOffice(opts: OpenOptions): Promise<Office> {
     assertCheckoutUntouched() {
       assert.deepEqual(snap(), before, "the user's checkout is untouched");
     },
+  };
+}
+
+// ═══════════════ 진행자(Conductor) 시나리오 ═══════════════
+// Bureau를 거치지 않고 진행자를 바로 돌린다. 맥스의 MCP는 127.0.0.1의 임시 포트에 단다. 미션 여럿이 같은 서버를 쓸 수 있다.
+
+export const CONDUCTOR_LIMITS: Partial<Limits> = { newsDebounceMs: 0, stopGraceMs: 500 };
+
+export interface RigMission {
+  name: string;
+  folder: string;
+  stateFile: string;
+  deps: ConductorDeps;
+  events(): OfficeEvent[];
+  until(pred: (events: OfficeEvent[]) => boolean, ms?: number): Promise<void>;
+}
+
+export interface Rig {
+  tmp: string;
+  fakes: FakeAgents;
+  mcp: LeadMcp;
+  /** http://127.0.0.1:<port> */
+  base: string;
+  /** 미션 하나의 폴더, 상태 파일, 이벤트 모음. 같은 이름이면 같은 미션(다시 열 때) */
+  mission(name: string): RigMission;
+  stop(): Promise<void>;
+}
+
+/** 진행자 하나를 만드는 데 필요한 것. 다른 프로세스(conductor-host.ts)도 같은 것을 쓴다 */
+export function conductorDeps(o: {
+  missionId: string; folder: string; stateFile: string; mcp: LeadMcp; base: string; emit: (ev: OfficeEvent) => void; limits?: Partial<Limits>;
+}): ConductorDeps {
+  return {
+    missionId: o.missionId, folder: o.folder, stateFile: o.stateFile, emit: o.emit, installed: ['claude'],
+    settings: () => ({ autonomy: 'auto', chefModel: '', teamModel: 'sonnet' }),
+    leadPrompt: () => `너는 맥스다.\n\n${leadOfficeText(['claude'])}`,
+    leadMcp: o.mcp, mcpBase: o.base, limits: o.limits ?? CONDUCTOR_LIMITS,
+  };
+}
+
+export async function conductorRig(opts: { scripts: Partial<Record<Kind, ScriptInput>> }): Promise<Rig> {
+  const tmp = realpathSync(mkdtempSync(path.join(os.tmpdir(), 'conductor-scenario-')));
+  const fakes = fakeAgents(opts.scripts);
+  const mcp = new LeadMcp();
+  const server = http.createServer((req, res) => { if (!mcp.handle(req, res)) { res.writeHead(404); res.end(); } });
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const base = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
+  const missions = new Map<string, RigMission>();
+  return {
+    tmp, fakes, mcp, base,
+    mission(name) {
+      const known = missions.get(name);
+      if (known) return known;
+      const folder = path.join(tmp, name);
+      mkdirSync(folder, { recursive: true });
+      const stateFile = path.join(tmp, '.bureau', 'missions', `${name}.state.json`);
+      const seen: OfficeEvent[] = [];
+      const waiting: { pred: () => boolean; resolve: () => void }[] = [];
+      const deps = conductorDeps({
+        missionId: name, folder, stateFile, mcp, base,
+        emit: (ev) => {
+          seen.push(ev);
+          for (const w of waiting.filter((x) => x.pred())) { waiting.splice(waiting.indexOf(w), 1); w.resolve(); }
+        },
+      });
+      const until: RigMission['until'] = (pred, ms = TIMEOUT) => new Promise<void>((resolve, reject) => {
+        const check = () => pred(seen);
+        if (check()) { resolve(); return; }
+        const entry = { pred: check, resolve: () => { clearTimeout(timer); resolve(); } };
+        const timer = setTimeout(() => {
+          waiting.splice(waiting.indexOf(entry), 1);
+          const failures = fakes.launches('claude').flatMap((l) => (l.failure ? [`#${l.index}: ${l.failure}`] : []));
+          reject(new Error(`${name}: ${ms}ms 안에 조건이 맞지 않았어요. 이벤트: ${seen.map((e) => e.k).join(' ')}\n${failures.join('\n')}`));
+        }, ms);
+        waiting.push(entry);
+      });
+      const m: RigMission = { name, folder, stateFile, deps, events: () => seen, until };
+      missions.set(name, m);
+      return m;
+    },
+    stop: () => new Promise<void>((resolve) => server.close(() => resolve())),
   };
 }
