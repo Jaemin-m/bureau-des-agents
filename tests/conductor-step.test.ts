@@ -250,6 +250,31 @@ test('도구 허락: 사용자가 답하면 같은 gen으로 answer_approval을 
   assert.equal(sim.s.workers[w].phase.k, 'working');
 });
 
+test('미션은 첫 요청과 함께 태어난다: working이고, 맥스를 열고, 바로 settle하지 않는다', () => {
+  const sim = new Sim();
+  const r = sim.start('빵집 사이트를 만들어 주세요.');
+  assert.equal(sim.s.status, 'working');
+  assert.deepEqual(r.events[0], { k: 'start', text: '빵집 사이트를 만들어 주세요.' });
+  assert.ok(!r.events.some((e) => e.k === 'settle'));
+  assert.match(sim.take('open_session', LEAD).turn, /빵집 사이트/);
+  assert.ok(r.effects.some((e) => e.k === 'persist'), '태어나자마자 저장한다');
+});
+
+test('release: 일꾼은 모두 떠나고, 열린 질문은 닫히고, 쥔 프로세스는 끝내고, end를 낸다', () => {
+  const sim = planned([spec('a'), spec('b', { role: 'redaction' })]);
+  const [wa, wb] = [sim.workerFor('a'), sim.workerFor('b')];
+  sim.beginTurn(wa);
+  sim.beginTurn(wb);
+  sim.endTurn(wb, handback({ status: 'question', question: '고르세요', audience: 'user' }));
+  const r = sim.do({ k: 'release' });
+  assert.deepEqual(r.events.filter((e) => e.k === 'leave').map((e) => e.k === 'leave' && e.who).sort(), [wa, wb].sort());
+  assert.ok(r.events.some((e) => e.k === 'ask_done' && e.cancelled), '사용자에게 간 질문은 거둔다');
+  assert.ok(r.effects.some((e) => e.k === 'kill' && e.who === wa), '도는 프로세스는 끝낸다');
+  assert.deepEqual(r.events.filter((e) => e.k === 'end'), [{ k: 'end', ok: false, text: '계획을 세웠어요.', ms: 0, stopped: true }]);
+  assert.equal(sim.s.status, 'stopped');
+  assert.deepEqual([sim.s.tasks.a.run.k, sim.s.tasks.b.run.k], ['pending', 'pending']);
+});
+
 test('할 일 없는 대화: 맥스의 턴이 끝나면 바로 settle', () => {
   const sim = new Sim();
   sim.tellLead('안녕!');
@@ -281,6 +306,7 @@ test('무작위 걸음: 어떤 순서로 와도 던지지 않고, converge는 �
     const rnd = random(seed);
     const pick = <T>(xs: readonly T[]): T => xs[rnd(xs.length)];
     const sim = new Sim({ maxLive: 2, maxWorkers: 3, newsDebounceMs: rnd(2) * 500 });
+    sim.start('일을 나눠서 해 주세요.');
     const texts = ['끝', handback({ status: 'done', summary: '요약' }), handback({ status: 'question', question: '어떻게?' }),
       handback({ status: 'question', question: '고르세요', audience: 'user', options: ['a'] }), handback({ status: 'blocked', why: '권한' }), '```handback\n{bad'];
     for (let i = 0; i < 250; i++) {
@@ -304,6 +330,7 @@ test('무작위 걸음: 어떤 순서로 와도 던지지 않고, converge는 �
         () => ({ k: 'signal', who, gen: sim.gen(who) - rnd(2), sig: { k: 'exited' } }),
         () => ({ k: 'boot' }),
         () => ({ k: 'tick' }),
+        () => ({ k: 'release' }),
       ];
       if (sim.open.length) {
         const settleOne = (): Input => {

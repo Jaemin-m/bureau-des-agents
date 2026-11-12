@@ -85,6 +85,8 @@ export interface AgentSession {
   kill(): void;
   readonly alive: boolean;
   readonly pid: number | undefined;
+  /** 띄운 실행 파일. 서버가 죽었다 켜졌을 때 남은 프로세스가 우리 것인지 알아볼 때 쓴다 */
+  readonly bin: string;
 }
 
 export interface AgentAdapter {

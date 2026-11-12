@@ -7,7 +7,7 @@ import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { describeAct, NAMES, permissionText, roleOfType, ROLES, cut } from '../../shared/activity.ts';
+import { CLAUDE_TOOLS, describeAct, MUTATING_POWERS, NAMES, permissionText, roleOfType, ROLES, cut } from '../../shared/activity.ts';
 import type { OfficeEvent, PlanItem, Quota, Role } from '../../shared/protocol.ts';
 import type { AdapterProbe, AgentAdapter, AgentSession, Capabilities, RawTap, SessionSpec, Sink, TurnInput, WorkerSignal } from './adapter.ts';
 import { childEnv, useApiKeys } from './env.ts';
@@ -48,7 +48,7 @@ export async function findClaude(): Promise<ClaudeBinary | null> {
 // ── 옵션 ──
 
 /** access가 'read'면 빠지는 도구. */
-const MUTATING_TOOLS = new Set(['Write', 'Edit', 'MultiEdit', 'NotebookEdit', 'Bash']);
+const MUTATING_TOOLS = new Set(CLAUDE_TOOLS.filter((t) => MUTATING_POWERS.includes(t.power)).map((t) => t.tool));
 
 export function claudeArgv(spec: SessionSpec, legacyTeam?: string): string[] {
   const tools = spec.access === 'read' ? spec.powers.tools.filter((t) => !MUTATING_TOOLS.has(t)) : [...spec.powers.tools];
@@ -195,6 +195,7 @@ const userMessage = (text: string) => ({ type: 'user', message: { role: 'user', 
 
 class ClaudeSession implements AgentSession {
   private proc: Proc;
+  readonly bin: string;
   private tap: RawTap | undefined;
   /** 허락 요청 → 도구 입력(답할 때 그대로 돌려줘야 한다) */
   private inputs = new Map<string, unknown>();
@@ -205,6 +206,7 @@ class ClaudeSession implements AgentSession {
 
   constructor(launch: Launch, tap: RawTap | undefined, first: TurnInput, h: ShellHandlers) {
     this.tap = tap;
+    this.bin = launch.bin;
     this.proc = new Proc(launch, (line) => this.onRawLine(line, h), (e) => h.onExit({ ...e, expected: this.expected }));
     this.sendTurn(first);
   }

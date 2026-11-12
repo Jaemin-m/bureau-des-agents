@@ -164,14 +164,6 @@ export interface MissionState {
   limits: Limits;
 }
 
-/** 새 미션은 첫 말을 받을 때까지 쉬는 중(done)이다. 그래야 빈 미션에 converge를 돌려도 settle하지 않는다. */
-export function newMission(limits: Limits = DEFAULT_LIMITS): MissionState {
-  return {
-    v: 1, status: 'done', seq: 0, tasks: {}, workers: {}, questions: {}, news: [], wakeAt: null, leadLast: '', requests: [], limits,
-    lead: { kind: 'lead', id: LEAD, agent: 'claude', gen: 0, residency: 'parked', inbox: [], startFailures: 0, turns: 0, phase: { k: 'idle' } },
-  };
-}
-
 /** 프로세스나 턴을 붙잡고 있는 단계. maxLive를 센다 */
 export const busy = (p: Phase): boolean =>
   p.k === 'provisioning' || p.k === 'starting' || p.k === 'working' || p.k === 'stopping' || (p.k === 'blocked' && p.on.reason === 'approval');

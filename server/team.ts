@@ -11,7 +11,7 @@ const COMMON = `
 너는 미션 폴더 안에서 일한다. 파일을 만들면 이름을 알아보기 쉽게 짓고, 보고서에서는 전체 경로가 아니라 파일 이름(보고서.md)으로만 언급한다. 절대 아무것도 삭제하지 않는다.
 숫자를 지어내지 않는다. 출처가 없는 수치는 추정치라고 밝힌다.`.trim();
 
-interface Member { role: Role; description: string; prompt: string }
+interface Member { role: Exclude<Role, 'chef'>; description: string; prompt: string }
 
 const TEAM: Member[] = [
   {
@@ -41,25 +41,25 @@ const TEAM: Member[] = [
   },
 ];
 
+/** 팀원 한 명의 지시문: 직무의 성격과 모두에게 같은 규칙. */
+export function memberPrompt(role: Exclude<Role, 'chef'>): string {
+  const m = TEAM.find((x) => x.role === role);
+  return m ? `${m.prompt}\n\n${COMMON}` : COMMON;
+}
+
 /** Claude Code --agents 옵션 형식으로 만든 팀 정의. */
 export function agentsJson(settings: Settings): string {
   const out: Record<string, unknown> = {};
   for (const m of TEAM) {
     out[ROLES[m.role].type] = {
       description: m.description,
-      prompt: `${m.prompt}\n\n${COMMON}`,
+      prompt: memberPrompt(m.role),
       tools: ROLE_TOOLS[m.role],
       model: settings.teamModel || 'sonnet',
     };
   }
   return JSON.stringify(out);
 }
-
-/** 이 세션의 도구(팀장과 팀원이 여기서 골라 쓴다. 팀원은 자기 것만 가진다). */
-export const SESSION_TOOLS = ['Agent', 'TodoWrite', 'Read', 'Write', 'Edit', 'Glob', 'Grep', 'WebSearch', 'WebFetch', 'Bash'];
-
-/** 허락을 묻지 않는 도구: 읽기, 찾기, 계획 세우기, 팀원 부르기. */
-export const ALWAYS_ALLOWED = ['Agent', 'TodoWrite', 'Read', 'Glob', 'Grep', 'WebSearch', 'WebFetch'];
 
 export function chefPrompt(rules: string): string {
   return `# 에이전트 사무실

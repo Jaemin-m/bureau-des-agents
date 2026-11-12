@@ -22,16 +22,40 @@ export const ROLES: Record<Role, RoleInfo> = {
   renfort: { label: '지원', icon: '🤖', color: '#9AA3B5', type: '', what: '따로 떨어진 일을 거들어요.' },
 };
 
-/** 직무별 Claude Code 도구(팀장은 세션의 도구를 모두 가진다). */
-export const ROLE_TOOLS: Record<Role, string[]> = {
-  chef: ['Agent', 'TodoWrite', 'Read', 'Write', 'Edit', 'Glob', 'Grep', 'WebSearch', 'WebFetch', 'Bash'],
-  recherche: ['WebSearch', 'WebFetch', 'Read', 'Glob', 'Grep'],
-  code: ['Read', 'Write', 'Edit', 'Glob', 'Grep', 'Bash', 'WebFetch'],
-  design: ['Read', 'Write', 'Edit', 'Glob', 'Grep', 'WebFetch'],
-  redaction: ['Read', 'Write', 'Edit', 'Glob', 'Grep'],
-  analyse: ['Read', 'Write', 'Edit', 'Glob', 'Grep', 'Bash'],
+/** 직무가 할 수 있는 일. CLI마다 이것을 자기 도구나 샌드박스로 옮긴다. */
+export type Power = 'delegate' | 'plan' | 'read' | 'write' | 'search' | 'fetch' | 'run';
+
+/** 쓰기 권한(access 'write')이 있어야 하는 힘. 읽기 전용 일에서는 빠지고, 묻지 않고 쓰는 목록에도 들지 않는다. */
+export const MUTATING_POWERS: readonly Power[] = ['write', 'run'];
+
+/** 직무별 힘. 직무 카드의 도구 목록과 CLI별 도구 목록은 모두 여기서 나온다. */
+export const ROLE_POWERS: Record<Role, readonly Power[]> = {
+  chef: ['delegate', 'plan', 'read', 'write', 'search', 'fetch', 'run'],
+  recherche: ['read', 'search', 'fetch'],
+  code: ['read', 'write', 'fetch', 'run'],
+  design: ['read', 'write', 'fetch'],
+  redaction: ['read', 'write'],
+  analyse: ['read', 'write', 'run'],
   renfort: [],
 };
+
+/** claude의 도구와 그 힘. 이 순서가 화면에 보이는 순서다. */
+export const CLAUDE_TOOLS: readonly { tool: string; power: Power }[] = [
+  { tool: 'Agent', power: 'delegate' }, { tool: 'TodoWrite', power: 'plan' }, { tool: 'Read', power: 'read' },
+  { tool: 'Write', power: 'write' }, { tool: 'Edit', power: 'write' }, { tool: 'Glob', power: 'read' }, { tool: 'Grep', power: 'read' },
+  { tool: 'WebSearch', power: 'search' }, { tool: 'WebFetch', power: 'fetch' }, { tool: 'Bash', power: 'run' },
+];
+
+/** claude에 넘길 도구: 쓸 수 있는 것과 그중 묻지 않고 쓰는 것. */
+export function claudePowers(powers: readonly Power[], access: 'read' | 'write'): { tools: string[]; preapproved: string[] } {
+  const usable = CLAUDE_TOOLS.filter((t) => powers.includes(t.power) && (access === 'write' || !MUTATING_POWERS.includes(t.power)));
+  return { tools: usable.map((t) => t.tool), preapproved: usable.filter((t) => !MUTATING_POWERS.includes(t.power)).map((t) => t.tool) };
+}
+
+/** 직무별 Claude Code 도구(팀장은 세션의 도구를 모두 가진다). */
+export const ROLE_TOOLS = Object.fromEntries(
+  (Object.keys(ROLE_POWERS) as Role[]).map((r) => [r, claudePowers(ROLE_POWERS[r], 'write').tools]),
+) as Record<Role, string[]>;
 
 /** 각 도구가 하는 일, 한국어로(직무 카드에 쓴다). */
 export const TOOL_INFO: Record<string, string> = {
