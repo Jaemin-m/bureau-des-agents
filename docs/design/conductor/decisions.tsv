@@ -1,0 +1,19 @@
+ts	phase	decision	why	evidence	result
+2026-11-11T09:58:07Z	frame	herdr·orca 개념을 확인함: herdr는 칸마다 에이전트와 상태(idle/working/blocked/done), orca는 worktree와 coordinator-worker 메시지·DAG	무엇을 입힐지 정하려면 두 도구의 실제 개념부터 알아야 해서	~/.agents/skills/herdr/SKILL.md, orca skills get orchestration	개념 목록 확보
+2026-11-11T09:58:07Z	frame	작업 대상은 미션 폴더와 실제 git 저장소 둘 다	사용자가 고름. 비개발 직원과 개발자를 모두 받기 위해	AskUserQuestion 답	확정
+2026-11-11T09:58:07Z	frame	사무실 서버가 워커 프로세스를 직접 관리. Herdr·Orca에 의존하지 않음	사용자가 고름. 사내 PC마다 도구를 따로 깔 필요가 없어서	AskUserQuestion 답	확정
+2026-11-11T09:58:07Z	frame	먼저 넣을 개념: 다른 종류 에이전트, worktree 격리와 작업 DAG, 워커와 직접 대화. 병렬 미션은 뒤로	사용자가 고른 우선순위	AskUserQuestion 답	확정
+2026-11-11T09:58:07Z	frame	데스크톱 앱(Tauri) 전환은 폐기, 웹 앱 유지	사용자 결정	AskUserQuestion 답	확정
+2026-11-11T09:58:07Z	ground	how 스킬로 서버, 클라이언트, 외부 CLI 세 갈래 조사를 띄움	설계 전에 지금 구조가 무엇을 가정하는지 알아야 해서	scratchpad/upgrade/explore-*.md	진행 중
+2026-11-11T09:59:53Z	ground	서버 조사 완료: 미션·팀장 프로세스가 하나뿐이고 팀원은 팀장 출력에서 추론한 가상 존재, Claude 전용 인자가 박혀 있고 경로 검사가 startsWith뿐	워커를 독립 프로세스로 바꿀 때 무엇을 다시 짜야 하는지 확인	scratchpad/upgrade/explore-server.md, bureau.ts:110, claude.ts:274-345	재설계 범위 확인
+2026-11-11T10:00:20Z	ground	클라이언트 조사 완료: 에이전트 신원이 Claude tool_use_id, 미션·팀장 1명 전제, 책상 16개 고정, 데모·과거 로그 때문에 기존 이벤트는 지우지 말고 새 필드·이벤트를 선택 항목으로 추가해야 함	프로토콜을 바꿀 때 지켜야 할 하위 호환 조건 확인	scratchpad/upgrade/explore-client.md, link.ts:75, world.ts:346-348	제약 확인
+2026-11-11T10:02:53Z	ground	CLI 조사 완료: claude만 한 프로세스에서 다중 턴·승인 응답 가능, codex는 app-server(JSON-RPC)로 승인·중간 메시지 가능, gemini는 헤드리스 승인 불가라 --acp 필요, git worktree 동작 확인	워커 어댑터를 CLI마다 어떻게 만들지 정하려면 실제 지원 기능을 알아야 해서	scratchpad/upgrade/explore-clis.md	CLI마다 실행 방식이 다름을 확인
+2026-11-11T10:07:45Z	ground	세 조사를 하나의 구조 설명으로 묶음(재생 호환, CLI별 차이, 보안, 화면 한계를 제약으로 정리)	설계자들이 같은 근거에서 출발하게 하려고	scratchpad/upgrade/grounding.md	grounding 완료, 정리 에이전트가 띄운 빈 에이전트는 저장소 변경 없이 종료됨
+2026-11-11T10:08:23Z	sketch	설계자 둘(opus high, sonnet high)에게 같은 과제로 설계안을 맡김. 평가 기준 6개는 설계자에게 보이지 않게 따로 둠	구조 결정이 되돌리기 어려워서 서로 다른 설계를 비교해 고르려고	scratchpad/upgrade/arena/candidate-1, candidate-2	진행 중
+2026-11-11T10:19:38Z	sketch	설계안 2 도착: 순수 step/converge 상태 관리, Max에게 MCP 도구 4개, 워커는 handback 블록으로 완료·질문, AgentSession 하나로 CLI 연결, U0~U14	arena 후보 수집	scratchpad/upgrade/arena/candidate-2/	설계안 1 대기
+2026-11-11T10:22:31Z	sketch	설계안 1 도착: 이벤트 로그가 상태 기준(foldMission 공유), 사무실 MCP 서버(POST /mcp, 실행별 토큰), claude stream-json·codex app-server·gemini ACP 어댑터, 사무실이 대신 커밋, archive ref로 브랜치 보존	arena 후보 수집	scratchpad/upgrade/arena/candidate-1/	두 안 구조가 다름, 채점으로
+2026-11-11T10:23:16Z	pick	내 채점: 설계안 2를 기반 후보로. 설계안 1은 codex app-server·gemini ACP·워커 MCP 같은 검증 안 된 동작에 기대고 대체 경로가 없음	기준 2(검증 안 된 CLI 동작에 기대지 않기)에서 차이가 가장 큼	arena/candidate-1/rationale.md 116-125, 163-164; candidate-2/rationale.md 158-172	교차 심판 결과 대기
+2026-11-11T10:26:26Z	pick	기반을 설계안 2(Conductor)로 확정	내 채점과 교차 심판(sonnet)이 독립적으로 같은 결론. 검증된 CLI 모드만 쓰고 불확실성을 먼저 해소함	arena/synthesis.md 'Synthesis decision'	확정
+2026-11-11T10:26:26Z	graft	설계안 1에서 worktree 안전 규칙(읽기 전용 lens, plumbing 합치기, archive ref, hook 존중), end 의미 유지(settle 이벤트 추가), 0원 golden 기록, 세션 어댑터 표를 옮겨 붙임	두 채점 모두 설계안 1이 이 부분에서 더 나았음	arena/synthesis.md 'Grafts from candidate 1'	반영
+2026-11-11T10:26:26Z	graft	공통 결함 보완: 작업 상태는 파생값으로, 커밋 전 큰 파일·비밀 파일 제외, 워커 글은 데이터로 감싸 Max에게 전달, worktree는 ~/.bureau-des-agents로, office_message에 requestId	교차 심판이 두 안 모두의 결함으로 짚음	arena/synthesis.md 'Amendments'	반영
+2026-11-12T03:30:26Z	run	사용자가 U0a~U13 전부 진행, 실제 CLI 녹화와 CLI별 실제 미션 확인, 합치기 버튼 포함을 승인. upgrade/conductor 브랜치에서 진행	사용자 결정	AskUserQuestion 답	실행 시작
