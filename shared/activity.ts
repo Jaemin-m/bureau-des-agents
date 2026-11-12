@@ -7,7 +7,7 @@ export interface RoleInfo {
   label: string;
   icon: string;
   color: string;
-  /** 이 직무를 맡는 Claude Code 에이전트(subagent_type) */
+  /** hire 이벤트의 type. 옛 기록(Claude Code 서브에이전트)의 subagent_type과 같은 이름이다 */
   type: string;
   what: string;
 }
@@ -23,14 +23,14 @@ export const ROLES: Record<Role, RoleInfo> = {
 };
 
 /** 직무가 할 수 있는 일. CLI마다 이것을 자기 도구나 샌드박스로 옮긴다. */
-export type Power = 'delegate' | 'plan' | 'read' | 'write' | 'search' | 'fetch' | 'run';
+export type Power = 'read' | 'write' | 'search' | 'fetch' | 'run';
 
 /** 쓰기 권한(access 'write')이 있어야 하는 힘. 읽기 전용 일에서는 빠지고, 묻지 않고 쓰는 목록에도 들지 않는다. */
 export const MUTATING_POWERS: readonly Power[] = ['write', 'run'];
 
-/** 직무별 힘. 직무 카드의 도구 목록과 CLI별 도구 목록은 모두 여기서 나온다. */
+/** 직무별 힘. 직무 카드의 도구 목록과 CLI별 도구 목록은 모두 여기서 나온다. 맥스는 일을 사무실 MCP(office_plan)로 나눈다. */
 export const ROLE_POWERS: Record<Role, readonly Power[]> = {
-  chef: ['delegate', 'plan', 'read', 'write', 'search', 'fetch', 'run'],
+  chef: ['read', 'write', 'search', 'fetch', 'run'],
   recherche: ['read', 'search', 'fetch'],
   code: ['read', 'write', 'fetch', 'run'],
   design: ['read', 'write', 'fetch'],
@@ -41,7 +41,7 @@ export const ROLE_POWERS: Record<Role, readonly Power[]> = {
 
 /** claude의 도구와 그 힘. 이 순서가 화면에 보이는 순서다. */
 export const CLAUDE_TOOLS: readonly { tool: string; power: Power }[] = [
-  { tool: 'Agent', power: 'delegate' }, { tool: 'TodoWrite', power: 'plan' }, { tool: 'Read', power: 'read' },
+  { tool: 'Read', power: 'read' },
   { tool: 'Write', power: 'write' }, { tool: 'Edit', power: 'write' }, { tool: 'Glob', power: 'read' }, { tool: 'Grep', power: 'read' },
   { tool: 'WebSearch', power: 'search' }, { tool: 'WebFetch', power: 'fetch' }, { tool: 'Bash', power: 'run' },
 ];
@@ -52,23 +52,17 @@ export function claudePowers(powers: readonly Power[], access: 'read' | 'write')
   return { tools: usable.map((t) => t.tool), preapproved: usable.filter((t) => !MUTATING_POWERS.includes(t.power)).map((t) => t.tool) };
 }
 
-/** 직무별 Claude Code 도구(팀장은 세션의 도구를 모두 가진다). */
+/** 직무별 Claude Code 도구. */
 export const ROLE_TOOLS = Object.fromEntries(
   (Object.keys(ROLE_POWERS) as Role[]).map((r) => [r, claudePowers(ROLE_POWERS[r], 'write').tools]),
 ) as Record<Role, string[]>;
 
 /** 각 도구가 하는 일, 한국어로(직무 카드에 쓴다). */
 export const TOOL_INFO: Record<string, string> = {
-  Agent: '팀원 부르기', TodoWrite: '계획 쓰고 체크하기', Read: '파일 읽기', Write: '파일 만들기',
+  Read: '파일 읽기', Write: '파일 만들기',
   Edit: '파일 고치기', Glob: '파일 찾기', Grep: '파일 안에서 찾기', WebSearch: '인터넷 검색',
   WebFetch: '웹 페이지 읽기', Bash: '명령 실행',
 };
-
-/** 팀장이 부른 에이전트 타입으로 알아낸 에이전트의 직무. */
-export function roleOfType(type: string): Role {
-  for (const [role, info] of Object.entries(ROLES) as [Role, RoleInfo][]) if (info.type && info.type === type) return role;
-  return 'renfort';
-}
 
 /** 직무별 로봇 이름(한 미션 안에서 같은 이름은 두 번 쓰지 않는다). */
 export const NAMES: Record<Role, string[]> = {
@@ -121,7 +115,6 @@ export function describeAct(tool: string, input: Record<string, unknown> | undef
       const c = String(i.command ?? '').replace(/\s+/g, ' ').trim();
       return { kind: 'bash', label: `${c.length <= 34 ? `“${c}”` : cut(i.description || c, 40)} 실행 중`, detail: String(i.command ?? '') };
     }
-    case 'TodoWrite': return { kind: 'plan', label: '계획 업데이트 중', detail: '' };
     case 'Skill': return { kind: 'skill', label: `${cut(i.skill ?? i.name, 24)} 스킬 쓰는 중`, detail: String(i.args ?? '') };
     case 'ToolSearch': return { kind: 'other', label: '알맞은 도구 찾는 중', detail: String(i.query ?? '') };
   }
@@ -145,11 +138,11 @@ export function countStats(s: MissionStats, ev: OfficeEvent) {
   else if (ev.kind === 'bash') s.commands++;
 }
 
-/** 미션 폴더의 전체 경로가 나오는 곳을 모두 “.”로 바꾼다. */
+/** 미션 폴더의 전체 경로가 나오는 곳을 모두 “.”로 바꾼다. JSON으로 쓴 글에서도 된다(따옴표가 `\"`가 된다). */
 export function relToFolder(text: string, folder: string): string {
   if (!folder) return text;
   const esc = folder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return text.replace(new RegExp(esc + '(?=$|[/"\'\\s])', 'g'), '.').replace(/(^|[\s"'])\.\//g, '$1');
+  return text.replace(new RegExp(esc + '(?=$|[/"\'\\s\\\\])', 'g'), '.').replace(/(^|[\s"'])\.\//g, '$1');
 }
 
 /** 실행될 명령을 그대로, 읽기 쉽게만 바꾼 것(미션 폴더는 “.”가 된다). 숨기는 것은 없다. */

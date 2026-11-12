@@ -1,0 +1,47 @@
+{
+  "versions": {
+    "claude": "2.1.322",
+    "codex": "0.167.1"
+  },
+  "settings": {
+    "chefModel": "haiku",
+    "teamModel": "haiku",
+    "permission": "auto",
+    "codexModel": "gpt-6-luna"
+  },
+  "prompt": "일꾼 한 명(agent: codex, role: code)에게만 hello.txt 파일에 \"안녕\" 한 줄을 쓰게 해 주세요. 다른 할 일은 만들지 마세요. 끝나면 한 문장으로 알려 주세요.",
+  "ms": 16528,
+  "status": "done",
+  "hires": [
+    "codex"
+  ],
+  "planCalls": 1,
+  "helloText": "안녕\n",
+  "sessions": [
+    "<MISSION>-1-claude.raw.jsonl",
+    "<MISSION>-2-codex.raw.jsonl"
+  ],
+  "mcp": {
+    "requests": 7,
+    "methods": [
+      "POST",
+      "GET"
+    ],
+    "origins": [
+      null
+    ],
+    "userAgents": [
+      "claude-code/2.1.322 (sdk-cli)"
+    ]
+  },
+  "settle": "hello.txt 작업이 끝났어요. 에이다(codex)가 미션 폴더에 hello.txt를 만들고 \"안녕\" 한 줄을 적었어요.\n\n다음 단계로 추천하는 건 없어요. 파일 내용을 직접 열어 확인해 보시면 돼요.",
+  "end": {
+    "k": "end",
+    "ok": true,
+    "text": "hello.txt 작업이 끝났어요. 에이다(codex)가 미션 폴더에 hello.txt를 만들고 \"안녕\" 한 줄을 적었어요.\n\n다음 단계로 추천하는 건 없어요. 파일 내용을 직접 열어 확인해 보시면 돼요.",
+    "ms": 16060
+  },
+  "kinds": "start worker init worker act task hire task msg worker plan worker act_done worker think think say say worker act act_done act act_done file say task report worker worker plan worker init worker act act_done say worker settle worker worker leave end",
+  "answered": 0,
+  "pathsInLog": 0
+}

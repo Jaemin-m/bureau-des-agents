@@ -4,8 +4,6 @@ import type { AdapterProbe, AgentAdapter } from './adapter.ts';
 import { claudeAdapter } from './claude.ts';
 import { codexAdapter } from './codex.ts';
 
-export { openLegacyLead, type LegacyLead, type LegacyLeadHandlers, type TurnResult } from './claude.ts';
-
 function unsupported(kind: AgentKind, vendor: string): AgentAdapter {
   return {
     kind,

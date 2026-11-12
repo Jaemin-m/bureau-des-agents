@@ -14,9 +14,9 @@ import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import readline from 'node:readline';
-import { Bureau } from '../server/bureau.ts';
 import { findClaude } from '../server/agents/claude.ts';
-import { adapterFor } from '../server/agents/registry.ts';
+import type { MissionInfo } from '../shared/protocol.ts';
+import { spawnOffice } from '../tests/support/office-process.ts';
 
 type Json = Record<string, any>;
 
@@ -336,7 +336,6 @@ function claudeArgs(o: ClaudeOpts) {
   const args = ['-p', '--input-format', 'stream-json', '--output-format', 'stream-json', '--verbose',
     '--include-partial-messages', '--permission-prompt-tool', 'stdio', '--permission-mode', o.permissionMode,
     '--restricted', '--tools', o.tools.join(','),
-    '--agents', '{}',
     '--append-system-prompt', 'You are a test probe. Be extremely brief.',
     '--model', 'haiku'];
   if (o.allowedTools?.length) args.push('--allowedTools', o.allowedTools.join(','));
@@ -468,66 +467,6 @@ async function claudeMcp(ctx: Ctx, scenario: string, o: { allow: boolean; transp
     initAtMs: init ? w.times[w.msgs.indexOf(init)] : null, asked, toolUses, toolResults, rpcMethods, results: results(w).map(resultSummary), stderr: w.stderr.slice(-600),
   });
   return { ok: !!final && JSON.stringify(final.result).includes(PONG) };
-}
-
-async function claudeReal(ctx: Ctx) {
-  const prompt = '개발자(developpeur) 한 명만 불러서 hello.txt 파일에 "안녕" 한 줄을 쓰게 해 주세요. 다른 팀원은 부르지 말고, 계획표(TodoWrite)도 쓰지 마세요. 끝나면 한 문장으로 알려 주세요.';
-  for (let attempt = 1; attempt <= 2; attempt++) {
-    const tmp = realpathSync(mkdtempSync(path.join(ctx.scratch, 'claude-real-')));
-    const recDir = path.join(tmp, 'rec');
-    process.env.BUREAU_RECORD = recDir;
-    const bin = await adapterFor('claude').probe();
-    if (!bin.found) throw new Error('claude를 찾지 못했다');
-    let resolveDone: () => void = () => {};
-    const done = new Promise<void>((r) => { resolveDone = r; });
-    const asked: string[] = [];
-    const bureau: Bureau = new Bureau(bin, (m) => {
-      if (m.t === 'ev' && m.ev.k === 'ask') { asked.push(m.ev.requestId); bureau.answer(m.ev.requestId, true); }
-      if (m.t === 'mission' && m.mission.status !== 'working') resolveDone();
-    }, path.join(tmp, 'office'));
-    await bureau.init();
-    bureau.setSettings({ chefModel: 'haiku', teamModel: 'haiku', permission: 'ask' });
-    await bureau.start(prompt);
-    const timer = setTimeout(resolveDone, 240_000);
-    await done;
-    clearTimeout(timer);
-    const cur = bureau.current!;
-    const folder = cur.mission.folder;
-    const status = cur.mission.status;
-    cur.live?.lead.session.kill();
-    for (let i = 0; i < 150 && cur.live; i++) await new Promise((r) => setTimeout(r, 20));
-    bureau.close();
-    await cur.writes;
-    delete process.env.BUREAU_RECORD;
-
-    const files = readdirSync(recDir).filter((f) => f.endsWith('.raw.jsonl'));
-    const stems = files.map((f) => f.slice(0, -'.raw.jsonl'.length));
-    const logged = stems.flatMap((s) => readFileSync(path.join(recDir, `${s}.logged.jsonl`), 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l) as Json));
-    const hires = logged.filter((l) => l.ev.k === 'hire').length;
-    const ended = logged.filter((l) => l.ev.k === 'end').map((l) => l.ev.ok);
-    console.log(`  [claude:real-hire-one] 시도 ${attempt}: 상태 ${status}, 고용 ${hires}명, ask ${asked.length}건, 파일 ${stems.length}쌍`);
-    if (hires !== 1 || status !== 'done' || stems.length !== 1) { if (attempt < 2) continue; }
-
-    const scrub = makeScrub([[folder, '/work/mission'], [path.join(tmp, 'office'), '<TMP>/office'], [tmp, '<TMP>/claude-real']]);
-    const out = path.join(FIXTURES, 'claude');
-    mkdirSync(out, { recursive: true });
-    stems.forEach((s, i) => {
-      const raw = readFileSync(path.join(recDir, `${s}.raw.jsonl`), 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l) as RawLine);
-      const cleaned = regroupDeltas(raw.map((r) => ({ dir: r.dir, line: scrub(r.dir === 'stdout' ? redactClaudeLine(r.line) : r.line) })), scrub);
-      writeFileSync(path.join(out, `real-hire-one-${i + 1}.raw.jsonl`), cleaned.map((r) => JSON.stringify(r)).join('\n') + '\n');
-      const logged = readFileSync(path.join(recDir, `${s}.logged.jsonl`), 'utf8').split('\n').filter(Boolean).map(scrub).join('\n') + '\n';
-      writeFileSync(path.join(out, `real-hire-one-${i + 1}.logged.jsonl`), logged);
-    });
-    const dir = path.join(FIXTURES, `claude-${ctx.versions.claude}`);
-    mkdirSync(dir, { recursive: true });
-    saveMeta(ctx, 'claude', 'real-hire-one', scrub, dir, {
-      note: `사무실을 통한 진짜 미션: 상태 ${status}, 고용 ${hires}명, 허락 요청 ${asked.length}건, 끝 이벤트 ${JSON.stringify(ended)}; 골든 쌍은 tests/fixtures/claude/real-hire-one-*.jsonl`,
-      attempt, hires, status, asked: asked.length, pairs: stems.length, settings: { chefModel: 'haiku', teamModel: 'haiku', permission: 'ask' }, prompt,
-    });
-    await new Promise((r) => setTimeout(r, 1500)); // Bureau의 늦은 저장이 지워진 폴더를 건드리지 않도록
-    rmSync(tmp, { recursive: true, force: true });
-    return;
-  }
 }
 
 // ── codex ──
@@ -682,6 +621,73 @@ async function geminiScenarios(ctx: Ctx, want: (s: string) => boolean) {
   }
 }
 
+// ── 진짜 사무실: 진짜 서버 프로세스, 맥스 한 명, 일꾼 한 명(U7 스모크) ──
+const OFFICE_PROMPT = (agent: 'claude' | 'codex') =>
+  `일꾼 한 명(agent: ${agent}, role: code)에게만 hello.txt 파일에 "안녕" 한 줄을 쓰게 해 주세요. 다른 할 일은 만들지 마세요. 끝나면 한 문장으로 알려 주세요.`;
+
+async function officeReal(ctx: Ctx, agent: 'claude' | 'codex') {
+  const started = Date.now();
+  const tmp = realpathSync(mkdtempSync(path.join(ctx.scratch, `office-${agent}-`)));
+  const rec = path.join(tmp, 'rec');
+  const office = await spawnOffice({ env: { ...cleanEnv(), BUREAU_DIR: path.join(tmp, 'office'), BUREAU_RECORD: rec } });
+  const answered = new Set<string>();
+  const evs = () => office.events();
+  const settled = () => evs().some((e) => e.k === 'settle');
+  const openAsks = () => {
+    const done = new Set(evs().flatMap((e) => (e.k === 'ask_done' ? [e.requestId] : [])));
+    return evs().flatMap((e) => (e.k === 'ask' && !done.has(e.requestId) && !answered.has(e.requestId) ? [e] : []));
+  };
+  let mission: MissionInfo | undefined;
+  try {
+    await office.until((m) => m.some((x) => x.t === 'hello'), 10_000);
+    const settings = { chefModel: 'haiku', teamModel: 'haiku', permission: 'auto' as const, codexModel: CODEX_MODEL };
+    office.send({ t: 'settings', settings });
+    await office.until((m) => m.some((x) => x.t === 'settings'), 10_000);
+    office.send({ t: 'start', prompt: OFFICE_PROMPT(agent) });
+    const deadline = Date.now() + 300_000;
+    while (!settled()) {
+      await office.until(() => settled() || openAsks().length > 0, Math.max(1, deadline - Date.now()));
+      for (const a of openAsks()) {
+        answered.add(a.requestId);
+        office.send(a.kind === 'question' ? { t: 'reply', requestId: a.requestId, text: '알아서 정해 주세요.' } : { t: 'answer', requestId: a.requestId, allow: true });
+      }
+    }
+    mission = office.msgs.flatMap((m) => (m.t === 'mission' ? [m.mission] : [])).at(-1);
+    office.send({ t: 'new' });
+    await office.until((m) => m.some((x) => x.t === 'closed'), 30_000);
+  } finally {
+    await office.stop();
+  }
+  if (!mission) throw new Error('미션 정보가 오지 않았다');
+
+  const hello = path.join(mission.folder, 'hello.txt');
+  const helloText = existsSync(hello) ? readFileSync(hello, 'utf8') : null;
+  const raws = readdirSync(rec).filter((f) => f.endsWith('.raw.jsonl')).sort();
+  const mcp = readFileSync(path.join(rec, 'lead-mcp.jsonl'), 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l) as Json);
+  const logged = readFileSync(path.join(rec, `${mission.id}.logged.jsonl`), 'utf8');
+  const events = logged.split('\n').filter(Boolean).map((l) => (JSON.parse(l) as { ev: Json }).ev);
+  const hires = events.filter((e) => e.k === 'hire').map((e) => e.agent);
+  const planCalls = events.filter((e) => e.k === 'act' && e.who === 'chef' && e.tool === 'mcp__office__office_plan').length;
+  const leaks = [tmp, os.homedir()].filter((p) => logged.includes(p));
+
+  const scrub = makeScrub([[mission.folder, '/work/mission'], [path.join(tmp, 'office'), '<TMP>/office'], [tmp, '<TMP>/office-run']]);
+  const out = path.join(FIXTURES, 'scenarios');
+  mkdirSync(out, { recursive: true });
+  writeFileSync(path.join(out, `real-u7-${agent}.logged.jsonl`), logged.split('\n').filter(Boolean).map(scrub).join('\n') + '\n');
+  const observed = {
+    versions: { claude: ctx.versions.claude, codex: ctx.versions.codex }, settings: { chefModel: 'haiku', teamModel: 'haiku', permission: 'auto', codexModel: CODEX_MODEL },
+    prompt: OFFICE_PROMPT(agent), ms: Date.now() - started, status: mission.status, hires, planCalls, helloText,
+    sessions: raws.map((f) => f.replace(mission!.id, '<MISSION>')),
+    mcp: { requests: mcp.length, methods: [...new Set(mcp.map((r) => r.method))], origins: [...new Set(mcp.map((r) => r.origin))], userAgents: [...new Set(mcp.map((r) => r.userAgent))] },
+    settle: events.find((e) => e.k === 'settle')?.text ?? null, end: events.find((e) => e.k === 'end') ?? null,
+    kinds: events.map((e) => e.k).join(' '), answered: answered.size, pathsInLog: leaks.length,
+  };
+  writeFileSync(path.join(out, `real-u7-${agent}.meta.json`), scrub(JSON.stringify(observed, null, 2)) + '\n');
+  console.log(`  [office:${agent}] 상태 ${mission.status}, office_plan ${planCalls}번, 일꾼 ${hires.join(',')}, hello.txt ${JSON.stringify(helloText)}, MCP 요청 ${mcp.length}개(Origin ${JSON.stringify(observed.mcp.origins)}), ${Math.round(observed.ms / 1000)}초`);
+  await new Promise((r) => setTimeout(r, 1500)); // 서버의 늦은 저장이 지워진 폴더를 건드리지 않도록
+  rmSync(tmp, { recursive: true, force: true });
+}
+
 // ── 실행 ──
 interface Step { id: string; cli: string; what: string; calls: string; run: (ctx: Ctx) => Promise<unknown> }
 
@@ -694,7 +700,8 @@ function steps(only: string[]): Step[] {
     { id: 'claude:mcp-http', cli: 'claude', what: '127.0.0.1의 작은 MCP 서버(http, bearer)를 붙이고 --allowedTools로 호출을 허용한다', calls: '2', run: async (c) => { const r = await claudeMcp(c, 'mcp-http', { allow: true, transport: 'http' }); if (!r.ok) { console.log('  http가 안 됐다: stdio 샘플로 다시 시도'); await claudeMcp(c, 'mcp-stdio', { allow: true, transport: 'stdio' }); } } },
     { id: 'claude:mcp-http-noallow', cli: 'claude', what: '대조군: --allowedTools 없이 같은 MCP 호출(승인 요청이 오는지)', calls: '2', run: (c) => claudeMcp(c, 'mcp-http-noallow', { allow: false, transport: 'http' }) },
     { id: 'claude:mcp-http-noturn', cli: 'claude', what: '모델 호출 없이 MCP 서버 상태가 init에 나오는지(메시지를 보내지 않고 12초 기다린다)', calls: '0', run: (c) => claudeMcp(c, 'mcp-http-noturn', { allow: true, transport: 'http', noTurn: true }) },
-    { id: 'claude:real-hire-one', cli: 'claude', what: '진짜 Bureau 클래스로 미션 하나(맥스가 팀원 한 명을 고용). 골든 쌍을 tests/fixtures/claude/에 복사', calls: '약 5-8', run: claudeReal },
+    { id: 'claude:office-u7', cli: 'claude', what: '진짜 서버로 미션 하나(맥스가 office_plan으로 claude 일꾼 한 명). Logged[]를 tests/fixtures/scenarios/에', calls: '약 3-5', run: (c) => officeReal(c, 'claude') },
+    { id: 'codex:office-u7', cli: 'codex', what: `진짜 서버로 미션 하나(맥스는 claude, 일꾼은 codex ${CODEX_MODEL})`, calls: '약 3-5', run: (c) => officeReal(c, 'codex') },
     { id: 'codex:first-turn', cli: 'codex', what: `codex exec --json (${CODEX_MODEL}, workspace-write)`, calls: '1', run: (c) => codexScenarios(c, (s) => s === 'first-turn') },
     { id: 'codex:resume', cli: 'codex', what: 'codex exec resume <thread_id> --json (첫 턴을 함께 돌린다)', calls: '1', run: (c) => codexScenarios(c, (s) => s === 'resume') },
     { id: 'codex:sigterm', cli: 'codex', what: '턴 도중 SIGTERM', calls: '1(일부)', run: (c) => codexScenarios(c, (s) => s === 'sigterm') },

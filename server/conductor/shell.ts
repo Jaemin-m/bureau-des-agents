@@ -6,12 +6,12 @@ import { mkdirSync, renameSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { claudePowers, relToFolder, ROLE_POWERS } from '../../shared/activity.ts';
 import type { AgentKind, OfficeEvent, Quota } from '../../shared/protocol.ts';
-import type { AgentAdapter, AgentSession, SessionRef, SessionSpec, WorkerSignal } from '../agents/adapter.ts';
+import type { AgentAdapter, AgentSession, RawTap, SessionRef, SessionSpec, WorkerSignal } from '../agents/adapter.ts';
 import { adapterFor } from '../agents/registry.ts';
 import { loadSaved, reapOrphans, type ProcRecord, type Saved, type Usage } from './boot.ts';
 import { LEAD_TOOL_IDS, leadMcpConfig, type LeadMcp } from './lead-mcp.ts';
 import { DEFAULT_LIMITS, LEAD, type Limits, type MissionState, type Opaque, type Who } from './model.ts';
-import { LEAD_POWERS, recapText, workerPrompt } from './prompts.ts';
+import { recapText, workerPrompt } from './prompts.ts';
 import { createMission, step, type Effect, type Input, type Reply, type Signal, type StepCtx, type StepResult } from './step.ts';
 import { parseHandback } from './text.ts';
 
@@ -30,13 +30,16 @@ export interface ConductorDeps {
   journal?(line: string): void;
   onQuota?(q: Quota): void;
   installed: readonly AgentKind[];
-  settings(): { autonomy: 'ask' | 'auto'; chefModel: string; teamModel: string };
+  /** 모델은 CLI마다 따로다: chefModel·teamModel은 claude의 이름, codexModel은 codex의 이름('' = CLI 기본값) */
+  settings(): { autonomy: 'ask' | 'auto'; chefModel: string; teamModel: string; codexModel: string };
   /** 맥스의 지시문 */
   leadPrompt(): string;
   leadMcp: LeadMcp;
   /** LeadMcp를 단 서버의 주소, 예: http://127.0.0.1:4848 */
   mcpBase: string;
   adapters?: (kind: AgentKind) => AgentAdapter;
+  /** 개발용 녹화(BUREAU_RECORD): 여는 세션마다 원문 줄을 받을 곳 */
+  tap?(kind: AgentKind, who: Who): RawTap | undefined;
   limits?: Partial<Limits>;
   now?: () => number;
 }
@@ -250,9 +253,11 @@ export class Conductor {
 
   private spec(who: Who, token: string | null, resume: SessionRef | null): SessionSpec {
     const st = this.deps.settings();
-    const base = { cwd: this.deps.folder, autonomy: st.autonomy, ...(resume ? { resume } : {}) };
+    const kind: AgentKind = who === LEAD ? 'claude' : this.state.workers[who].agent;
+    const tap = this.deps.tap?.(kind, who);
+    const base = { cwd: this.deps.folder, autonomy: st.autonomy, ...(resume ? { resume } : {}), ...(tap ? { tap } : {}) };
     if (who === LEAD) {
-      const p = claudePowers(LEAD_POWERS, 'write');
+      const p = claudePowers(ROLE_POWERS.chef, 'write');
       // 사용자의 커넥터는 맥스에게 지금처럼 남긴다(엄격 MCP를 켜지 않는다)
       return {
         ...base, access: 'write', powers: { tools: p.tools, preapproved: [...p.preapproved, ...LEAD_TOOL_IDS] }, systemPrompt: this.deps.leadPrompt(),
@@ -261,7 +266,7 @@ export class Conductor {
     }
     const m = this.state.workers[who];
     const task = Object.values(this.state.tasks).find((t) => t.run.k === 'running' && t.run.worker === who);
-    const model = st.teamModel === 'inherit' ? st.chefModel : st.teamModel;
+    const model = kind === 'claude' ? (st.teamModel === 'inherit' ? st.chefModel : st.teamModel) : kind === 'codex' ? st.codexModel : '';
     // 일꾼에게는 MCP가 하나도 없다: 자기 직무의 도구만
     return {
       ...base, access: m.access, powers: claudePowers(ROLE_POWERS[m.role], m.access), systemPrompt: workerPrompt(m, task), strictMcp: true,
@@ -280,6 +285,8 @@ export class Conductor {
         l.resume = null;
         l.turnAt = this.now();
         if (sig.ref.id) tell({ k: 'session', ref: { id: sig.ref.id, cwd: sig.ref.cwd } });
+        // 미션의 모델은 맥스의 것이다(화면의 「맥스의 두뇌」)
+        if (who === LEAD && sig.model) show({ k: 'init', model: sig.model, auth: sig.auth ?? '' });
         tell({ k: 'turn_started' });
         return;
       case 'think': show({ k: 'think', who }); return;

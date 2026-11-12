@@ -1,11 +1,11 @@
 // 시나리오 도우미: 진짜 서버 코드를 가짜 에이전트(CLAUDE_BIN, CODEX_BIN)로 돌리고, 나온 이벤트를 모아서 단언할 수 있게 한다.
-// 지금은 Bureau(오늘의 서버)를 감싼다. 컨덕터로 넘어가면 이 파일의 `openOffice` 안쪽만 바뀌고 부르는 쪽은 그대로다.
+// `openOffice`는 Bureau를 이 프로세스 안에서 돌린다(맥스의 MCP는 임시 포트). 서버 프로세스 전체는 office-process.ts가 띄운다.
 import assert from 'node:assert/strict';
 import { mkdirSync, mkdtempSync, realpathSync } from 'node:fs';
 import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
-import type { Logged, OfficeEvent, ServerMsg } from '../../shared/protocol.ts';
+import { AGENT_KINDS, type Logged, type OfficeEvent, type ServerMsg } from '../../shared/protocol.ts';
 import { adapterFor } from '../../server/agents/registry.ts';
 import { Bureau } from '../../server/bureau.ts';
 import { LeadMcp } from '../../server/conductor/lead-mcp.ts';
@@ -41,7 +41,7 @@ export interface Office {
   until(pred: (events: OfficeEvent[], msgs: ServerMsg[]) => boolean, ms?: number): Promise<void>;
   /** 미션이 끝났다(status done)는 방송까지 기다리고 미션 번호를 돌려준다 */
   untilDone(ms?: number): Promise<string>;
-  /** 미션을 정리한다: 팀장 프로세스를 내리고 기록이 다 써질 때까지 기다린다. 기록(Logged[])을 돌려준다 */
+  /** 미션을 놓아주고(end) 기록이 다 써질 때까지 기다린다. 기록(Logged[])을 돌려준다. MCP 서버도 닫는다 */
   settle(): Promise<Logged[]>;
   /** repo가 있을 때: 사용자의 체크아웃(HEAD와 status)이 처음 그대로인지 확인한다 */
   assertCheckoutUntouched(): void;
@@ -63,10 +63,17 @@ export async function openOffice(opts: OpenOptions): Promise<Office> {
   const msgs: ServerMsg[] = [];
   const waiting: { pred: () => boolean; resolve: () => void }[] = [];
   const events = () => msgs.flatMap((m) => (m.t === 'ev' ? [m.ev] : []));
-  const bureau = new Bureau(await adapterFor('claude').probe(), (m) => {
-    msgs.push(m);
-    for (const w of waiting.filter((x) => x.pred())) { waiting.splice(waiting.indexOf(w), 1); w.resolve(); }
-  }, path.join(tmp, 'office'));
+  const mcp = new LeadMcp();
+  const server = http.createServer((req, res) => { if (!mcp.handle(req, res)) { res.writeHead(404); res.end(); } });
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const bureau = new Bureau({
+    agents: await Promise.all(AGENT_KINDS.map((k) => adapterFor(k).probe())),
+    broadcast: (m) => {
+      msgs.push(m);
+      for (const w of waiting.filter((x) => x.pred())) { waiting.splice(waiting.indexOf(w), 1); w.resolve(); }
+    },
+    leadMcp: mcp, mcpBase: `http://127.0.0.1:${(server.address() as { port: number }).port}`, dir: path.join(tmp, 'office'), limits: CONDUCTOR_LIMITS,
+  });
   await bureau.init();
 
   const until: Office['until'] = (pred, ms = TIMEOUT) => new Promise<void>((resolve, reject) => {
@@ -89,13 +96,9 @@ export async function openOffice(opts: OpenOptions): Promise<Office> {
     },
     async settle() {
       const cur = bureau.current;
-      if (!cur) return [];
-      const log = cur.log;
-      cur.live?.lead.session.kill();
-      for (let i = 0; i < 100 && cur.live; i++) await new Promise((r) => setTimeout(r, 20));
-      bureau.close();
-      await cur.writes;
-      return log;
+      await bureau.close();
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+      return cur?.log ?? [];
     },
     assertCheckoutUntouched() {
       assert.deepEqual(snap(), before, "the user's checkout is untouched");
@@ -134,7 +137,7 @@ export function conductorDeps(o: {
 }): ConductorDeps {
   return {
     missionId: o.missionId, folder: o.folder, stateFile: o.stateFile, emit: o.emit, installed: ['claude'],
-    settings: () => ({ autonomy: 'auto', chefModel: '', teamModel: 'sonnet' }),
+    settings: () => ({ autonomy: 'auto', chefModel: '', teamModel: 'sonnet', codexModel: '' }),
     leadPrompt: () => `너는 맥스다.\n\n${leadOfficeText(['claude'])}`,
     leadMcp: o.mcp, mcpBase: o.base, limits: o.limits ?? CONDUCTOR_LIMITS,
   };
