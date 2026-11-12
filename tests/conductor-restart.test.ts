@@ -22,7 +22,7 @@ const alive = (pid: number) => {
 const userTexts = (stdin: string[]) => stdin.map((l) => JSON.parse(l) as { type: string; message?: { content: { text: string }[] } })
   .filter((m) => m.type === 'user').map((m) => m.message!.content[0].text);
 
-test('죽었다 켜지기: 남은 프로세스 그룹을 끝내고, 할 일은 pending, 미션은 stopped, 사용자가 이어가면 한 번씩만 전한다', async () => {
+test('죽었다 켜지기: 남은 프로세스 그룹을 끝내고, 할 일은 pending, 미션은 stopped, 사용자가 이어가면 한 번씩만 전한다', { timeout: 60_000 }, async (t) => {
   const childPid = path.join(mkdtempSync(path.join(os.tmpdir(), 'conductor-child-')), 'child.pid');
   const launches: LaunchScript[] = [
     {
@@ -54,6 +54,8 @@ test('죽었다 켜지기: 남은 프로세스 그룹을 끝내고, 할 일은 p
   const worker = Object.keys(saved.mission.workers)[0];
   const workerPid = saved.procs[worker]?.pid;
   const sleepPid = Number(readFileSync(childPid, 'utf8'));
+  // 단언이 실패해도 남은 프로세스가 테스트 실행을 붙잡지 않게 한다
+  t.after(() => { for (const pid of [workerPid, sleepPid]) if (pid && alive(pid)) { try { process.kill(-pid, 'SIGKILL'); } catch { try { process.kill(pid, 'SIGKILL'); } catch { /* 이미 끝났다 */ } } } });
   assert.ok(workerPid && alive(workerPid) && alive(sleepPid), '서버가 죽어도 일꾼과 그 하위 프로세스는 살아 있다');
   assert.equal(saved.mission.tasks.draw.run.k, 'running');
 
