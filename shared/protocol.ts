@@ -151,6 +151,8 @@ export interface Settings {
   teamModel: string;
   /** auto: 팀이 스스로 정하고 위험한 작업만 묻는다. ask: 명령마다 먼저 묻는다 */
   permission: 'auto' | 'ask';
+  /** codex 일꾼의 모델(codex의 이름). 없거나 ''이면 codex의 기본값 */
+  codexModel?: string;
 }
 
 export interface Quota { fiveHour: number; resetsAt: number | null }

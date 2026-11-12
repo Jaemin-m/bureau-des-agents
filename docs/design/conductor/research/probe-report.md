@@ -82,6 +82,9 @@ claude가 우리 서버에 보낸 요청 순서(`mcp-http.server.jsonl`): `POST 
 
 ## 1e 관찰(사무실을 통한 진짜 미션)
 
+U7에서 레거시 번역기를 지우면서 이 골든 쌍(`tests/fixtures/claude/`)과 그 테스트도 지웠다. 커밋 `231b0d3`에 남아 있다.
+진행자를 거친 진짜 미션은 `research/u7-smoke.md`에 있다.
+
 `tests/fixtures/claude/real-hire-one-1.logged.jsonl`의 이벤트: `start`(bureau), `init`, `hire`(developpeur), `act`(Bash)와 `act_done`, `file`(bureau), `leave`, `act_done`(chef), `think`, `say`, `end`(bureau).
 - 골든 테스트가 그대로 통과한다. 오늘의 Normalizer와 진짜 스트림 사이에 어긋난 것은 없다.
 - 개발자 팀원이 Write 대신 Bash로 파일을 만들었다. 허락 요청은 없었다(`acceptEdits`).

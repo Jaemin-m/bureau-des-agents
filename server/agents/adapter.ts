@@ -49,7 +49,8 @@ export interface PlanStep { text: string; status: 'pending' | 'in_progress' | 'c
 
 /** 어댑터가 내보내는, 이미 읽어 낸 CLI 중립의 신호. */
 export type WorkerSignal =
-  | { k: 'session'; ref: SessionRef; model?: string }
+  /** model·auth: claude만 싣는다(init의 model, apiKeySource) */
+  | { k: 'session'; ref: SessionRef; model?: string; auth?: string }
   | { k: 'think' }
   /** 어댑터가 120ms마다 한 번으로 줄인다. 기록하지 않는다 */
   | { k: 'typing'; text: string }

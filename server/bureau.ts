@@ -2,19 +2,23 @@
 //   - “사무실 규칙.md”: 팀이 사용자에 대해 알아야 할 것(맥스가 미션마다 먼저 읽는다).
 //   - “미션/”: 미션마다 폴더 하나. 팀이 만든 모든 것을 여기에 둔다.
 //   - “.bureau/”(숨김): 사무실 상태와 미션마다의 기록(다시 재생용).
-// 미션 하나 = 미션 폴더에서 실행한 Claude Code 세션 하나. 미션이 끝난 뒤에도 다시 말을 걸 수 있고
-// (수정 요청), 그러면 같은 세션이 이어진다.
+// 미션 하나 = 진행자(server/conductor/shell.ts) 하나. 진행자가 맥스와 일꾼의 프로세스, 할 일, 질문을 쥐고,
+// 이 파일은 미션 목록, 설정, 기록, 미션 폴더의 파일과 버전을 쥔다. 미션이 쉬는 중(settle)에도 다시 말을 걸 수 있고
+// (수정 요청), 그러면 맥스가 같은 세션을 이어간다.
 import { execFile } from 'node:child_process';
 import { existsSync, readFileSync, renameSync, watch, writeFileSync, type FSWatcher } from 'node:fs';
 import { appendFile, copyFile, mkdir, readdir, readFile, rename, stat, unlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { claudePowers, countStats, emptyStats, ROLE_POWERS } from '../shared/activity.ts';
-import type { ClaudeInfo, FileInfo, Logged, MissionInfo, OfficeEvent, Quota, Role, ServerMsg, Settings, TeamEntry, VersionInfo } from '../shared/protocol.ts';
-import type { AdapterProbe, SessionSpec } from './agents/adapter.ts';
-import { openLegacyLead, type LegacyLead, type TurnResult } from './agents/registry.ts';
-import { openTap, type LoggedFrom, type WireTap } from './record.ts';
-import { agentsJson, chefPrompt } from './team.ts';
+import { countStats, emptyStats } from '../shared/activity.ts';
+import type { AgentInfo, AgentKind, ClaudeInfo, FileInfo, Logged, MissionInfo, OfficeEvent, Quota, Role, ServerMsg, Settings, TeamEntry, VersionInfo } from '../shared/protocol.ts';
+import type { AdapterProbe } from './agents/adapter.ts';
+import { loadSaved, reapOrphans } from './conductor/boot.ts';
+import type { LeadMcp } from './conductor/lead-mcp.ts';
+import { LEAD, type Limits } from './conductor/model.ts';
+import { leadPrompt } from './conductor/prompts.ts';
+import { Conductor, type ConductorDeps, type UserInput } from './conductor/shell.ts';
+import { openRecorder, type Recorder } from './record.ts';
 
 const RULES_FILE = '사무실 규칙.md';
 
@@ -43,10 +47,11 @@ const README = `# 에이전트 사무실
 처음부터 다시 시작하고 싶으면 이 폴더를 지워도 돼요.
 `;
 
-const DEFAULT_SETTINGS: Settings = { chefModel: 'sonnet', teamModel: 'sonnet', permission: 'auto' };
+const DEFAULT_SETTINGS: Settings = { chefModel: 'sonnet', teamModel: 'sonnet', permission: 'auto', codexModel: '' };
 const CHEF_MODELS = ['', 'sonnet', 'opus', 'haiku', 'fable'];
 const TEAM_MODELS = ['sonnet', 'haiku', 'opus', 'fable', 'inherit'];
-const IDLE_STOP_MS = 15 * 60 * 1000;
+/** codex의 모델 이름은 목록이 없어서 모양만 본다('' = codex의 기본값) */
+const CODEX_MODEL = /^[\w.:-]{0,64}$/;
 const MAX_LOG = 8000;
 const MAX_MISSIONS = 300;
 /** 이보다 큰 파일은 버전을 남기지 않는다(동영상, 큰 내보내기 파일) */
@@ -58,31 +63,34 @@ const versionDirName = (rel: string) => rel.replace(/[\\/]+/g, '__').replace(/[^
 
 interface State { missions: MissionInfo[]; settings: Settings }
 
-interface Live {
-  lead: LegacyLead;
-  /** 마지막으로 보낸 메시지(세션 이어가기가 실패하면 다시 보낸다) */
-  lastText: string;
-  resumed: boolean;
-}
-
 interface Current {
   mission: MissionInfo;
   log: Logged[];
-  live: Live | null;
-  /** 이 미션에서 이미 쓴 이름 */
-  names: Set<string>;
+  /** Conductor.create가 돌아오기 전(첫 이벤트들이 나오는 동안)에만 null */
+  conductor: Conductor | null;
   watcher: FSWatcher | null;
   fileTimers: Map<string, NodeJS.Timeout>;
-  idleTimer: NodeJS.Timeout | null;
   /** 팀이 언제부터 일하고 있는지(null = 쉬는 중) */
   busySince: number | null;
-  stopAsked: boolean;
-  lastChefText: string;
-  /** 개발용 녹화(BUREAU_RECORD): 지금 프로세스의 파일 한 쌍, 그리고 지금까지 띄운 프로세스 수 */
-  tap: WireTap | null;
-  spawns: number;
+  /** 파일의 전체 경로 → 마지막으로 Write·Edit한 일꾼 */
+  writers: Map<string, string>;
+  /** 일꾼마다 일한 시간대 [시작, 끝]. Bash로 만든 파일은 쓴 사람이 이벤트에 없어서 파일의 수정 시각으로 찾는다 */
+  spans: Map<string, [number, number][]>;
+  /** 개발용 녹화(BUREAU_RECORD) */
+  rec: Recorder | null;
   /** 기록 파일 쓰기를 한 줄로 잇는다. 따로 쏘면 줄 순서가 뒤바뀌어 다시 보기가 틀어진다 */
   writes: Promise<void>;
+}
+
+export interface BureauOptions {
+  /** 깔린 CLI마다 어댑터의 probe 결과 */
+  agents: readonly AdapterProbe[];
+  broadcast: (m: ServerMsg) => void;
+  /** 서버에 단 맥스의 MCP 끝점과 그 서버의 주소(http://127.0.0.1:<포트>) */
+  leadMcp: LeadMcp;
+  mcpBase: string;
+  dir?: string;
+  limits?: Partial<Limits>;
 }
 
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -115,13 +123,21 @@ export class Bureau {
   current: Current | null = null;
   quota: Quota | null = null;
 
-  private claude: AdapterProbe | null;
+  private agents: readonly AdapterProbe[];
+  private installed: AgentKind[];
   private broadcast: (m: ServerMsg) => void;
+  private leadMcp: LeadMcp;
+  private mcpBase: string;
+  private limits: Partial<Limits> | undefined;
 
-  constructor(claude: AdapterProbe | null, broadcast: (m: ServerMsg) => void, dir?: string) {
-    this.claude = claude;
-    this.broadcast = broadcast;
-    this.dir = dir ?? path.join(os.homedir(), 'Documents', '에이전트 사무실');
+  constructor(o: BureauOptions) {
+    this.agents = o.agents;
+    this.installed = o.agents.filter((a) => a.found).map((a) => a.kind);
+    this.broadcast = o.broadcast;
+    this.leadMcp = o.leadMcp;
+    this.mcpBase = o.mcpBase;
+    this.limits = o.limits;
+    this.dir = o.dir ?? path.join(os.homedir(), 'Documents', '에이전트 사무실');
     this.missionsDir = path.join(this.dir, '미션');
     this.stateFile = path.join(this.dir, '.bureau', 'state.json');
     this.recDir = path.join(this.dir, '.bureau', 'missions');
@@ -140,12 +156,24 @@ export class Bureau {
         this.state = { missions: Array.isArray(s.missions) ? s.missions : [], settings: { ...DEFAULT_SETTINGS, ...(s.settings ?? {}) } };
       } catch { /* 상태를 읽을 수 없으면 깨끗하게 새로 시작한다 */ }
     }
-    // “작업 중”으로 남은 미션(실행 중에 사무실이 꺼졌다)은 중단 상태로 바꾼다
-    for (const m of this.state.missions) if (m.status === 'working') m.status = 'stopped';
+    // “작업 중”으로 남은 미션(실행 중에 사무실이 꺼졌다)은 중단 상태로 바꾸고, 그 미션이 남긴 프로세스를 끝낸다
+    for (const m of this.state.missions) {
+      if (m.status !== 'working') continue;
+      m.status = 'stopped';
+      const saved = loadSaved(this.stateFileOf(m.id));
+      if (saved) await reapOrphans(Object.values(saved.procs));
+    }
   }
 
+  private stateFileOf(missionId: string) { return path.join(this.recDir, `${missionId}.state.json`); }
+
   claudeInfo(): ClaudeInfo {
-    return this.claude?.found ? { found: true, version: this.claude.version, path: this.claude.path } : { found: false };
+    const c = this.agents.find((a) => a.kind === 'claude');
+    return c?.found ? { found: true, version: c.version, path: c.path } : { found: false };
+  }
+
+  agentInfo(): AgentInfo[] {
+    return this.agents.map((a) => ({ kind: a.kind, found: a.found, ...(a.version ? { version: a.version } : {}) }));
   }
 
   get settings() { return this.state.settings; }
@@ -156,6 +184,7 @@ export class Bureau {
       chefModel: typeof p.chefModel === 'string' && CHEF_MODELS.includes(p.chefModel) ? p.chefModel : cur.chefModel,
       teamModel: typeof p.teamModel === 'string' && TEAM_MODELS.includes(p.teamModel) ? p.teamModel : cur.teamModel,
       permission: p.permission === 'ask' || p.permission === 'auto' ? p.permission : cur.permission,
+      codexModel: typeof p.codexModel === 'string' && CODEX_MODEL.test(p.codexModel) ? p.codexModel : cur.codexModel ?? '',
     };
     this.save();
     this.broadcast({ t: 'settings', settings: this.state.settings });
@@ -168,7 +197,7 @@ export class Bureau {
   hello(): ServerMsg {
     const c = this.current;
     return {
-      t: 'hello', claude: this.claudeInfo(), dir: this.dir, settings: this.settings, quota: this.quota,
+      t: 'hello', claude: this.claudeInfo(), agents: this.agentInfo(), dir: this.dir, settings: this.settings, quota: this.quota,
       missions: this.missions(), current: c ? { mission: c.mission, log: c.log } : null,
     };
   }
@@ -179,9 +208,9 @@ export class Bureau {
   async start(prompt: string) {
     const text = prompt.trim();
     if (!text) throw new Error('맥스에게 원하는 걸 말해 주세요.');
-    if (!this.claude) throw new Error('이 컴퓨터에 Claude Code가 설치되어 있지 않아요.');
+    if (!this.installed.includes('claude')) throw new Error('이 컴퓨터에 Claude Code가 설치되어 있지 않아요.');
     if (this.current?.mission.status === 'working') throw new Error('팀이 이미 미션을 하고 있어요. 끝날 때까지 기다리거나 멈춰 주세요.');
-    if (this.current) this.close();
+    if (this.current) await this.close();
 
     const now = new Date();
     const title = titleOf(text);
@@ -192,148 +221,116 @@ export class Bureau {
 
     const mission: MissionInfo = {
       id: 'm' + Date.now().toString(36), title, prompt: text, folder, createdAt: Date.now(), workMs: 0,
-      status: 'working', stats: emptyStats(), files: [],
+      status: 'working', stats: emptyStats(), files: [], target: { kind: 'folder' },
     };
     this.state.missions.push(mission);
     if (this.state.missions.length > MAX_MISSIONS) this.state.missions.splice(0, this.state.missions.length - MAX_MISSIONS);
     this.save();
     const cur: Current = {
-      mission, log: [], live: null, names: new Set(), watcher: null, fileTimers: new Map(), idleTimer: null,
-      busySince: Date.now(), stopAsked: false, lastChefText: '', tap: null, spawns: 0, writes: Promise.resolve(),
+      mission, log: [], conductor: null, watcher: null, fileTimers: new Map(), busySince: Date.now(), writers: new Map(), spans: new Map(),
+      rec: openRecorder(mission.id), writes: Promise.resolve(),
     };
     this.current = cur;
     this.watch(cur);
     this.broadcast({ t: 'mission', mission });
-    this.say(text);
+    try {
+      cur.conductor = Conductor.create(this.deps(cur), text);
+    } catch (e) {
+      this.settleMission(cur, 'error');
+      throw e;
+    }
+    this.sync(cur);
   }
 
-  /** 맥스에게 말하기: 미션, 그다음 수정 요청. 맥스가 잠들었으면 세션을 이어서 다시 시작한다. */
-  say(text: string) {
-    const cur = this.current;
-    if (!cur) throw new Error('먼저 미션을 시작해 주세요.');
-    const clean = text.trim();
-    if (!clean) return;
-    if (!this.claude) throw new Error('이 컴퓨터에 Claude Code가 설치되어 있지 않아요.');
-    // 프로세스를 띄우다 실패하면 아무것도 바뀌지 않은 채로 던진다
-    const running = cur.live?.lead.session.alive ? cur.live : null;
-    if (!running) this.launch(cur, clean);
-    if (cur.idleTimer) { clearTimeout(cur.idleTimer); cur.idleTimer = null; }
-    cur.stopAsked = false;
-    if (cur.mission.status !== 'working') {
-      cur.mission.status = 'working';
-      cur.mission.endedAt = undefined;
-      cur.busySince = Date.now();
-      this.broadcast({ t: 'mission', mission: cur.mission });
-    }
-    this.record(cur, { k: 'start', text: clean });
-    if (running) {
-      running.lastText = clean;
-      running.lead.session.send({ text: clean }, 'turn');
-    }
-  }
-
-  /** 팀장 프로세스를 띄우고 첫 말을 바로 보낸다. */
-  private launch(cur: Current, text: string, opts: { fresh?: boolean } = {}) {
-    const s = this.settings;
-    const folder = cur.mission.folder;
-    const sessionId = opts.fresh ? undefined : cur.mission.sessionId;
-    cur.tap = openTap(cur.mission.id, ++cur.spawns);
-    const spec: SessionSpec = {
-      cwd: folder, powers: claudePowers(ROLE_POWERS.chef, 'write'), access: 'write',
-      autonomy: s.permission === 'ask' ? 'ask' : 'auto', systemPrompt: chefPrompt(readRules(this.dir)),
-      model: s.chefModel || undefined, resume: sessionId ? { id: sessionId, cwd: folder } : undefined, tap: cur.tap ?? undefined,
-    };
-    // 콜백은 현재 미션으로 이벤트를 보낸다. “lead”는 바로 다음 줄이 실행되면 정해진다
-    const lead: LegacyLead = openLegacyLead(spec, { text }, agentsJson(s), {
-      emit: (ev) => { if (cur.live?.lead === lead) this.onEvent(cur, ev); },
+  private deps(cur: Current): ConductorDeps {
+    const m = cur.mission;
+    const rec = cur.rec;
+    return {
+      missionId: m.id, folder: m.folder, stateFile: this.stateFileOf(m.id),
+      emit: (ev) => this.onEvent(cur, ev),
+      journal: (line) => {
+        const file = path.join(this.recDir, `${m.id}.journal.txt`);
+        cur.writes = cur.writes.then(() => appendFile(file, `${new Date().toISOString()} ${line}\n`)).catch(() => {});
+      },
       onQuota: (q) => { this.quota = q; this.broadcast({ t: 'quota', quota: q }); },
-      onResult: (r) => { if (cur.live?.lead === lead) this.onResult(cur, r); },
-      onExit: (e) => this.onExit(cur, lead, e),
-      names: cur.names,
-    });
-    cur.live = { lead, lastText: text, resumed: !!sessionId };
+      installed: this.installed,
+      settings: () => {
+        const s = this.settings;
+        return { autonomy: s.permission === 'ask' ? 'ask' : 'auto', chefModel: s.chefModel, teamModel: s.teamModel, codexModel: s.codexModel ?? '' };
+      },
+      leadPrompt: () => leadPrompt(readRules(this.dir), this.installed),
+      leadMcp: this.leadMcp, mcpBase: this.mcpBase,
+      ...(this.limits ? { limits: this.limits } : {}),
+      ...(rec ? { tap: (kind: AgentKind) => rec.session(kind) } : {}),
+    };
   }
+
+  /** 지금 미션의 진행자에게 브라우저의 입력을 넣는다. */
+  private send(input: UserInput, quiet = false) {
+    const cur = this.current;
+    const c = cur?.conductor;
+    if (!cur || !c) throw new Error('먼저 미션을 시작해 주세요.');
+    const r = c.input(input);
+    this.sync(cur);
+    if (!r.ok && !quiet) throw new Error(r.error);
+  }
+
+  /** 맥스(to가 없을 때)나 일꾼 한 명에게 말하기. 쉬거나 멈춘 미션이면 다시 일하기 시작한다. */
+  say(text: string, to?: string) {
+    const clean = text.trim();
+    if (clean) this.send({ k: 'user_said', to: to || LEAD, text: clean });
+  }
+
+  /** 일꾼의 질문(ask kind:'question')에 답한다. */
+  reply(requestId: string, text: string) {
+    const clean = text.trim();
+    if (clean) this.send({ k: 'user_replied', questionId: requestId, text: clean });
+  }
+
+  /** 멈춘 일꾼과 맥스를 모두 다시 일하게 한다. */
+  resume() { this.send({ k: 'user_resume' }); }
 
   private onEvent(cur: Current, ev: OfficeEvent) {
     const m = cur.mission;
-    if (ev.k === 'init') {
-      const sid = cur.live?.lead.translator.sessionId;
-      if (sid) m.sessionId = sid;
-      m.model = ev.model;
-    }
-    if (ev.k === 'say' && ev.who === 'chef') cur.lastChefText = ev.text;
+    this.sync(cur);
+    if (ev.k === 'init') { m.model = ev.model; this.save(); }
+    if (ev.k === 'act' && (ev.kind === 'write' || ev.kind === 'edit') && ev.detail) cur.writers.set(path.resolve(m.folder, ev.detail), ev.who);
+    if (ev.k === 'worker' && ev.id !== LEAD) trackSpan(cur.spans, ev.id, ev.phase === 'working');
+    // 진행자는 쉬는 동안을 뺀 미션의 작업 시간을 모른다: 그건 여기서 센다
+    if (ev.k === 'end') ev = { ...ev, ms: m.workMs };
     countStats(m.stats, ev);
-    this.record(cur, ev, 'normalizer');
-    if (ev.k === 'hire' || ev.k === 'init') this.save();
+    this.record(cur, ev);
+    if (ev.k === 'hire') this.save();
   }
 
-  private onResult(cur: Current, r: TurnResult) {
-    const l = cur.live;
-    // 팀원이 아직 일하는 중: 팀원들이 결과를 넘기면 맥스가 다시 이어받는다
-    if (l && l.lead.translator.present.size > 0 && r.ok && !cur.stopAsked) return;
-    this.finish(cur, r.ok, r.text.trim() || cur.lastChefText, r.ms, cur.stopAsked);
+  /** 진행자의 미션 상태를 미션 목록에 옮긴다(작업 시간, 끝난 시각, 맥스의 마지막 말). */
+  private sync(cur: Current) {
+    const s = cur.conductor?.view();
+    if (s && s.status !== cur.mission.status) this.settleMission(cur, s.status, s.leadLast);
   }
 
-  private finish(cur: Current, ok: boolean, text: string, ms: number, stopped: boolean) {
+  private settleMission(cur: Current, status: MissionInfo['status'], final?: string) {
     const m = cur.mission;
-    if (m.status !== 'working') return;
-    // 아직 일하던 팀원(미션 중단, 오류)은 자리를 떠난다
-    const present = cur.live?.lead.translator.present;
-    if (present?.size) {
-      for (const id of present) this.record(cur, { k: 'leave', who: id, ok: false, tokens: 0, tools: 0, ms: 0 });
-      present.clear();
-    }
     const now = Date.now();
-    m.status = ok ? 'done' : stopped ? 'stopped' : 'error';
-    m.endedAt = now;
-    if (cur.busySince) m.workMs += now - cur.busySince;
-    cur.busySince = null;
-    if (text) m.final = text.slice(0, 20000);
-    // 아직 열려 있는 요청은 더 이상 의미가 없다
-    const l = cur.live;
-    if (l) for (const id of l.lead.translator.pendingRequests()) { l.lead.translator.forgetRequest(id); this.record(cur, { k: 'ask_done', requestId: id, allow: false, cancelled: true }); }
-    this.record(cur, { k: 'end', ok, text: m.final ?? '', ms, stopped });
+    if (status === 'working') {
+      m.endedAt = undefined;
+      cur.busySince = now;
+    } else {
+      m.endedAt = now;
+      if (cur.busySince) m.workMs += now - cur.busySince;
+      cur.busySince = null;
+      if (final) m.final = final.slice(0, 20000);
+    }
+    m.status = status;
     this.broadcast({ t: 'mission', mission: m });
     this.save();
-    // 맥스는 수정 요청을 위해 잠시 대기하다가 잠든다(다시 말을 걸면 세션을 이어간다)
-    if (cur.idleTimer) clearTimeout(cur.idleTimer);
-    cur.idleTimer = setTimeout(() => {
-      if (this.current === cur && cur.mission.status !== 'working' && cur.live) { void cur.live.lead.session.park(); }
-    }, IDLE_STOP_MS);
   }
 
-  private onExit(cur: Current, lead: LegacyLead, e: { code: number | null; signal: string | null; expected: boolean; stderrTail: string }) {
-    const l = cur.live;
-    if (!l || l.lead !== lead) return;
-    cur.live = null;
-    const { code, signal, stderrTail: stderr } = e;
-    const failed = !e.expected && (code !== 0 || signal !== null);
-    // 이어갈 세션이 더 이상 없다(Claude Code는 오래된 세션을 지운다). 처음부터 다시 시작한다.
-    if (failed && l.resumed && !l.lead.translator.started && l.lastText && this.current === cur) {
-      this.record(cur, { k: 'error', message: '예전 대화를 찾을 수 없어요. 마지막 메시지로 처음부터 다시 시작할게요.' });
-      cur.mission.sessionId = undefined;
-      this.launch(cur, l.lastText, { fresh: true });
-      return;
-    }
-    if (cur.mission.status === 'working') {
-      const message = failed
-        ? (stderr.split('\n').filter(Boolean).slice(-3).join(' ') || (signal ? `Claude Code가 멈췄어요(${signal}).` : `Claude Code가 멈췄어요(코드 ${code}).`))
-        : 'Claude Code가 멈췄어요.';
-      if (!cur.stopAsked) this.record(cur, { k: 'error', message });
-      // 아직 남아 있는 팀원은 떠난다
-      for (const id of l.lead.translator.present) this.record(cur, { k: 'leave', who: id, ok: false, tokens: 0, tools: 0, ms: 0 });
-      l.lead.translator.present.clear();
-      cur.live = l; // 열린 요청을 정리하는 동안만
-      this.finish(cur, false, cur.lastChefText, 0, cur.stopAsked);
-      cur.live = null;
-    }
-  }
-
-  private record(cur: Current, ev: OfficeEvent, from: LoggedFrom = 'bureau') {
+  private record(cur: Current, ev: OfficeEvent) {
     const at = Date.now();
     this.broadcast({ t: 'ev', missionId: cur.mission.id, at, ev });
     if (ev.k === 'typing') return; // 기록하기엔 너무 잦다
-    cur.tap?.logged({ at, ev }, from);
+    cur.rec?.logged({ at, ev });
     cur.log.push({ at, ev });
     if (cur.log.length > MAX_LOG) cur.log.splice(0, cur.log.length - MAX_LOG);
     const file = path.join(this.recDir, `${cur.mission.id}.jsonl`);
@@ -367,7 +364,7 @@ export class Bureau {
     if (i >= 0 && files[i].size === st.size && files[i].at === st.mtimeMs) return;
     const file: FileInfo = {
       path: rel, name: path.basename(rel), ext: path.extname(rel).slice(1).toLowerCase(), size: st.size, at: st.mtimeMs,
-      by: cur.live?.lead.translator.writers.get(abs) ?? (i >= 0 ? files[i].by : 'chef'),
+      by: cur.writers.get(abs) ?? workingAt(cur.spans, st.mtimeMs) ?? (i >= 0 ? files[i].by : 'chef'),
     };
     if (i >= 0) files[i] = file; else files.push(file);
     this.record(cur, { k: 'file', file, isNew: i < 0 });
@@ -441,35 +438,31 @@ export class Bureau {
   }
 
   // ── 사무실 명령 ──
-  stop() {
-    const cur = this.current;
-    if (!cur || cur.mission.status !== 'working') return;
-    cur.stopAsked = true;
-    if (cur.live?.lead.session.alive) cur.live.lead.session.interrupt();
-    else this.finish(cur, false, cur.lastChefText, 0, true);
+  /** who가 없으면 미션 전체를 멈춘다. */
+  stop(who?: string) {
+    if (!this.current?.conductor) return;
+    this.send({ k: 'user_stop', ...(who ? { who } : {}) });
   }
 
+  /** 도구 허락 요청에 답한다. 이미 끝난 요청이면 조용히 넘어간다(두 번 누름, 그사이 거둬들임). */
   answer(requestId: string, allow: boolean) {
-    const cur = this.current;
-    const l = cur?.live;
-    if (!cur || !l || !l.lead.translator.hasRequest(requestId)) return;
-    l.lead.session.answerApproval(requestId, allow);
-    l.lead.translator.forgetRequest(requestId);
-    this.record(cur, { k: 'ask_done', requestId, allow });
+    if (!this.current?.conductor) return;
+    this.send({ k: 'user_approved', requestId, allow }, true);
   }
 
-  /** 미션을 정리한다(하루 마감). 사무실이 다음 미션을 받을 준비를 한다. */
-  close() {
+  /** 미션을 놓아준다(하루 마감): 일꾼은 떠나고 end가 기록된다. 사무실이 다음 미션을 받을 준비를 한다. */
+  async close() {
     const cur = this.current;
     if (!cur) return;
-    if (cur.mission.status === 'working') { cur.stopAsked = true; this.finish(cur, false, cur.lastChefText, 0, true); }
-    if (cur.idleTimer) clearTimeout(cur.idleTimer);
+    this.current = null;
     for (const t of cur.fileTimers.values()) clearTimeout(t);
     cur.watcher?.close();
-    if (cur.live) void cur.live.lead.session.park();
-    this.current = null;
+    // close()의 동기 부분이 leave와 end를 내고 프로세스에 끝내라고 보낸다. 그 뒤는 프로세스가 사라지기를 기다릴 뿐이다
+    const released = cur.conductor?.close();
     this.broadcast({ t: 'closed', missionId: cur.mission.id });
     this.save();
+    await released;
+    await cur.writes;
   }
 
   /** 미션 파일의 경로(폴더 밖이면 거부). */
@@ -540,13 +533,12 @@ export class Bureau {
     }, 1000);
   }
 
-  /** 브리지가 멈춘다: 모두 즉시 멈추고 저장한다. */
+  /** 브리지가 멈춘다: 미션을 놓아주고(프로세스는 바로 끝난다) 저장한다. */
   shutdown() {
     const cur = this.current;
     if (cur) {
-      if (cur.mission.status === 'working') { cur.mission.status = 'stopped'; cur.mission.endedAt = Date.now(); if (cur.busySince) cur.mission.workMs += Date.now() - cur.busySince; }
       cur.watcher?.close();
-      cur.live?.lead.session.kill();
+      void cur.conductor?.close();
     }
     if (this.saveTimer) { clearTimeout(this.saveTimer); this.saveTimer = null; }
     try {
@@ -555,4 +547,19 @@ export class Bureau {
       renameSync(tmp, this.stateFile);
     } catch { /* 어쩔 수 없다. 마지막으로 저장한 상태가 남는다 */ }
   }
+}
+
+function trackSpan(spans: Map<string, [number, number][]>, id: string, working: boolean) {
+  const list = spans.get(id) ?? [];
+  spans.set(id, list);
+  const last = list.at(-1);
+  const open = last !== undefined && last[1] === Infinity;
+  if (working && !open) list.push([Date.now(), Infinity]);
+  if (!working && open) last[1] = Date.now();
+}
+
+/** 그 시각에 일하던 일꾼이 한 명뿐이면 그 일꾼. */
+function workingAt(spans: Map<string, [number, number][]>, t: number): string | undefined {
+  const hits = [...spans].filter(([, list]) => list.some(([a, b]) => a <= t && t <= b));
+  return hits.length === 1 ? hits[0][0] : undefined;
 }

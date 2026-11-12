@@ -1,4 +1,5 @@
-// 사무실과 Claude Code 사이의 브리지. 사무실(dist/ 폴더)을 제공하고 /ws에 WebSocket 연결을 연다.
+// 사무실과 에이전트 CLI 사이의 브리지. 사무실(dist/ 폴더)을 제공하고 /ws에 WebSocket 연결을 연다.
+// 맥스의 사무실 MCP는 POST /lead/<토큰>/mcp에 있다(server/conductor/lead-mcp.ts).
 // 사용자 컴퓨터(127.0.0.1)에서만 연결을 받고, 사무실 자신이 아닌 페이지는 모두 거부한다.
 // 다른 웹사이트가 사용자 대신 팀을 움직일 수 없다.
 //
@@ -12,9 +13,11 @@ import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { WebSocketServer, type WebSocket } from 'ws';
-import type { ClientMsg, ServerMsg } from '../shared/protocol.ts';
+import { AGENT_KINDS, type ClientMsg, type ServerMsg } from '../shared/protocol.ts';
 import { Bureau } from './bureau.ts';
 import { adapterFor } from './agents/registry.ts';
+import { LeadMcp } from './conductor/lead-mcp.ts';
+import { recordLeadRequest } from './record.ts';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = path.join(ROOT, 'dist');
@@ -42,8 +45,8 @@ const TYPES: Record<string, string> = {
 // 스크립트는 돌지만 사무실을 읽거나 브리지에 연결할 수는 없다.
 const PREVIEW_CSP = "sandbox allow-scripts allow-forms allow-popups allow-modals; frame-ancestors 'self'";
 
-const claudeProbe = await adapterFor('claude').probe();
-const claude = claudeProbe.found ? claudeProbe : null;
+const agents = await Promise.all(AGENT_KINDS.map((k) => adapterFor(k).probe()));
+const claude = agents.find((a) => a.kind === 'claude' && a.found) ?? null;
 // 빌드된 사무실의 버전: 바뀌면 열려 있던 탭이 새로고침한다
 const BUILD = (() => { try { return String(Math.round(statSync(path.join(DIST, 'index.html')).mtimeMs)); } catch { return 'dev'; } })();
 const clients = new Set<WebSocket>();
@@ -53,11 +56,15 @@ function broadcast(m: ServerMsg) {
   for (const c of clients) if (c.readyState === c.OPEN) c.send(s);
 }
 
-const bureau = new Bureau(claude, broadcast, process.env.BUREAU_DIR);
+// 토큰 말고도 Origin(브라우저는 늘 보낸다)과 Host(루프백과 이 포트)를 지킨다: 다른 웹사이트는 닿을 수 없다
+const leadMcp = new LeadMcp();
+const bureau = new Bureau({ agents, broadcast, leadMcp, mcpBase: `http://${HOST}:${PORT}`, dir: process.env.BUREAU_DIR });
 await bureau.init();
 
 // ── 웹 서버(빌드된 사무실) ──
 const server = http.createServer(async (req, res) => {
+  if (req.url?.startsWith('/lead/')) recordLeadRequest(req);
+  if (leadMcp.handle(req, res)) return;
   const url0 = new URL(req.url ?? '/', 'http://x');
   if (url0.pathname.startsWith('/apercu/')) { await preview(url0, res); return; }
   if (DEV) { res.writeHead(404).end(`개발 모드: 사무실은 http://localhost:${DEV_PORT} 에 있어요`); return; }
@@ -139,19 +146,26 @@ const str = (v: unknown, max = 20000) => (typeof v === 'string' ? v.slice(0, max
 async function handle(m: ClientMsg, send: (m: ServerMsg) => void) {
   switch (m.t) {
     case 'start':
+      if (m.target) throw new Error('저장소 미션은 아직 준비 중이에요. 지금은 미션 폴더에서 일해요.');
       await bureau.start(str(m.prompt));
       break;
     case 'say':
-      bureau.say(str(m.text));
+      bureau.say(str(m.text), m.to ? str(m.to, 100) : undefined);
       break;
     case 'stop':
-      bureau.stop();
+      bureau.stop(m.who ? str(m.who, 100) : undefined);
       break;
     case 'answer':
       bureau.answer(str(m.requestId, 100), m.allow === true);
       break;
+    case 'reply':
+      bureau.reply(str(m.requestId, 100), str(m.text));
+      break;
+    case 'resume':
+      bureau.resume();
+      break;
     case 'new':
-      bureau.close();
+      await bureau.close();
       break;
     case 'open':
       bureau.open(str(m.missionId, 40), m.file ? str(m.file, 1000) : undefined);
@@ -200,6 +214,7 @@ function listen(port: number) {
     console.log(`  ➜  ${DEV ? `브리지 준비 완료(사무실: http://localhost:${DEV_PORT})` : url}`);
     console.log(`  📁  미션 폴더: ${bureau.missionsDir}`);
     console.log(claude ? `  ✓  Claude Code ${claude.version} (${claude.path})` : '  ✗  Claude Code를 찾을 수 없어요. 사무실이 데모로 실행돼요.');
+    for (const a of agents) if (a.kind !== 'claude' && a.found) console.log(`  ✓  ${a.kind} ${a.version ?? ''} (일꾼으로 쓸 수 있어요)`);
     console.log('  ⏹  멈추려면: Ctrl + C');
     console.log('');
     if (args.has('--open') && !DEV) {

@@ -20,7 +20,7 @@ const spec = (over: Partial<SessionSpec> = {}): SessionSpec => ({
 const FIXED = ['-p', '--input-format', 'stream-json', '--output-format', 'stream-json', '--verbose', '--include-partial-messages', '--permission-prompt-tool', 'stdio'];
 
 test('옵션: 표', () => {
-  const cases: { name: string; spec: SessionSpec; team?: string; want: string[] }[] = [
+  const cases: { name: string; spec: SessionSpec; want: string[] }[] = [
     {
       name: '쓰기, 알아서',
       spec: spec(),
@@ -46,14 +46,8 @@ test('옵션: 표', () => {
       spec: spec({ strictMcp: true, powers: { tools: [], preapproved: [] } }),
       want: [...FIXED, '--permission-mode', 'auto', '--restricted', '--tools', '', '--append-system-prompt', '지시문', '--strict-mcp-config', '--disallowedTools', 'AskUserQuestion'],
     },
-    {
-      name: '레거시 팀장: 팀은 도구 뒤, 지시문 앞',
-      spec: spec(),
-      team: '{"a":1}',
-      want: [...FIXED, '--permission-mode', 'auto', '--restricted', '--tools', 'Read,Write,Bash', '--agents', '{"a":1}', '--append-system-prompt', '지시문', '--allowedTools', 'Read', '--disallowedTools', 'AskUserQuestion'],
-    },
   ];
-  for (const c of cases) assert.deepEqual(claudeArgv(c.spec, c.team), c.want, c.name);
+  for (const c of cases) assert.deepEqual(claudeArgv(c.spec), c.want, c.name);
 });
 
 test('환경: API 키는 기본으로 빠지고, 켜면 남고, 원본은 그대로다', () => {
@@ -222,6 +216,16 @@ test('껍데기: 읽을 수 없는 줄은 diag, 빈 줄은 건너뛴다', async 
   const o = open([{ expectInput: {} }, { emit: ['', '배너: 안녕'] }, { begin: true }]);
   await o.has('session');
   assert.deepEqual(o.signals.filter((s) => s.k === 'diag'), [{ k: 'diag', line: '배너: 안녕' }]);
+  o.session.kill();
+});
+
+test('껍데기: 처리할 줄 모르는 제어 요청은 막히지 않게 바로 거절한다', async () => {
+  const hook = { type: 'control_request', request_id: 'r1', request: { subtype: 'hook_callback' } };
+  const o = open([{ expectInput: {} }, { emit: [hook] }, { expectControl: 1 }, { begin: true }]);
+  await o.has('session');
+  assert.deepEqual(o.stdin()[1], { type: 'control_response', response: { subtype: 'error', request_id: 'r1', error: '에이전트 사무실에서 지원하지 않아요' } });
+  assert.equal(o.signals.some((s) => s.k === 'approval'), false);
+  o.fake.assertClean();
   o.session.kill();
 });
 
