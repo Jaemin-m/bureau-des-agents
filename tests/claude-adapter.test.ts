@@ -7,7 +7,7 @@ import type { SessionSpec, WorkerSignal } from '../server/agents/adapter.ts';
 import { claudeAdapter, claudeArgv, claudeMapper } from '../server/agents/claude.ts';
 import { childEnv } from '../server/agents/env.ts';
 import { adapterFor } from '../server/agents/registry.ts';
-import { fakeClaude, type Step } from './support/fake-claude.ts';
+import { fakeAgents, turn, type Step } from './support/fake-agent.ts';
 
 const FIXTURES = new URL('./fixtures/claude-2.1.322/', import.meta.url);
 const stdout = (name: string) => readFileSync(new URL(`${name}.raw.jsonl`, FIXTURES), 'utf8').split('\n').filter(Boolean)
@@ -141,15 +141,12 @@ test('매퍼: 글 쓰는 중 신호는 120ms마다 한 번', () => {
   assert.deepEqual(mapper.feed(delta('!')), [{ k: 'typing', text: '안녕!' }]);
 });
 
-// ── 프로세스 껍데기(가짜 claude) ──
+// ── 프로세스 껍데기(가짜 에이전트) ──
 
-const line = (o: unknown) => JSON.stringify(o);
-const init = line({ type: 'system', subtype: 'init', session_id: 's-1', model: 'fake-model', apiKeySource: 'none' });
-const result = (text: string) => line({ type: 'result', subtype: 'success', is_error: false, result: text, duration_ms: 5, usage: { input_tokens: 3, output_tokens: 4 } });
-const written = (file: string) => readFileSync(file, 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l));
+const written = (stdin: string[]) => stdin.map((l) => JSON.parse(l));
 
-function open(steps: Step[], over: Partial<SessionSpec> = {}) {
-  const fake = fakeClaude(steps);
+function open(script: Step[], over: Partial<SessionSpec> = {}) {
+  const fake = fakeAgents({ claude: script });
   const signals: WorkerSignal[] = [];
   const waiting: { pred: (s: WorkerSignal[]) => boolean; resolve: () => void }[] = [];
   const session = claudeAdapter.open(spec({ cwd: mkdtempSync(path.join(os.tmpdir(), 'bureau-adapter-')), ...over }), { text: '첫 말' }, (s) => {
@@ -160,72 +157,78 @@ function open(steps: Step[], over: Partial<SessionSpec> = {}) {
     if (pred(signals)) resolve(); else waiting.push({ pred, resolve });
   });
   const has = (k: WorkerSignal['k'], n = 1) => until((s) => s.filter((x) => x.k === k).length >= n);
-  return { fake, session, signals, has, until };
+  const stdin = () => written(fake.launches('claude')[0].stdin);
+  return { fake, session, signals, has, until, stdin };
 }
 
 test('껍데기: 허락 요청에 답하면 control_response가 가고, 모르는 요청 번호는 무시한다', async () => {
-  const ask = line({ type: 'control_request', request_id: 'r-1', request: { subtype: 'can_use_tool', tool_name: 'Write', input: { file_path: '/x/a.txt', content: 'hi' }, tool_use_id: 't1' } });
-  const o = open([{ waitIn: 1 }, { emit: [init, ask] }, { waitIn: 2 }, { emit: [result('끝')] }]);
+  const input = { file_path: '/x/a.txt', content: 'hi' };
+  const o = open(turn({ approval: { tool: 'Write', input, expect: 'allow' } }, { say: { text: '끝' } }));
   await o.has('approval');
+  const ask = o.signals.find((s) => s.k === 'approval');
+  assert.ok(ask?.k === 'approval');
   o.session.answerApproval('없는-번호', true);
-  o.session.answerApproval('r-1', true);
+  o.session.answerApproval(ask.id, true);
   await o.has('turn_end');
-  assert.deepEqual(written(o.fake.inFile)[1], { type: 'control_response', response: { subtype: 'success', request_id: 'r-1', response: { behavior: 'allow', updatedInput: { file_path: '/x/a.txt', content: 'hi' } } } });
-  assert.equal(written(o.fake.inFile).length, 2);
+  assert.deepEqual(o.stdin()[1], { type: 'control_response', response: { subtype: 'success', request_id: ask.id, response: { behavior: 'allow', updatedInput: input } } });
+  assert.equal(o.stdin().length, 2);
+  o.fake.assertClean();
   o.session.kill();
 });
 
 test('껍데기: 거절은 deny와 이유를 보낸다', async () => {
-  const ask = line({ type: 'control_request', request_id: 'r-2', request: { subtype: 'can_use_tool', tool_name: 'Bash', input: { command: 'rm -rf x' } } });
-  const o = open([{ waitIn: 1 }, { emit: [init, ask] }, { waitIn: 2 }, { emit: [result('')] }]);
+  const o = open(turn({ approval: { tool: 'Bash', input: { command: 'rm -rf x' }, expect: 'deny' } }, { say: { text: '' } }));
   await o.has('approval');
-  o.session.answerApproval('r-2', false);
+  const ask = o.signals.find((s) => s.k === 'approval');
+  assert.ok(ask?.k === 'approval');
+  o.session.answerApproval(ask.id, false);
   await o.has('turn_end');
-  const reply = written(o.fake.inFile)[1];
+  const reply = o.stdin()[1];
   assert.equal(reply.response.response.behavior, 'deny');
   assert.match(reply.response.response.message, /허락하지 않았어요/);
+  o.fake.assertClean();
   o.session.kill();
 });
 
 test('껍데기: interrupt는 control_request를 보내고 턴은 interrupted로 끝나며 프로세스는 산다', async () => {
-  const aborted = line({ type: 'result', subtype: 'error_during_execution', is_error: true, terminal_reason: 'aborted_streaming', result: null });
-  const o = open([{ waitIn: 1 }, { emit: [init] }, { waitIn: 2 }, { emit: [aborted] }, { waitIn: 3 }, { emit: [init, result('ALIVE')] }]);
+  const o = open([...turn({ interrupt: { partial: '1\n2' } }), ...turn({ say: { text: 'ALIVE' } })]);
   await o.has('session');
   o.session.interrupt();
   await o.has('turn_end');
-  assert.equal(written(o.fake.inFile)[1].request.subtype, 'interrupt');
+  assert.equal(o.stdin()[1].request.subtype, 'interrupt');
   assert.deepEqual(o.signals.filter((s) => s.k === 'turn_end'), [{ k: 'turn_end', text: '', ok: false, interrupted: true, error: 'error_during_execution' }]);
   assert.equal(o.session.alive, true);
   o.session.send({ text: '다시' }, 'turn');
   await o.has('turn_end', 2);
   assert.deepEqual(o.signals.filter((s) => s.k === 'turn_end')[1], { k: 'turn_end', text: 'ALIVE', ok: true, interrupted: false });
+  o.fake.assertClean();
   o.session.kill();
 });
 
 test('껍데기: 턴 도중에 보낸 메시지는 순서대로 자기 turn_end를 가진다', async () => {
-  const o = open([{ waitIn: 1 }, { emit: [init, result('첫째')] }, { waitIn: 2 }, { emit: [init, result('둘째')] }]);
+  const o = open([...turn({ say: { text: '첫째' } }), ...turn({ say: { text: '둘째' } })]);
   o.session.send({ text: '둘째 말' }, 'turn');
   await o.has('turn_end', 2);
   assert.deepEqual(o.signals.filter((s) => s.k === 'turn_end').map((s) => s.k === 'turn_end' && s.text), ['첫째', '둘째']);
-  assert.deepEqual(written(o.fake.inFile).map((m) => m.message.content[0].text), ['첫 말', '둘째 말']);
+  assert.deepEqual(o.stdin().map((m) => m.message.content[0].text), ['첫 말', '둘째 말']);
   o.session.kill();
 });
 
 test('껍데기: 끼어들기(steer)는 던진다', async () => {
-  const o = open([{ waitIn: 1 }, { emit: [init] }]);
+  const o = open(turn());
   assert.throws(() => o.session.send({ text: 'x' }, 'steer'), /끼어들 수 없어요/);
   o.session.kill();
 });
 
 test('껍데기: 읽을 수 없는 줄은 diag, 빈 줄은 건너뛴다', async () => {
-  const o = open([{ waitIn: 1 }, { emit: ['', '배너: 안녕', init] }]);
+  const o = open([{ expectInput: {} }, { emit: ['', '배너: 안녕'] }, { begin: true }]);
   await o.has('session');
   assert.deepEqual(o.signals.filter((s) => s.k === 'diag'), [{ k: 'diag', line: '배너: 안녕' }]);
   o.session.kill();
 });
 
 test('껍데기: 턴 도중에 프로세스가 죽으면 turn_end(실패) 하나 뒤에 exit가 온다', async () => {
-  const o = open([{ waitIn: 1 }, { emit: [init] }, { exit: 3 }]);
+  const o = open(turn({ exit: 3 }));
   await o.has('exit');
   const ks = kinds(o.signals);
   assert.deepEqual(ks.slice(-2), ['turn_end', 'exit']);
@@ -238,8 +241,16 @@ test('껍데기: 턴 도중에 프로세스가 죽으면 turn_end(실패) 하나
   assert.throws(() => o.session.send({ text: 'x' }, 'turn'), /이미 끝났어요/);
 });
 
+test('껍데기: 턴 도중에 SIGKILL로 죽어도 turn_end(실패) 하나 뒤에 exit 하나다', async () => {
+  const o = open(turn({ crash: true }));
+  await o.has('exit');
+  assert.deepEqual(kinds(o.signals).slice(-2), ['turn_end', 'exit']);
+  const exit = o.signals.at(-1);
+  assert.deepEqual(exit?.k === 'exit' && [exit.code, exit.signal, exit.expected], [null, 'SIGKILL', false]);
+});
+
 test('껍데기: kill 뒤에는 exit 하나 말고 아무 신호도 없다', async () => {
-  const o = open([{ waitIn: 1 }, { emit: [init] }, { waitIn: 2 }, { emit: [result('늦은 답')] }]);
+  const o = open([...turn(), { expectInput: {} }, { say: { text: '늦은 답' } }]);
   await o.has('session');
   o.session.kill();
   await o.has('exit');
@@ -249,7 +260,7 @@ test('껍데기: kill 뒤에는 exit 하나 말고 아무 신호도 없다', asy
 });
 
 test('껍데기: park는 입력을 닫고 프로세스가 사라지면 끝난다', async () => {
-  const o = open([{ waitIn: 1 }, { emit: [init, result('끝')] }]);
+  const o = open(turn({ say: { text: '끝' } }));
   await o.has('turn_end');
   await o.session.park();
   assert.equal(o.session.alive, false);
@@ -259,7 +270,7 @@ test('껍데기: park는 입력을 닫고 프로세스가 사라지면 끝난다
 
 test('껍데기: 멈추면 프로세스 그룹 전체가 멈춘다', async () => {
   const pidFile = path.join(mkdtempSync(path.join(os.tmpdir(), 'bureau-group-')), 'child.pid');
-  const o = open([{ waitIn: 1 }, { child: pidFile }, { emit: [init] }]);
+  const o = open([{ expectInput: {} }, { child: { pidFile } }, { begin: true }]);
   await o.has('session');
   const child = Number(readFileSync(pidFile, 'utf8'));
   assert.doesNotThrow(() => process.kill(child, 0));
@@ -275,7 +286,7 @@ function alive(pid: number) {
 }
 
 test('probe: CLAUDE_BIN이 가리키는 실행 파일의 버전과 능력', async () => {
-  fakeClaude([]);
+  fakeAgents({ claude: [] });
   const probe = await claudeAdapter.probe();
   assert.equal(probe.found, true);
   assert.equal(probe.version, '9.9.9');

@@ -6,7 +6,7 @@ import { test } from 'node:test';
 import type { OfficeEvent, Quota } from '../shared/protocol.ts';
 import type { SessionSpec } from '../server/agents/adapter.ts';
 import { openLegacyLead, type TurnResult } from '../server/agents/registry.ts';
-import { fakeClaude, replay } from './support/fake-claude.ts';
+import { fakeAgents } from './support/fake-agent.ts';
 
 // 골든 픽스처: <미션>-<n>.raw.jsonl(claude와 오간 원문)과 같은 이름의 .logged.jsonl(미션이 기록한 이벤트).
 // BUREAU_RECORD=<폴더>로 녹화한 쌍을 그대로 넣으면 된다(server/record.ts).
@@ -36,7 +36,7 @@ function fixtures() {
 async function viaAdapter(raw: RawLine[], names: Set<string>, expectReplies = 0) {
   const folder = mkdtempSync(path.join(os.tmpdir(), 'bureau-golden-'));
   const lines = raw.filter((r) => r.dir === 'stdout').map((r) => r.line.replaceAll(MISSION, folder));
-  const fake = fakeClaude([...replay(lines), { waitIn: 1 + expectReplies }, { exit: 0 }]);
+  const fake = fakeAgents({ claude: [{ expectInput: {} }, { emit: lines }, { expectControl: expectReplies }, { exit: 0 }] });
   const events: OfficeEvent[] = [];
   const quotas: Quota[] = [];
   const results: TurnResult[] = [];
@@ -46,7 +46,7 @@ async function viaAdapter(raw: RawLine[], names: Set<string>, expectReplies = 0)
       emit: (ev) => events.push(ev), onQuota: (q) => quotas.push(q), onResult: (r) => results.push(r), onExit: () => resolve(), names,
     });
   });
-  const replies = readFileSync(fake.inFile, 'utf8').split('\n').filter(Boolean).slice(1).map((l) => JSON.parse(l));
+  const replies = fake.launches('claude')[0].stdin.slice(1).map((l) => JSON.parse(l));
   return { events, quotas, results, replies, folder };
 }
 
