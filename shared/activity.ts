@@ -28,9 +28,12 @@ export type Power = 'read' | 'write' | 'search' | 'fetch' | 'run';
 /** 쓰기 권한(access 'write')이 있어야 하는 힘. 읽기 전용 일에서는 빠지고, 묻지 않고 쓰는 목록에도 들지 않는다. */
 export const MUTATING_POWERS: readonly Power[] = ['write', 'run'];
 
-/** 직무별 힘. 직무 카드의 도구 목록과 CLI별 도구 목록은 모두 여기서 나온다. 맥스는 일을 사무실 MCP(office_plan)로 나눈다. */
+/**
+ * 직무별 힘. 직무 카드의 도구 목록과 CLI별 도구 목록은 모두 여기서 나온다.
+ * 맥스는 읽기만 한다. 일은 사무실 MCP(office_plan)로 일꾼에게 맡기고, 쓰기, 명령, 검색은 일꾼의 몫이다.
+ */
 export const ROLE_POWERS: Record<Role, readonly Power[]> = {
-  chef: ['read', 'write', 'search', 'fetch', 'run'],
+  chef: ['read'],
   recherche: ['read', 'search', 'fetch'],
   code: ['read', 'write', 'fetch', 'run'],
   design: ['read', 'write', 'fetch'],

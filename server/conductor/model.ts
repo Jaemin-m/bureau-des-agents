@@ -102,7 +102,13 @@ interface WorkerCore {
   turns: number;
 }
 
-export interface Lead extends WorkerCore { kind: 'lead'; id: typeof LEAD; phase: LeadPhase }
+export interface Lead extends WorkerCore {
+  kind: 'lead';
+  id: typeof LEAD;
+  phase: LeadPhase;
+  /** 시작을 세 번 못 해 오류로 멈춘 턴의 글. 이어서 하면 이 턴부터 다시 시도한다 */
+  retry?: string;
+}
 
 export interface Member extends WorkerCore {
   kind: 'member';

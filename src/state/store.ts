@@ -3,7 +3,7 @@
 import { create } from 'zustand';
 import { countStats, emptyStats } from '../../shared/activity.ts';
 import type {
-  ActKind, AgentKind, BlockReason, ClaudeInfo, ClientMsg, FileInfo, MissionInfo, MissionStats, MsgKind, OfficeEvent, PlanItem, Quota, Role, ServerMsg,
+  ActKind, AgentInfo, AgentKind, BlockReason, ClaudeInfo, ClientMsg, FileInfo, MissionInfo, MissionStats, MsgKind, OfficeEvent, PlanItem, Quota, Role, ServerMsg,
   Settings, TaskNode, TeamEntry, VersionInfo, WorkerPhase,
 } from '../../shared/protocol.ts';
 import { sfx } from '../audio/sfx.ts';
@@ -74,6 +74,8 @@ export type Modal =
 interface S {
   connection: 'connecting' | 'live' | 'offline' | 'demo';
   claude: ClaudeInfo | null;
+  /** 이 컴퓨터에 깔린 CLI(서버의 hello.agents). 옛 서버는 보내지 않는다 */
+  installed: AgentInfo[];
   dir: string;
   settings: Settings;
   quota: Quota | null;
@@ -156,6 +158,7 @@ const LEGACY_PHASE: Record<AgentView['status'], WorkerPhase> = { working: 'worki
 export const useOffice = create<S>((set, get) => ({
   connection: 'connecting',
   claude: null,
+  installed: [],
   dir: '',
   settings: { chefModel: 'sonnet', teamModel: 'sonnet', permission: 'auto' },
   quota: null,
@@ -215,7 +218,7 @@ export const useOffice = create<S>((set, get) => ({
     const s = get();
     switch (m.t) {
       case 'hello': {
-        set({ claude: m.claude, dir: m.dir, settings: m.settings, quota: m.quota, missions: m.missions });
+        set({ claude: m.claude, installed: m.agents ?? [], dir: m.dir, settings: m.settings, quota: m.quota, missions: m.missions });
         if (s.replaying) break;
         if (m.current) {
           get().resetMission(m.current.mission);

@@ -88,7 +88,9 @@ test('두 일꾼, 뒤가 앞을 기다린다: 맥스가 HTTP로 계획하고, �
   }
   assert.ok(!lead.argv.includes('--strict-mcp-config'), '맥스는 사용자의 커넥터를 그대로 쓴다');
   assert.ok(arg(lead, '--allowedTools').split(',').includes('mcp__office__office_plan'));
-  assert.ok(!arg(lead, '--tools').split(',').some((t) => t === 'Agent' || t === 'TodoWrite'), '맥스는 office_plan으로 일을 나눈다');
+  assert.equal(arg(lead, '--tools'), 'Read,Glob,Grep', '맥스는 읽기만 한다: 쓰기, 명령, 검색은 일꾼의 몫이다');
+  const leadPreapproved = arg(lead, '--allowedTools').split(',');
+  for (const banned of ['Write', 'Edit', 'Bash', 'WebSearch', 'WebFetch']) assert.ok(!leadPreapproved.includes(banned), `${banned}는 맥스에게 없다`);
 
   await c.close();
   const leaves = m.events().filter((e): e is Extract<OfficeEvent, { k: 'leave' }> => e.k === 'leave');
@@ -190,3 +192,29 @@ async function followup(resumeWorks: boolean) {
 test('끝난 일꾼에게 이어서 시키면 그 세션을 --resume으로 다시 연다(맥스도 같은 세션으로 깨어난다)', () => followup(true));
 
 test('이어가기가 실패하면 지금까지의 요약을 붙여 새 세션으로 연다', () => followup(false));
+
+test('맥스가 시작할 때마다 죽으면 미션은 오류로 서고, 이어서 하기로 같은 요청부터 다시 시도한다', async () => {
+  const launches: LaunchScript[] = [
+    { steps: [{ crash: true }] }, { steps: [{ crash: true }] }, { steps: [{ crash: true }] },
+    { steps: [{ expectInput: '빵집 소개 글' }, { begin: true }, { say: { text: '이번에는 시작했어요.' } }] },
+  ];
+  const rig = await conductorRig({ scripts: { claude: { launches } } });
+  const m = rig.mission('breaker');
+  const c = Conductor.create(m.deps, '빵집 소개 글을 써 주세요.');
+  await m.until((es) => es.some((e) => e.k === 'error'));
+  const error = m.events().find((e): e is Extract<OfficeEvent, { k: 'error' }> => e.k === 'error')!;
+  assert.match(error.message, /맥스를 시작하지 못했어요.*이어서 하기/);
+  assert.equal(c.view().status, 'error');
+  assert.equal(c.view().lead.phase.k, 'failed');
+  assert.equal(rig.fakes.launches('claude').length, 3, '네 번째 시도는 없다');
+  assert.ok(!m.events().some((e) => e.k === 'settle' || e.k === 'end'));
+
+  assert.deepEqual(c.input({ k: 'user_resume' }), { ok: true });
+  await m.until(settled(1));
+  rig.fakes.assertClean();
+  assert.equal(rig.fakes.launches('claude').length, 4);
+  assert.equal(c.view().status, 'done');
+  assert.deepEqual(m.events().filter((e) => e.k === 'settle'), [{ k: 'settle', text: '이번에는 시작했어요.' }]);
+  await c.close();
+  await rig.stop();
+});

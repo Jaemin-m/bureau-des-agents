@@ -257,10 +257,10 @@ export class Conductor {
     const tap = this.deps.tap?.(kind, who);
     const base = { cwd: this.deps.folder, autonomy: st.autonomy, ...(resume ? { resume } : {}), ...(tap ? { tap } : {}) };
     if (who === LEAD) {
-      const p = claudePowers(ROLE_POWERS.chef, 'write');
+      const p = claudePowers(ROLE_POWERS.chef, 'read');
       // 사용자의 커넥터는 맥스에게 지금처럼 남긴다(엄격 MCP를 켜지 않는다)
       return {
-        ...base, access: 'write', powers: { tools: p.tools, preapproved: [...p.preapproved, ...LEAD_TOOL_IDS] }, systemPrompt: this.deps.leadPrompt(),
+        ...base, access: 'read', powers: { tools: p.tools, preapproved: [...p.preapproved, ...LEAD_TOOL_IDS] }, systemPrompt: this.deps.leadPrompt(),
         mcpConfig: leadMcpConfig(this.deps.mcpBase, token!), ...(st.chefModel ? { model: st.chefModel } : {}),
       };
     }

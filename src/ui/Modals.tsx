@@ -1,6 +1,6 @@
 // 사무실 위에 뜨는 창들: 최종 결과 카드, 파일 보기, 지난 미션,
 // 설정, 그리고 작은 알림.
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { sfx } from '../audio/sfx.ts';
 import { savePref, useOffice } from '../state/store.ts';
 import { applySound } from '../audio/sound.ts';
@@ -151,11 +151,31 @@ export function History() {
 const CHEF_MODELS: [string, string][] = [['sonnet', 'Sonnet (빠름, 추천)'], ['opus', 'Opus (가장 섬세함)'], ['fable', 'Fable'], ['haiku', 'Haiku (번개처럼 빠름)'], ['', 'Claude Code 기본 모델']];
 const TEAM_MODELS: [string, string][] = [['sonnet', 'Sonnet (빠름, 추천)'], ['haiku', 'Haiku (아주 빠름, 절약형)'], ['opus', 'Opus (가장 섬세함)'], ['fable', 'Fable'], ['inherit', '맥스와 같은 모델']];
 
+/** Codex 모델 이름은 목록이 자주 바뀌어서 직접 적는다. 비우면 Codex의 기본 모델이다. 입력을 마칠 때(포커스를 옮기거나 Enter) 저장한다. */
+function CodexModelField() {
+  const saved = useOffice((s) => s.settings.codexModel ?? '');
+  const send = useOffice((s) => s.send);
+  const [draft, setDraft] = useState(saved);
+  useEffect(() => setDraft(saved), [saved]);
+  const commit = () => { if (draft.trim() !== saved) send({ t: 'settings', settings: { codexModel: draft.trim() } }); };
+  return (
+    <label className="field">
+      <span>Codex 일꾼의 두뇌</span>
+      <input
+        type="text" value={draft} placeholder="비워 두면 Codex 기본 모델" spellCheck={false} autoComplete="off" maxLength={64}
+        onChange={(e) => setDraft(e.target.value)} onBlur={commit} onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+      />
+      <small className="muted">Codex가 알아듣는 모델 이름을 적어요(예: gpt-5). 모르면 비워 두세요.</small>
+    </label>
+  );
+}
+
 export function SettingsPanel() {
   const open = useOffice((s) => s.settingsOpen);
   const settings = useOffice((s) => s.settings);
   const send = useOffice((s) => s.send);
   const claude = useOffice((s) => s.claude);
+  const hasCodex = useOffice((s) => s.installed.some((a) => a.kind === 'codex' && a.found));
   const dir = useOffice((s) => s.dir);
   const voiceOn = useOffice((s) => s.voiceOn);
   const cameraAuto = useOffice((s) => s.cameraAuto);
@@ -178,6 +198,7 @@ export function SettingsPanel() {
               {TEAM_MODELS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
             </select>
           </label>
+          {hasCodex && <CodexModelField />}
           <div className="field">
             <span>허락</span>
             <label className="radio"><input type="radio" checked={settings.permission === 'auto'} onChange={() => send({ t: 'settings', settings: { permission: 'auto' } })} /> 팀이 알아서 하고, 위험한 작업만 물어봐요</label>
