@@ -25,5 +25,16 @@ export const fileIcon = (ext: string) =>
 /** 사무실 안에서 바로 읽을 수 있는 파일. */
 export const readable = (ext: string) => ['md', 'txt', 'csv', 'json', 'markdown'].includes(ext);
 
-/** 화면에 보여도 되는 경로: 홈 폴더는 “~”로 바꾼다(영상에 사용자 이름이 나오지 않게). */
-export const tilde = (p: string) => p.replace(/^\/(?:Users|home)\/[^/]+/, '~');
+/**
+ * 화면에 보여도 되는 경로 표기. 홈 폴더 아래는 “~/…”(영상에 사용자 이름이 나오지 않게),
+ * 그 밖의 절대 경로(임시 폴더, 외장 디스크…)는 마지막 폴더 이름만 “…/이름”으로 보여 준다.
+ * 어떤 경우에도 전체 경로는 돌려주지 않는다.
+ */
+export const tilde = (p: string) => {
+  const q = p.replace(/\\/g, '/');
+  const home = q.match(/^(?:\/(?:Users|home)|[A-Za-z]:\/Users)\/[^/]+(\/.*)?$/);
+  if (home) return `~${(home[1] ?? '').replace(/\/+$/, '')}`;
+  if (!/^(?:\/|[A-Za-z]:\/)/.test(q)) return p;
+  const last = q.split('/').filter(Boolean).pop();
+  return !last || /^[A-Za-z]:$/.test(last) ? '…' : `…/${last}`;
+};

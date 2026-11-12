@@ -272,7 +272,7 @@ function MachineRoom() {
   const dir = useOffice((s) => s.dir);
   const connection = useOffice((s) => s.connection);
   const rows: [string, React.ReactNode][] = [
-    ['Claude Code', claude?.found ? `${claude.version} · ${claude.path}` : connection === 'demo' ? '데모(실제 미션 다시 재생)' : '찾을 수 없음'],
+    ['Claude Code', claude?.found ? `${claude.version} · ${tilde(claude.path ?? '')}` : connection === 'demo' ? '데모(실제 미션 다시 재생)' : '찾을 수 없음'],
     ['연결', '내 Claude 구독(API 키 없음, 사용량 과금 없음)'],
     ['맥스의 두뇌', mission?.model ? `${mission.model} (설정: ${settings.chefModel || '기본값'})` : settings.chefModel || '기본값'],
     ['팀의 두뇌', settings.teamModel === 'inherit' ? '맥스와 같음' : settings.teamModel],
