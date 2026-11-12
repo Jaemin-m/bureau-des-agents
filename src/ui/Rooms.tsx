@@ -1,9 +1,11 @@
-// 사무실을 클릭하면 열리는 창들. 내용은 전부 진짜 Claude Code에서 온다:
+// 사무실을 클릭하면 열리는 창들. 내용은 전부 진짜 에이전트 CLI에서 온다:
 // 에이전트 카드(맡은 일, 모든 작업, 보고서), 맥스의 계획과 그 기록,
 // 팀과 도구, 머신, 결과물, 만든 사이트의 미리보기.
 import { useEffect, useMemo, useState } from 'react';
 import { ROLE_TOOLS, ROLES, TOOL_INFO } from '../../shared/activity.ts';
 import type { PlanItem, Role } from '../../shared/protocol.ts';
+import { taskOf } from '../../shared/tasks.ts';
+import { KIND } from '../engine/kinds.ts';
 import { jukebox, TRACKS } from '../audio/music.ts';
 import { sfx } from '../audio/sfx.ts';
 import { world } from '../engine/instance.ts';
@@ -14,6 +16,7 @@ import { party } from './interact.ts';
 import { mdToHtml } from './md.ts';
 import { Avatar } from './Panel.tsx';
 import { tidy } from './tidy.ts';
+import { hasPhase, KindChip, phaseText, TaskRows, Thread } from './workers.tsx';
 
 const ICON: Record<string, string> = {
   search: '🔎', web: '🌐', read: '📖', write: '✍️', edit: '✏️', bash: '💻', plan: '📋', skill: '🎓', mcp: '🔌', other: '⚙️',
@@ -53,6 +56,7 @@ export function Rooms() {
 // ── 에이전트 카드 ──
 function AgentRoom({ id }: { id: string }) {
   const a = useOffice((s) => s.agents[id]);
+  const current = useOffice((s) => taskOf(s.tasks, id));
   const live = world.actors.get(id);
   const html = useMemo(() => (a?.report ? mdToHtml(tidy(a.report)) : ''), [a?.report]);
   if (!a) return <Shell title="이 에이전트는 이제 없어요">사무실을 떠났어요.</Shell>;
@@ -63,15 +67,24 @@ function AgentRoom({ id }: { id: string }) {
       <div className="agent-hero" style={{ ['--c' as string]: role.color }}>
         <Avatar role={a.role} size={72} />
         <div>
-          <span className={`pill-status ${a.status}`}>{working ? (live?.seated ? '일하는 중' : '가는 중') : a.status === 'done' ? '일을 마쳤어요' : '끝내지 못했어요'}</span>
+          <span className={`pill-status ${a.status}`}>{hasPhase(a) ? phaseText(a.phase!, a.block, a.parked) : working ? (live?.seated ? '일하는 중' : '가는 중') : a.status === 'done' ? '일을 마쳤어요' : '끝내지 못했어요'}</span>
           <p className="now">{working && a.act ? <><i>{ICON[a.act.kind]}</i>{a.act.label}</> : a.status === 'done' ? '보고서가 맥스의 책상 위에 있어요.' : working ? '자리에 앉는 중…' : ''}</p>
-          <p className="small muted">진짜 Claude Code 서브에이전트(“{role.type || 'renfort'}”)예요. 쓰는 도구: {ROLE_TOOLS[a.role].join(', ') || '맥스와 같은 도구'}.</p>
+          {current && <p className="small">맡은 할 일: <b>{current.title}</b></p>}
+          {a.agent
+            ? <p className="small muted"><KindChip kind={a.agent} /> {KIND[a.agent].label}가 해요. 직무는 {role.label}이에요.</p>
+            : <p className="small muted">Claude Code가 해요(서브에이전트 “{role.type || 'renfort'}”). 쓰는 도구: {ROLE_TOOLS[a.role].join(', ') || '맥스와 같은 도구'}.</p>}
         </div>
       </div>
       <section className="room-sec">
         <h4>맥스가 맡긴 일</h4>
         <p className="brief">{tidy(a.prompt)}</p>
       </section>
+      {a.thread && a.thread.length > 0 && (
+        <section className="room-sec">
+          <h4>대화 <span className="count">{plural(a.thread.length, '건')}</span></h4>
+          <Thread a={a} />
+        </section>
+      )}
       {a.acts.length > 0 && (
         <section className="room-sec">
           <h4>한 일 <span className="count">작업 {plural(a.acts.length, '개')}</span></h4>
@@ -124,12 +137,19 @@ function planChanges(prev: PlanItem[] | null, next: PlanItem[]): string[] {
 function BoardRoom() {
   const plan = useOffice((s) => s.plan);
   const history = useOffice((s) => s.planHistory);
+  const taskCount = useOffice((s) => Object.keys(s.tasks).length);
+  const taskDone = useOffice((s) => Object.values(s.tasks).filter((t) => t.run.k === 'done').length);
   const team = useOffice(useShallow(teamList));
   const done = plan.filter((p) => p.status === 'completed').length;
   const steps = useMemo(() => history.map((h, i) => ({ at: h.at, lines: planChanges(i ? history[i - 1].items : null, h.items) })).filter((x) => x.lines.length), [history]);
   return (
-    <Shell title="맥스의 화이트보드" sub={plan.length ? `${plan.length}단계 중 ${done}단계 완료` : '미션 계획과 누가 무엇을 하는지'}>
-      {plan.length > 0 ? (
+    <Shell title="맥스의 화이트보드" sub={taskCount ? `할 일 ${taskCount}개 중 ${taskDone}개 완료` : plan.length ? `${plan.length}단계 중 ${done}단계 완료` : '미션 계획과 누가 무엇을 하는지'}>
+      {taskCount > 0 ? (
+        <>
+          <div className="progress"><i style={{ width: `${(taskDone / taskCount) * 100}%` }} /></div>
+          <TaskRows />
+        </>
+      ) : plan.length > 0 ? (
         <>
           <div className="progress"><i style={{ width: `${(done / plan.length) * 100}%` }} /></div>
           <ul className="plan big">{plan.map((p, i) => <li key={i} className={p.status}><i />{p.text}</li>)}</ul>
@@ -142,9 +162,9 @@ function BoardRoom() {
             {team.map((a) => (
               <button key={a.id} className={`who-row ${a.status}`} style={{ ['--c' as string]: ROLES[a.role].color }} onClick={() => { sfx('open'); useOffice.setState({ modal: { kind: 'agent', id: a.id } }); }}>
                 <Avatar role={a.role} size={26} />
-                <b>{a.name}</b>
+                <b>{a.name}{a.agent && <> <KindChip kind={a.agent} /></>}</b>
                 <span className="who-task">{a.task}</span>
-                <span className="who-state">{a.status === 'done' ? '✓ 보고 완료' : a.status === 'failed' ? '✕ 못 끝냄' : a.status === 'reporting' ? '📄 보고하는 중' : '… 일하는 중'}</span>
+                <span className="who-state">{hasPhase(a) ? phaseText(a.phase!, a.block, a.parked) : a.status === 'done' ? '✓ 보고 완료' : a.status === 'failed' ? '✕ 못 끝냄' : a.status === 'reporting' ? '📄 보고하는 중' : '… 일하는 중'}</span>
               </button>
             ))}
           </div>
@@ -224,7 +244,7 @@ function MachineRoom() {
       <dl className="kv">{rows.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
       <section className="room-sec">
         <h4>어떻게 동작하나요</h4>
-        <p className="small">맥스는 미션 폴더에서 창 없이 실행되는 진짜 Claude Code 세션이에요. 팀원은 진짜 Claude Code 서브에이전트로, 각자 지시문과 자기 직무의 도구만 가지고 있어요. 에이전트가 도구를 쓸 때마다(검색, 페이지 읽기, 파일 쓰기) Claude Code가 사무실에 알려 주고, 사무실은 그걸 바로 보여 줘요. 타자 치는 로봇, 말풍선, 팀장 책상에 놓이는 보고서처럼요.</p>
+        <p className="small">맥스는 미션 폴더에서 창 없이 실행되는 진짜 Claude Code 세션이에요. 팀원은 진짜 코딩 에이전트 CLI(Claude Code, Codex, Gemini)가 돌려요. 어느 CLI인지는 로봇 머리 옆의 작은 색 점으로 보여요. 에이전트가 도구를 쓸 때마다(검색, 페이지 읽기, 파일 쓰기) 사무실에 알려 주고, 사무실은 그걸 바로 보여 줘요. 타자 치는 로봇, 말풍선, 팀장 책상에 놓이는 보고서처럼요. 예전 미션의 팀원은 Claude Code 서브에이전트였어요.</p>
         <p className="small muted">제한 모드: 팀은 미션 폴더 밖으로 나가지 않고, 내 설정이나 다른 에이전트도 사무실에 끼어들지 않아요.</p>
       </section>
     </Shell>
@@ -293,7 +313,7 @@ function TeamRoom({ role }: { role?: Role }) {
     return [...m.entries()];
   }, [history]);
   return (
-    <Shell title="팀 전체" sub="저마다 직무와 도구를 가진 진짜 Claude Code 에이전트" wide>
+    <Shell title="팀 전체" sub="저마다 직무를 가진 진짜 코딩 에이전트(Claude Code, Codex, Gemini)" wide>
       <div className="seg tabs">
         <button className={tab === 'now' ? 'on' : ''} onClick={() => setTab('now')}>이번 미션</button>
         <button className={tab === 'roles' ? 'on' : ''} onClick={() => setTab('roles')}>직무</button>

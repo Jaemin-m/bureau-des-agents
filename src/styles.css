@@ -288,6 +288,26 @@ button:disabled { cursor: default; opacity: 0.45; }
 .plan li.completed { color: var(--muted); text-decoration: line-through; text-decoration-color: rgba(255, 255, 255, 0.3); }
 .plan li.completed i { border-color: var(--green); background: var(--green); }
 
+/* 일꾼을 돌리는 CLI 배지, 할 일 목록, 일꾼 대화 */
+.kind-chip { display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; padding: 0 6px; border: 1px solid var(--k); border-radius: 5px; font: 700 10.5px/16px var(--font); color: var(--k); vertical-align: 1px; }
+.kind-chip::before { content: ''; width: 6px; height: 6px; border-radius: 1px; background: var(--k); }
+.tasks { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; font-size: 13px; }
+.task { display: grid; grid-template-columns: auto 1fr auto auto; gap: 4px 8px; align-items: baseline; }
+.task i { width: 10px; height: 10px; border: 2px solid var(--dim); border-radius: 3px; align-self: center; }
+.task.running i { border-color: var(--orange); background: rgba(255, 138, 61, 0.25); animation: pulse 1.4s infinite; }
+.task.ready i { border-color: #fff; }
+.task.done i { border-color: var(--green); background: var(--green); }
+.task.failed i, .task.blocked i { border-color: #ff6b6b; background: rgba(255, 107, 107, 0.25); }
+.task.cancelled i { opacity: 0.4; }
+.task.done .task-title, .task.cancelled .task-title { color: var(--muted); }
+.task-meta { font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+.task-open { font: 600 11px var(--font); color: var(--orange2); background: none; border: 0; padding: 0; }
+.thread { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 13px; }
+.thread li { display: grid; grid-template-columns: auto auto 1fr; gap: 2px 8px; align-items: baseline; padding: 6px 9px; border-radius: 8px; background: var(--surface2); }
+.thread li.me { background: rgba(255, 138, 61, 0.1); }
+.thread em { font: normal 600 11px var(--font); color: var(--muted); }
+.thread span { grid-column: 1 / -1; color: #d8d8de; white-space: pre-wrap; }
+
 .team { display: grid; gap: 6px; }
 .agent { border: 1px solid var(--line); border-radius: 10px; background: var(--surface2); overflow: hidden; border-left: 3px solid var(--c); }
 .agent.done, .agent.failed { opacity: 0.72; }

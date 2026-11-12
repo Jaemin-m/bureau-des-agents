@@ -12,6 +12,7 @@ import { fmtDate, fmtDuration, tilde } from './format.ts';
 import { mdToHtml } from './md.ts';
 import { FileActions } from './Rooms.tsx';
 import { tidy } from './tidy.ts';
+import { hasPhase, KindChip, phaseText, TaskRows } from './workers.tsx';
 
 export function Avatar({ role, size = 32 }: { role: Role; size?: number }) {
   const ref = useRef<HTMLCanvasElement>(null);
@@ -33,6 +34,7 @@ export function Panel() {
       {mission ? (
         <>
           <PlanSection />
+          <TasksSection />
           <TeamSection />
           <FilesSection />
           <FeedSection />
@@ -57,7 +59,7 @@ function Welcome() {
           <li><b>일하는 모습을 지켜봐요.</b> 말풍선 하나하나가 에이전트가 지금 실제로 하는 일이에요.</li>
           <li><b>결과물을 받아요.</b> 파일이 “결과물”과 내 폴더에 도착해요.</li>
         </ol>
-        <p className="small muted">내 구독으로 돌아가는 진짜 Claude Code 에이전트예요.</p>
+        <p className="small muted">내 컴퓨터에 깔린 진짜 코딩 에이전트(Claude Code, Codex, Gemini)가 일해요. 로봇 옆 작은 색 점이 어느 에이전트인지 알려 줘요.</p>
       </section>
       <section className="card">
         <h3>미션 아이디어</h3>
@@ -94,9 +96,23 @@ function Welcome() {
   );
 }
 
+function TasksSection() {
+  const total = useOffice((s) => Object.keys(s.tasks).length);
+  const done = useOffice((s) => Object.values(s.tasks).filter((t) => t.run.k === 'done').length);
+  if (!total) return null;
+  return (
+    <section className="card">
+      <h3>할 일 <span className="count">{done}/{total}</span></h3>
+      <TaskRows />
+    </section>
+  );
+}
+
+/** 할 일 그래프가 있으면 패널은 그쪽을 보여 준다(맥스의 계획은 거기서 나온다). */
 function PlanSection() {
   const plan = useOffice((s) => s.plan);
-  if (!plan.length) return null;
+  const hasTasks = useOffice((s) => Object.keys(s.tasks).length > 0);
+  if (!plan.length || hasTasks) return null;
   const done = plan.filter((p) => p.status === 'completed').length;
   return (
     <section className="card">
@@ -130,6 +146,14 @@ function TeamSection() {
   );
 }
 
+function nowText(a: AgentView, working: boolean): string {
+  if (hasPhase(a)) {
+    const phase = a.phase!;
+    return phase === 'working' && a.act ? a.act.label : phaseText(phase, a.block, a.parked);
+  }
+  return working ? (a.act?.label ?? '자리에 앉는 중…') : `${STATUS[a.status]}${a.leftAt ? ` · ${fmtDuration(a.leftAt - a.hiredAt)}` : ''}`;
+}
+
 function AgentCard({ a, open, onToggle }: { a: AgentView; open: boolean; onToggle: () => void }) {
   const role = ROLES[a.role];
   const working = a.status === 'working' || a.status === 'reporting';
@@ -139,9 +163,9 @@ function AgentCard({ a, open, onToggle }: { a: AgentView; open: boolean; onToggl
       <button className="agent-head" onClick={onToggle}>
         <Avatar role={a.role} size={30} />
         <div className="agent-id">
-          <b>{a.name} <span>{role.icon} {role.label}</span></b>
+          <b>{a.name} <span>{role.icon} {role.label}</span>{a.agent && <KindChip kind={a.agent} />}</b>
           <span className="agent-task">{a.task}</span>
-          <span className="agent-now">{working ? (a.act?.label ?? '자리에 앉는 중…') : `${STATUS[a.status]}${a.leftAt ? ` · ${fmtDuration(a.leftAt - a.hiredAt)}` : ''}`}</span>
+          <span className="agent-now">{nowText(a, working)}</span>
         </div>
         <span className={`agent-status ${a.status}`} />
       </button>

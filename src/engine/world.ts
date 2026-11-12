@@ -1,20 +1,22 @@
 // 사무실의 세계: 로봇들이 무엇을 하고 어디로 가는지. Claude Code에서 온 이벤트 하나하나가 작은 장면이 된다.
 // 팀원이 문으로 들어와 자기 책상으로 가고, 실제로 하는 일에 따라 타이핑하거나 읽고,
 // 일어나서 팀장에게 보고서를 낸 뒤 다시 나간다.
-import type { ActKind, OfficeEvent, PlanItem, Role } from '../../shared/protocol.ts';
+import type { ActKind, AgentKind, BlockReason, OfficeEvent, PlanItem, Role, TaskNode, WorkerPhase } from '../../shared/protocol.ts';
 import { Cat } from './cat.ts';
+import { dagRows, type DagRow } from './dag.ts';
 import { Fx } from './fx.ts';
 import { iconFor } from './icons.ts';
-import { CHEF_SEAT, SEATS, SPOTS, T, WINDOWS, tileFeet, walkGrid, type Seat } from './layout.ts';
+import { CHEF_SEAT, SEATS, SPOTS, STACK, T, WINDOWS, tileFeet, walkGrid, type Seat } from './layout.ts';
 import { findPath, type Tile } from './path.ts';
 import type { Dir, Eyes, Pose } from './robots.ts';
+import { isResting, seatWorkers, spotKey, type Roster, type Spot } from './seating.ts';
 
 type Pt = { x: number; y: number };
 
 type Task =
-  | { t: 'walk'; tile: Tile; face?: Dir; then?: Pt }
+  | { t: 'walk'; tile: Tile; face?: Dir; then?: Pt; home?: true }
   | { t: 'slide'; to: Pt; face?: Dir; speed?: number }
-  | { t: 'sit'; seat: Seat }
+  | { t: 'sit'; seat: Seat; home?: true }
   | { t: 'stand' }
   | { t: 'wait'; ms: number; pose?: Pose; dir?: Dir; eyes?: Eyes }
   | { t: 'call'; fn: () => void }
@@ -62,6 +64,15 @@ export class Actor {
   look: Eyes = 'open';
   lookUntil = 0;
   deliverSpot = -1;
+  /** 일꾼을 돌리는 CLI(hire.agent). 옛 기록의 로봇은 null이고 새 배지도 없다 */
+  kind: AgentKind | null = null;
+  phase: WorkerPhase | null = null;
+  block: BlockReason | undefined = undefined;
+  parked = false;
+  /** 자리가 모자라 “+N” 더미에 들어 있다 */
+  stacked = false;
+  /** 새 자리를 받았다: 하던 일이 끝나면 그리로 간다 */
+  rehome = false;
 
   constructor(id: string, role: Role, name: string, x: number, y: number) {
     this.id = id;
@@ -80,6 +91,9 @@ export class Actor {
   get head(): Pt { return { x: this.x, y: this.y - 22 }; }
 
   get busy() { return !!this.cur || this.tasks.length > 0; }
+
+  /** worker 이벤트나 CLI 종류를 받는 일꾼: 자리를 seatWorkers가 정한다. 옛 기록의 팀원은 아니다 */
+  get managed() { return this.kind !== null || this.phase !== null; }
 }
 
 export class World {
@@ -98,6 +112,9 @@ export class World {
   boardUntil = 0;
   missionActive = false;
   plan: PlanItem[] = [];
+  /** 할 일 그래프(task 이벤트)와 칠판에 그릴 위상 순서의 줄. 비어 있으면 칠판은 옛 계획 목록을 그린다 */
+  tasks: Record<string, TaskNode> = {};
+  dag: DagRow[] = [];
   /** 누가 무엇을 하는지: 칠판에 적고, 에이전트가 일을 넘기면 체크한다 */
   assignments: { id: string; role: Role; name: string; task: string; status: 'working' | 'done' | 'failed' }[] = [];
   private planSize = -1;
@@ -145,6 +162,8 @@ export class World {
     this.boardUntil = 0;
     this.missionActive = false;
     this.plan = [];
+    this.tasks = {};
+    this.dag = [];
     this.assignments = [];
     this.planSize = -1;
     const p = SPOTS.receptionPx;
@@ -283,11 +302,13 @@ export class World {
       }
       case 'hire': {
         if (this.actors.has(ev.id)) break;
-        const seat = this.assignSeat(ev.role);
+        const managed = ev.agent !== undefined;
+        const seat = managed ? null : this.assignSeat(ev.role);
         const a = new Actor(ev.id, ev.role, ev.name, SPOTS.doorOut.x - 8 + Math.random() * 16, SPOTS.doorOut.y);
+        if (managed) { a.kind = ev.agent!; a.stays = true; }
         if (!this.assignments.some((x) => x.id === ev.id)) this.assignments.push({ id: ev.id, role: ev.role, name: ev.name, task: ev.task, status: 'working' });
         if (seat) { this.seatOf.set(seat.id, a.id); a.seat = seat; }
-        else a.standSpot = this.overflowSpot();
+        else if (!managed) a.standSpot = this.overflowSpot();
         this.actors.set(a.id, a);
         this.rosterChanged();
         if (live) {
@@ -299,11 +320,12 @@ export class World {
             { t: 'slide', to: tileFeet(SPOTS.door), speed: 40 },
           );
           if (seat) this.queue(a, { t: 'walk', tile: seat.tile }, { t: 'sit', seat });
-          else this.queue(a, { t: 'walk', tile: a.standSpot!, face: 'down' });
+          else if (!managed) this.queue(a, { t: 'walk', tile: a.standSpot!, face: 'down' });
           // 맥스는 자기가 부른 팀원을 반긴다
           chef.happyUntil = this.time + 0.8;
         } else if (seat) this.snapSeat(a, seat);
-        else { const f = tileFeet(a.standSpot!); a.x = f.x; a.y = f.y; }
+        else if (!managed) { const f = tileFeet(a.standSpot!); a.x = f.x; a.y = f.y; }
+        if (managed) this.reseat(live);
         break;
       }
       case 'act': {
@@ -357,13 +379,29 @@ export class World {
         a.asks = Math.max(0, a.asks - 1);
         break;
       }
+      case 'task': {
+        this.tasks = { ...this.tasks, [ev.key]: { key: ev.key, title: ev.title, after: ev.after, role: ev.role, agent: ev.agent, run: ev.run } };
+        this.dag = dagRows(this.tasks);
+        break;
+      }
       case 'worker': {
         const a = this.actors.get(ev.id);
         if (!a || a.left) break;
         a.stays = true;
+        a.phase = ev.phase;
+        a.block = ev.block;
+        a.parked = !!ev.parked;
+        const asg = this.assignments.find((x) => x.id === ev.id);
+        if (asg) asg.status = ev.phase === 'failed' ? 'failed' : isResting({ phase: ev.phase, parked: a.parked }) || ev.phase === 'retired' ? 'done' : 'working';
+        if (ev.phase === 'retired') {
+          a.left = true;
+          if (live) this.exit(a); else this.remove(a);
+          break;
+        }
         // 새 턴이면 다시 보고하러 갈 수 있다
         if (ev.phase === 'working') a.reported = false;
-        if (!a.busy) this.goHome(a, live);
+        this.reseat(live);
+        if (!a.busy && !a.rehome) this.goHome(a, live);
         break;
       }
       case 'end':
@@ -429,18 +467,67 @@ export class World {
     );
   }
 
-  /** 자기 책상(또는 서 있던 자리)으로 돌아간다. */
+  /** 자기 자리(책상, 소파, 서 있던 자리)로 돌아간다. */
   private goHome(a: Actor, live: boolean) {
     if (a.seat) {
       if (a.seated) return;
-      if (live) this.queue(a, { t: 'walk', tile: a.seat.tile }, { t: 'sit', seat: a.seat });
+      if (live) this.queue(a, { t: 'walk', tile: a.seat.tile, home: true }, { t: 'sit', seat: a.seat, home: true });
       else this.snapSeat(a, a.seat);
     } else if (a.standSpot) {
       const [x, y] = a.tile;
       if (x === a.standSpot[0] && y === a.standSpot[1]) return;
-      if (live) this.queue(a, { t: 'walk', tile: a.standSpot, face: 'down' });
+      if (live) this.queue(a, { t: 'walk', tile: a.standSpot, face: 'down', home: true });
       else { const f = tileFeet(a.standSpot); a.x = f.x; a.y = f.y; }
     }
+  }
+
+  private spotKeyOf(a: Actor): string | undefined {
+    return a.stacked ? 'stack' : a.seat ? `seat:${a.seat.id}` : a.standSpot ? `floor:${a.standSpot.join(',')}` : undefined;
+  }
+
+  /** worker 단계와 직무로 모든 일꾼의 자리를 다시 정하고, 달라진 사람만 옮긴다. */
+  private reseat(live: boolean) {
+    const mine: Actor[] = [];
+    const taken = new Set<string>();
+    for (const a of this.actors.values()) {
+      if (a.id === 'chef') continue;
+      if (a.managed && !a.left) mine.push(a);
+      else { const k = this.spotKeyOf(a); if (k && k !== 'stack') taken.add(k); }
+    }
+    const roster: Roster[] = mine.map((a) => ({ id: a.id, role: a.role, phase: a.phase ?? 'working', parked: a.parked, prev: this.spotKeyOf(a) }));
+    const spots = seatWorkers(roster, taken);
+    for (const a of mine) {
+      const spot = spots.get(a.id)!;
+      if (spotKey(spot) !== this.spotKeyOf(a)) this.place(a, spot, live);
+    }
+    // 더미에는 맨 위 한 명만 보인다
+    let top = true;
+    for (const a of mine) {
+      if (a.cur?.t === 'fade') continue;
+      if (a.stacked) { a.alpha = top ? 1 : 0; top = false; } else if (a.alpha === 0) a.alpha = 1;
+    }
+  }
+
+  get stackCount() {
+    let n = 0;
+    for (const a of this.actors.values()) if (a.stacked && !a.left) n++;
+    return n;
+  }
+
+  private place(a: Actor, spot: Spot, live: boolean) {
+    if (a.seat && this.seatOf.get(a.seat.id) === a.id) this.seatOf.delete(a.seat.id);
+    if (a.seated) { a.seated = false; this.standUp(a); }
+    // 이미 나선 길은 새 자리로 다시 잡는다
+    a.tasks = a.tasks.filter((t) => !('home' in t && t.home));
+    if (a.cur && 'home' in a.cur && a.cur.home) { a.cur = null; a.path = []; a.moving = false; }
+    a.seat = null;
+    a.standSpot = null;
+    a.stacked = false;
+    if (spot.k === 'seat') { a.seat = spot.seat; this.seatOf.set(spot.seat.id, a.id); }
+    else if (spot.k === 'floor') a.standSpot = spot.tile;
+    else { a.stacked = true; a.standSpot = STACK.tile; }
+    if (live) a.rehome = true;
+    else this.goHome(a, false);
   }
 
   /** 문으로 나간다(쓰던 책상은 비워 준다). */
@@ -501,6 +588,7 @@ export class World {
       this.queue(chef, { t: 'wait', ms: 1200, pose: 'wave', dir: 'down' });
     }
     for (const a of [...this.actors.values()]) {
+      if (a.rehome && !a.cur && !a.tasks.length) { a.rehome = false; this.goHome(a, true); }
       if (!a.cur && a.tasks.length) { a.cur = a.tasks.shift()!; this.startTask(a, a.cur); }
       if (a.cur) {
         const task = a.cur;
