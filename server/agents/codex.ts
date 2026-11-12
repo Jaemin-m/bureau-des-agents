@@ -182,7 +182,7 @@ interface TurnRun { proc: Proc; ended: boolean; interrupting: boolean }
 
 class CodexSession implements AgentSession {
   private spec: SessionSpec;
-  private bin: string;
+  readonly bin: string;
   private sink: Sink;
   private mapper: ReturnType<typeof codexMapper>;
   private threadId: string | undefined;
