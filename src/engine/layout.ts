@@ -35,6 +35,8 @@ export interface Seat {
   x: number;
   y: number;
   deskId: string;
+  /** 쉬는 자리(소파). 구역 간판의 일하는 사람 수에 세지 않는다 */
+  lounge?: boolean;
 }
 
 export interface Zone { role: Role; label: string; x: number; y: number; w: number; h: number }
@@ -112,6 +114,17 @@ export const SPOTS = {
   /** 빈 책상이 없는 팀원용 */
   overflow: [[7, 4], [8, 7], [13, 6], [7, 10], [14, 10], [8, 11], [13, 11], [7, 13]] as [number, number][],
 };
+
+/** 쉬는 자리 1: 소파에 앉는다. 등받이 너머로 머리가 보이도록 발을 소파 위쪽에 둔다. */
+export const LOUNGE_SEATS: Seat[] = [2, 3, 4].map((tx) => ({
+  id: `seat-sofa-${tx}`, role: 'renfort' as Role, tile: [tx, 13] as [number, number], x: tx * T + 8, y: 14 * T + 2, deskId: 'sofa', lounge: true,
+}));
+
+/** 쉬는 자리 2: 소파 옆 책장 가와 커피 머신 앞에 서서 쉰다. */
+export const LOUNGE_STANDS: [number, number][] = [[6, 13], [15, 13], [17, 13], [18, 13], [19, 13]];
+
+/** 자리가 모자랄 때 로봇이 쌓이는 곳: 문 왼쪽. 맨 위 한 명과 “+N”만 그린다. */
+export const STACK = { tile: [9, 14] as [number, number], x: 9 * T + 8, y: 14 * T + 13 };
 
 /** 뒷벽에 걸린 계획 칠판(픽셀). */
 export const BOARD = { x: 128, y: 7, w: 96, h: 35 };

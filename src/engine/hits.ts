@@ -2,6 +2,7 @@
 import { ROLES } from '../../shared/activity.ts';
 import type { Role } from '../../shared/protocol.ts';
 import { textWidth } from './font.ts';
+import { KIND } from './kinds.ts';
 import { furniturePlacement } from './furniture.ts';
 import { BOARD, CLOCK, DOOR, FURNITURE, NEON, POSTER, WINDOWS, ZONES } from './layout.ts';
 import { SIGN, SIGN_H, signPos } from './room.ts';
@@ -18,7 +19,7 @@ function furnitureLabel(id: string, kind: string, role?: Role): string {
     case 'chair': return `${ROLES[role ?? 'renfort'].label} 구역의 자리`;
     case 'chefDesk': return '맥스의 책상: 팀이 낸 보고서가 모여요';
     case 'chefChair': return '맥스의 의자';
-    case 'rack': return '서버: Claude Code와 내 구독';
+    case 'rack': return '서버: 에이전트 CLI와 내 구독';
     case 'printer': return '프린터: 미션 결과물';
     case 'cooler': return '정수기';
     case 'easel': return '디자인 스튜디오의 이젤';
@@ -47,7 +48,7 @@ export function hitAt(world: World, x: number, y: number): Hit | null {
   for (const a of actors) {
     const ay = a.seated && a.seat ? a.seat.y : a.y;
     if (a.alpha > 0.3 && x >= a.x - 7 && x <= a.x + 7 && y >= ay - 21 && y <= ay + 1) {
-      return { kind: 'actor', id: a.id, label: a.id === 'chef' ? '팀장 맥스' : `${a.name} · ${ROLES[a.role].label}` };
+      return { kind: 'actor', id: a.id, label: a.id === 'chef' ? '팀장 맥스' : `${a.name} · ${ROLES[a.role].label}${a.kind ? ` · ${KIND[a.kind].label}` : ''}` };
     }
   }
   if (world.cat.hit(x, y)) return { kind: 'cat', label: '사무실 고양이 픽셀' };

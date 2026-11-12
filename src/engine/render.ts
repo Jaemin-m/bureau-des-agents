@@ -2,8 +2,11 @@
 // 효과, 마지막으로 조명(저녁과 밤에는 방이 어두워지고 화면, 조명, 네온이 빛을 낸다).
 // 모두 아주 작은 이미지(352 × 256 픽셀)에 그린 뒤 흐림 없이 확대한다. 비용이 거의 들지 않는다.
 import type { ActKind } from '../../shared/protocol.ts';
+import { drawKindChip, drawPhaseBadge, phaseBadge } from './badges.ts';
+import { boardRows, dagCounts, summaryParts } from './dag.ts';
+import { pixelText, textWidth, TEXT_H } from './font.ts';
 import { furniturePlacement } from './furniture.ts';
-import { BOARD, CLOCK, FURNITURE, H, NEON, T, W, WINDOWS, type Furn } from './layout.ts';
+import { BOARD, CLOCK, FURNITURE, H, NEON, STACK, T, W, WINDOWS, type Furn } from './layout.ts';
 import { g2d, makeCanvas, P, rgba, rng, type G } from './pixels.ts';
 import { ANCHOR_X, ANCHOR_Y, robotSprite } from './robots.ts';
 import { drawRoom, neon, signs, type TimeOfDay } from './room.ts';
@@ -53,12 +56,12 @@ export class Renderer {
     if (Math.sin(t * 0.9) <= 0.985) neon(g, tube, core);
     // 간판: 구역 이름과 지금 그 구역에서 일하는 에이전트 수
     const busy = new Map<string, number>();
-    for (const a of world.actors.values()) if (a.seated && a.role !== 'chef') busy.set(a.role, (busy.get(a.role) ?? 0) + 1);
+    for (const a of world.actors.values()) if (a.seated && a.role !== 'chef' && !a.seat?.lounge) busy.set(a.role, (busy.get(a.role) ?? 0) + 1);
     signs(g, (role) => busy.get(role) ?? 0);
 
     // 누가 어느 책상에 앉아 있는지
     const atDesk = new Map<string, Actor>();
-    for (const a of world.actors.values()) if (a.seated && a.seat) atDesk.set(a.seat.deskId, a);
+    for (const a of world.actors.values()) if (a.seated && a.seat && !a.seat.lounge) atDesk.set(a.seat.deskId, a);
 
     // 뒤에서 앞으로
     const items: { y: number; k: number; draw: () => void }[] = [];
@@ -70,6 +73,8 @@ export class Renderer {
       items.push({ y: a.seated && a.seat ? a.seat.y : a.y, k: 1, draw: () => this.actor(g, a, world) });
     }
     items.push({ y: world.cat.sortY, k: 2, draw: () => world.cat.draw(g) });
+    const stacked = world.stackCount;
+    if (stacked > 1) items.push({ y: STACK.y + 1, k: 3, draw: () => this.stackLabel(g, stacked) });
     items.sort((a, b) => a.y - b.y || a.k - b.k);
     for (const it of items) it.draw();
 
@@ -93,7 +98,20 @@ export class Renderer {
     }
     const sprite = robotSprite(a.role, a.pose, seated ? 'down' : a.dir, a.frame, a.eyes);
     g.drawImage(sprite, x - ANCHOR_X, y - ANCHOR_Y);
+    if (a.kind) drawKindChip(g, a.kind, x, y);
+    const badge = phaseBadge(a.phase, a.block, a.parked);
+    if (badge) drawPhaseBadge(g, badge, x, y, world.time);
     g.globalAlpha = 1;
+  }
+
+  /** 자리가 모자라 쌓인 일꾼: 맨 위 한 명 옆에 “+N”. */
+  private stackLabel(g: G, n: number) {
+    const text = `+${n - 1}`;
+    const w = textWidth(text) + 4;
+    const x = STACK.x + 7, y = STACK.y - 12;
+    g.fillStyle = P.ink;
+    g.fillRect(x, y, w, TEXT_H);
+    pixelText(g, text, x + 2, y, '#ffd166');
   }
 
   /** 가구 중 움직이는 부분: 켜진 화면, 표시등, 프린터, 팀장 책상의 보고서. */
@@ -370,8 +388,43 @@ export class Renderer {
     g.globalCompositeOperation = 'source-over';
   }
 
-  /** 칠판에 마커로 쓴 계획: 단계마다 한 줄, 끝나면 체크한다. */
   private board(g: G, world: World, t: number) {
+    if (world.dag.length) this.boardTasks(g, world, t);
+    else this.boardPlan(g, world, t);
+    this.boardTeam(g, world, t);
+  }
+
+  /** 할 일 그래프: 위상 순서로 최대 네 줄(먼저 끝나야 하는 일 아래에 들여쓴다)과 “대기 3 · 완료 5” 요약. */
+  private boardTasks(g: G, world: World, t: number) {
+    const x0 = BOARD.x + 4;
+    const parts = summaryParts(dagCounts(world.dag));
+    const room = BOARD.w - 8 - textWidth('계획') - 8;
+    let text = parts.base;
+    if (textWidth(parts.running + text) <= room) text = parts.running + text;
+    if (textWidth(text + parts.failed) <= room) text += parts.failed;
+    pixelText(g, text, BOARD.x + BOARD.w - 4 - textWidth(text), BOARD.y + 1, '#2b2836');
+    boardRows(world.dag).forEach((r, i) => {
+      const y = BOARD.y + 12 + i * 4;
+      const x = x0 + Math.min(r.depth, 3) * 3;
+      const done = r.status === 'done';
+      const bad = r.status === 'failed' || r.status === 'blocked';
+      if (r.depth > 0) { g.fillStyle = '#8a8ea2'; g.fillRect(x - 3, y + 1, 2, 1); }
+      g.fillStyle = done ? '#2fbf71' : r.status === 'running' ? (Math.floor(t * 3) % 2 ? P.orange : P.orangeDark) : bad ? '#e5484d' : r.status === 'cancelled' ? '#b4b7c6' : '#8a8ea2';
+      g.fillRect(x, y, 3, 3);
+      if (r.status === 'ready' || r.status === 'waiting') { g.fillStyle = '#f4f5f9'; g.fillRect(x + 1, y + 1, 1, 1); }
+      const len = Math.max(16, Math.min(60 - Math.min(r.depth, 3) * 3, Math.round(r.title.length * 1.5)));
+      g.fillStyle = done || r.status === 'cancelled' ? '#b4b7c6' : bad ? '#8a3a3e' : r.status === 'running' ? '#3a2f44' : '#2b2836';
+      for (let k = 0; k < len; k++) {
+        if ((k * 7 + i * 3) % 11 === 0) continue;
+        g.fillRect(x + 6 + k, y + 1 + (Math.sin((k + i * 5) * 0.9) > 0.6 ? -1 : 0), 1, 1);
+      }
+      if (done) { g.fillStyle = '#2fbf71'; g.fillRect(x + 5, y + 1, len + 2, 1); }
+    });
+    if (world.dag.length > 4) { g.fillStyle = '#8a8ea2'; for (let k = 0; k < 3; k++) g.fillRect(x0 + 6 + k * 2, BOARD.y + 32, 1, 1); }
+  }
+
+  /** 옛 기록의 계획: 단계마다 한 줄, 끝나면 체크한다. */
+  private boardPlan(g: G, world: World, t: number) {
     const items = world.plan.slice(0, 5);
     const x0 = BOARD.x + 4;
     items.forEach((it, i) => {
@@ -393,6 +446,10 @@ export class Renderer {
       if (done) { g.fillStyle = '#2fbf71'; g.fillRect(x0 + 5, y + 1, len + 2, 1); }
     });
     if (world.plan.length > 5) { g.fillStyle = '#8a8ea2'; g.fillRect(x0 + 6, BOARD.y + 32, 1, 1); g.fillRect(x0 + 8, BOARD.y + 32, 1, 1); g.fillRect(x0 + 10, BOARD.y + 32, 1, 1); }
+  }
+
+  /** 칠판 오른쪽 아래: 일꾼마다 작은 로봇 머리 */
+  private boardTeam(g: G, world: World, t: number) {
     // 누가 무엇을 하는지: 칠판 오른쪽 아래에 에이전트마다 작은 로봇 머리, 일을 넘기면 체크한다
     const team = world.assignments.slice(-12);
     team.forEach((a, i) => {

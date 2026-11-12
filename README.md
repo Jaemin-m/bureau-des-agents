@@ -6,7 +6,8 @@
 
 에이전트 사무실은 Claude Code를 픽셀 아트 게임으로 바꿔 줘요. 팀장 맥스가 요청을 읽고 알맞은 전문가를 불러요.
 전문가들은 문으로 들어와 자기 자리에 앉고, 머리 위 말풍선에는 지금 이 순간 실제로 하는 일이 나와요.
-꾸며 낸 애니메이션이 아니에요. 로봇 하나하나가 진짜 Claude Code 에이전트이고, 내 컴퓨터에서 내 구독으로 일해요.
+꾸며 낸 애니메이션이 아니에요. 로봇 하나하나가 진짜 코딩 에이전트(Claude Code, Codex, Gemini 중 하나)이고, 내 컴퓨터에서 내 구독으로 일해요.
+어느 에이전트인지는 로봇 머리 옆의 작은 색 점으로 알 수 있어요(Claude Code는 주황, Codex는 흰색, Gemini는 파랑).
 
 ![일하는 팀: 리서처 다섯 명이 동시에 인터넷을 뒤지고, 맥스는 보고서를 기다려요](docs/bureau-en-mission.gif)
 
@@ -92,7 +93,7 @@ npm start
 - **모든 게 내 컴퓨터 안에 있어요.** 사무실은 내 컴퓨터(127.0.0.1)에서만 연결을 받고, 어떤 웹사이트도 나 대신 팀을 움직일 수 없어요.
 - **맥스는 진짜 Claude Code 세션이에요.** 창 없이 미션 폴더(`~/Documents/에이전트 사무실/미션/`) 안에서 실행돼요.
   미션 폴더 이름은 `미션/YYYY-MM-DD HH시 MM분 · 제목` 꼴이에요.
-  맥스의 팀은 진짜 Claude Code 서브에이전트이고, 각자 자기 직무의 도구만 가져요.
+  맥스의 팀은 진짜 에이전트 CLI(Claude Code, Codex, Gemini)가 돌리고, 각자 자기 직무를 맡아요.
 - **팀은 미션 폴더 밖으로 나가지 않아요**(Claude Code 제한 모드). 내 설정이나 다른 에이전트가 끼어들지 않아요.
 - **위험한 행동은 나에게 물어봐요.** 민감한 명령이면 에이전트가 손을 들고, 나는 예 또는 아니요로 답해요.
 - **팀이 만든 사이트는 샌드박스 안에서 보여요.** 사무실을 읽을 수도, Claude Code에 말을 걸 수도 없어요.
@@ -144,8 +145,8 @@ MIT 라이선스([LICENSE](LICENSE) 참고). 원작: [VibesMoney](https://vibesm
 ## In English
 
 This is a **Korean fork** of [Le Bureau des agents](https://github.com/devlikemasta/bureau-des-agents) by VibesMoney (MIT).
-It turns Claude Code into a pixel-art game: you give Max, the project lead, a task, and he calls real Claude Code subagents
-(research, code, design, writing, analysis), each with only the tools of its trade. In this fork the interface, the agents' replies and
+It turns Claude Code into a pixel-art game: you give Max, the project lead, a task, and he calls real coding agents (Claude Code, Codex or Gemini CLI)
+(research, code, design, writing, analysis), each with its own role. In this fork the interface, the agents' replies and
 the offline demo are in Korean, and Max speaks through the browser's speech synthesis (`ko-KR`) instead of the original French recordings.
 
 It runs locally with your own Claude Code subscription. Requirements: Node.js 22.18+ and Claude Code.
