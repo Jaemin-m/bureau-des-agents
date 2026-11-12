@@ -64,13 +64,11 @@ test('환경: API 키는 기본으로 빠지고, 켜면 남고, 원본은 그대
   assert.equal(base.ANTHROPIC_API_KEY, 'k');
 });
 
-test('registry: codex와 gemini는 아직 없다고 답하고 열리지 않는다', async () => {
-  for (const kind of ['codex', 'gemini'] as const) {
-    const probe = await adapterFor(kind).probe();
-    assert.equal(probe.found, false);
-    assert.match(probe.note ?? '', /아직/);
-    assert.throws(() => adapterFor(kind).open(spec(), { text: 'x' }, () => {}), /아직/);
-  }
+test('registry: gemini는 지원하지 않는다고 답하고 열리지 않는다', async () => {
+  const probe = await adapterFor('gemini').probe();
+  assert.equal(probe.found, false);
+  assert.match(probe.note ?? '', /지원하지 않아요/);
+  assert.throws(() => adapterFor('gemini').open(spec(), { text: 'x' }, () => {}), /지원하지 않아요/);
 });
 
 // ── 줄 → 신호(녹화한 진짜 스트림) ──

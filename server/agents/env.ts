@@ -3,7 +3,7 @@ import type { AgentKind } from '../../shared/protocol.ts';
 
 const API_KEY_VARS: Record<AgentKind, string[]> = {
   claude: ['ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN'],
-  codex: ['OPENAI_API_KEY'],
+  codex: ['OPENAI_API_KEY', 'CODEX_API_KEY'],
   gemini: ['GEMINI_API_KEY', 'GOOGLE_API_KEY'],
 };
 
