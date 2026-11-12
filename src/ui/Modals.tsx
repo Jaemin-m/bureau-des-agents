@@ -165,7 +165,7 @@ function CodexModelField() {
         type="text" value={draft} placeholder="비워 두면 Codex 기본 모델" spellCheck={false} autoComplete="off" maxLength={64}
         onChange={(e) => setDraft(e.target.value)} onBlur={commit} onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
       />
-      <small className="muted">Codex가 알아듣는 모델 이름을 적어요(예: gpt-5). 모르면 비워 두세요.</small>
+      <small className="muted">Codex가 알아듣는 모델 이름을 적어요. 모르면 비워 두세요.</small>
     </label>
   );
 }

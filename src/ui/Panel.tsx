@@ -128,11 +128,12 @@ function PlanSection() {
 function TeamSection() {
   const team = useOffice(useShallow(teamList));
   const [open, setOpen] = useState<string | null>(null);
+  const busy = useOffice((s) => s.busySince !== null);
   if (!team.length) {
     return (
       <section className="card">
         <h3>팀</h3>
-        <p className="small muted">맥스가 요청을 읽고 누구를 부를지 고르는 중…</p>
+        <p className="small muted">{busy ? '맥스가 요청을 읽고 누구를 부를지 고르는 중…' : '아직 아무도 부르지 않았어요.'}</p>
       </section>
     );
   }

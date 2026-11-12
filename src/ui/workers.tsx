@@ -14,7 +14,8 @@ const PHASE_TEXT: Record<WorkerPhase, string> = {
 };
 
 export function phaseText(phase: WorkerPhase, block?: BlockReason, parked?: boolean): string {
-  if (parked) return '잠들어 있어요';
+  // 프로세스를 놓았어도 멈춘 일꾼은 “멈췄어요”, 질문을 기다리는 일꾼은 “기다려요”라고 말한다
+  if (parked && phase === 'idle') return '잠들어 있어요';
   if (phase === 'blocked') return block === 'question' ? '질문의 답을 기다려요' : '허락을 기다려요';
   return PHASE_TEXT[phase];
 }
