@@ -82,6 +82,8 @@ interface Current {
   /** 개발용 녹화(BUREAU_RECORD): 지금 프로세스의 파일 한 쌍, 그리고 지금까지 띄운 프로세스 수 */
   tap: WireTap | null;
   spawns: number;
+  /** 기록 파일 쓰기를 한 줄로 잇는다. 따로 쏘면 줄 순서가 뒤바뀌어 다시 보기가 틀어진다 */
+  writes: Promise<void>;
 }
 
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -198,7 +200,7 @@ export class Bureau {
     this.save();
     const cur: Current = {
       mission, log: [], live: null, names: new Set(), watcher: null, fileTimers: new Map(), idleTimer: null,
-      busySince: Date.now(), stopAsked: false, lastChefText: '', tap: null, spawns: 0,
+      busySince: Date.now(), stopAsked: false, lastChefText: '', tap: null, spawns: 0, writes: Promise.resolve(),
     };
     this.current = cur;
     this.watch(cur);
@@ -343,7 +345,9 @@ export class Bureau {
     cur.tap?.logged({ at, ev }, from);
     cur.log.push({ at, ev });
     if (cur.log.length > MAX_LOG) cur.log.splice(0, cur.log.length - MAX_LOG);
-    void appendFile(path.join(this.recDir, `${cur.mission.id}.jsonl`), JSON.stringify({ at, ev }) + '\n').catch(() => {});
+    const file = path.join(this.recDir, `${cur.mission.id}.jsonl`);
+    const line = JSON.stringify({ at, ev }) + '\n';
+    cur.writes = cur.writes.then(() => appendFile(file, line)).catch(() => {});
   }
 
   // ── 팀이 만든 파일 ──

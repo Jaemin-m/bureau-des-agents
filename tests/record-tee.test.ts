@@ -46,6 +46,7 @@ async function runMission(tmp: string, record: string | undefined) {
   proc.proc.kill();
   for (let i = 0; i < 100 && cur.live; i++) await new Promise((r) => setTimeout(r, 20));
   bureau.close();
+  await cur.writes;
   return { id, events: log.map((l) => l.ev) };
 }
 
@@ -74,4 +75,12 @@ test('BUREAU_RECORD: 원문과 이벤트가 쌍으로 남고, 켜도 미션의 �
   const without = await runMission(tmp2, undefined);
   assert.deepEqual(without.events, withTap.events);
   assert.equal(existsSync(path.join(tmp2, 'rec')), false);
+});
+
+test('미션 기록 파일의 줄 순서는 이벤트가 일어난 순서와 같다', async () => {
+  const tmp = mkdtempSync(path.join(os.tmpdir(), 'bureau-order-'));
+  const run = await runMission(tmp, undefined);
+  const file = path.join(tmp, 'office', '.bureau', 'missions', `${run.id}.jsonl`);
+  const saved = readFileSync(file, 'utf8').split('\n').filter(Boolean).map((l) => (JSON.parse(l) as Logged).ev);
+  assert.deepEqual(saved, run.events);
 });
