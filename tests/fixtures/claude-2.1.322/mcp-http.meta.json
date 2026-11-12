@@ -1,0 +1,93 @@
+{
+  "note": "http 서버 상태 [{\"name\":\"office\",\"status\":\"connected\",\"source\":\"dynamic\"}], 도구 목록에 있음 true, 호출 1회, can_use_tool 0건, 결과 \"PONG-7731:hello\"",
+  "argv": [
+    "claude",
+    "-p",
+    "--input-format",
+    "stream-json",
+    "--output-format",
+    "stream-json",
+    "--verbose",
+    "--include-partial-messages",
+    "--permission-prompt-tool",
+    "stdio",
+    "--permission-mode",
+    "acceptEdits",
+    "--restricted",
+    "--tools",
+    "Read",
+    "--agents",
+    "{}",
+    "--append-system-prompt",
+    "You are a test probe. Be extremely brief.",
+    "--model",
+    "haiku",
+    "--allowedTools",
+    "mcp__office__office_ping",
+    "--mcp-config",
+    "{\"mcpServers\":{\"office\":{\"type\":\"http\",\"url\":\"http://127.0.0.1:<PORT>/mcp\",\"headers\":{\"Authorization\":\"Bearer <TOKEN>\"}}}}",
+    "--strict-mcp-config",
+    "--disallowedTools",
+    "AskUserQuestion"
+  ],
+  "exit": {
+    "code": 0,
+    "signal": null
+  },
+  "finished": true,
+  "ms": 3950,
+  "init": {
+    "mcp_servers": [
+      {
+        "name": "office",
+        "status": "connected",
+        "source": "dynamic"
+      }
+    ],
+    "tools": [
+      "Read",
+      "mcp__office__office_ping"
+    ],
+    "permissionMode": "acceptEdits",
+    "model": "claude-haiku-5-5"
+  },
+  "initAtMs": 217,
+  "asked": [],
+  "toolUses": [
+    {
+      "name": "mcp__office__office_ping",
+      "input": {
+        "message": "hello"
+      }
+    }
+  ],
+  "toolResults": [
+    {
+      "content": [
+        {
+          "type": "text",
+          "text": "PONG-7731:hello"
+        }
+      ]
+    }
+  ],
+  "rpcMethods": [
+    "server/discover",
+    "initialize",
+    "notifications/initialized",
+    "GET",
+    "tools/list",
+    "tools/call"
+  ],
+  "results": [
+    {
+      "subtype": "success",
+      "is_error": false,
+      "num_turns": 2,
+      "result": "PONG-7731:hello",
+      "terminal_reason": "completed",
+      "stop_reason": "end_turn"
+    }
+  ],
+  "stderr": ""
+}

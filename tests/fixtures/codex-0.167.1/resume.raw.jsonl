@@ -1,0 +1,5 @@
+{"dir":"stdin","line":"Append a second line \"second\" to hello.txt, keeping the first line. Then reply with the full content of hello.txt."}
+{"dir":"stdout","line":"{\"type\":\"thread.started\",\"thread_id\":\"01a1cdde-aeac-75b0-a1e1-aeff8600e988\"}"}
+{"dir":"stdout","line":"{\"type\":\"turn.started\"}"}
+{"dir":"stdout","line":"{\"type\":\"item.completed\",\"item\":{\"id\":\"item_0\",\"type\":\"agent_message\",\"text\":\"I can’t append to `hello.txt` because the current filesystem is read-only.\"}}"}
+{"dir":"stdout","line":"{\"type\":\"turn.completed\",\"usage\":{\"input_tokens\":52051,\"cached_input_tokens\":35840,\"cache_write_input_tokens\":0,\"output_tokens\":68,\"reasoning_output_tokens\":0}}"}

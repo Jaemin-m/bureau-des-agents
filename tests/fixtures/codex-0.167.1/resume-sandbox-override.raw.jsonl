@@ -1,0 +1,10 @@
+{"dir":"stdin","line":"Append a second line \"second\" to hello.txt, keeping the first line. Then reply with the full content of hello.txt."}
+{"dir":"stdout","line":"{\"type\":\"thread.started\",\"thread_id\":\"01a1cdde-aeac-75b0-a1e1-aeff8600e988\"}"}
+{"dir":"stdout","line":"{\"type\":\"turn.started\"}"}
+{"dir":"stdout","line":"{\"type\":\"item.completed\",\"item\":{\"id\":\"item_0\",\"type\":\"agent_message\",\"text\":\"기존 내용을 확인한 뒤 두 번째 줄을 덧붙이고, 파일 전체 내용을 확인하겠습니다.\"}}"}
+{"dir":"stdout","line":"{\"type\":\"item.started\",\"item\":{\"id\":\"item_1\",\"type\":\"command_execution\",\"command\":\"/bin/zsh -lc 'cat hello.txt'\",\"aggregated_output\":\"\",\"exit_code\":null,\"status\":\"in_progress\"}}"}
+{"dir":"stdout","line":"{\"type\":\"item.completed\",\"item\":{\"id\":\"item_1\",\"type\":\"command_execution\",\"command\":\"/bin/zsh -lc 'cat hello.txt'\",\"aggregated_output\":\"hello from codex.\",\"exit_code\":0,\"status\":\"completed\"}}"}
+{"dir":"stdout","line":"{\"type\":\"item.started\",\"item\":{\"id\":\"item_2\",\"type\":\"command_execution\",\"command\":\"/bin/zsh -lc \\\"printf '\\\\\\\\nsecond' >> hello.txt && cat hello.txt\\\"\",\"aggregated_output\":\"\",\"exit_code\":null,\"status\":\"in_progress\"}}"}
+{"dir":"stdout","line":"{\"type\":\"item.completed\",\"item\":{\"id\":\"item_2\",\"type\":\"command_execution\",\"command\":\"/bin/zsh -lc \\\"printf '\\\\\\\\nsecond' >> hello.txt && cat hello.txt\\\"\",\"aggregated_output\":\"hello from codex.\\nsecond\",\"exit_code\":0,\"status\":\"completed\"}}"}
+{"dir":"stdout","line":"{\"type\":\"item.completed\",\"item\":{\"id\":\"item_3\",\"type\":\"agent_message\",\"text\":\"hello from codex.\\nsecond\"}}"}
+{"dir":"stdout","line":"{\"type\":\"turn.completed\",\"usage\":{\"input_tokens\":106920,\"cached_input_tokens\":89472,\"cache_write_input_tokens\":0,\"output_tokens\":186,\"reasoning_output_tokens\":0}}"}

@@ -1,0 +1,53 @@
+{
+  "note": "http 서버 상태 null, 도구 목록에 있음 false, 호출 0회, can_use_tool 0건, 결과 없음",
+  "argv": [
+    "claude",
+    "-p",
+    "--input-format",
+    "stream-json",
+    "--output-format",
+    "stream-json",
+    "--verbose",
+    "--include-partial-messages",
+    "--permission-prompt-tool",
+    "stdio",
+    "--permission-mode",
+    "acceptEdits",
+    "--restricted",
+    "--tools",
+    "Read",
+    "--agents",
+    "{}",
+    "--append-system-prompt",
+    "You are a test probe. Be extremely brief.",
+    "--model",
+    "haiku",
+    "--allowedTools",
+    "mcp__office__office_ping",
+    "--mcp-config",
+    "{\"mcpServers\":{\"office\":{\"type\":\"http\",\"url\":\"http://127.0.0.1:<PORT>/mcp\",\"headers\":{\"Authorization\":\"Bearer <TOKEN>\"}}}}",
+    "--strict-mcp-config",
+    "--disallowedTools",
+    "AskUserQuestion"
+  ],
+  "exit": {
+    "code": 0,
+    "signal": null
+  },
+  "finished": false,
+  "ms": 12796,
+  "init": null,
+  "initAtMs": null,
+  "asked": [],
+  "toolUses": [],
+  "toolResults": [],
+  "rpcMethods": [
+    "server/discover",
+    "initialize",
+    "notifications/initialized",
+    "GET",
+    "tools/list"
+  ],
+  "results": [],
+  "stderr": ""
+}

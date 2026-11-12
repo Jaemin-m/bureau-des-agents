@@ -1,0 +1,14 @@
+{
+  "note": "사무실을 통한 진짜 미션: 상태 done, 고용 1명, 허락 요청 0건, 끝 이벤트 [true]; 골든 쌍은 tests/fixtures/claude/real-hire-one-*.jsonl",
+  "attempt": 1,
+  "hires": 1,
+  "status": "done",
+  "asked": 0,
+  "pairs": 1,
+  "settings": {
+    "chefModel": "haiku",
+    "teamModel": "haiku",
+    "permission": "ask"
+  },
+  "prompt": "개발자(developpeur) 한 명만 불러서 hello.txt 파일에 \"안녕\" 한 줄을 쓰게 해 주세요. 다른 팀원은 부르지 말고, 계획표(TodoWrite)도 쓰지 마세요. 끝나면 한 문장으로 알려 주세요."
+}

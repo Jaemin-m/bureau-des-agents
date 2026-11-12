@@ -1,0 +1,7 @@
+{"dir":"stdin","line":"Create a file named hello.txt in the current directory containing exactly: hello from codex. Then reply with the single word done."}
+{"dir":"stdout","line":"{\"type\":\"thread.started\",\"thread_id\":\"01a1cdde-aeac-75b0-a1e1-aeff8600e988\"}"}
+{"dir":"stdout","line":"{\"type\":\"turn.started\"}"}
+{"dir":"stdout","line":"{\"type\":\"item.started\",\"item\":{\"id\":\"item_0\",\"type\":\"command_execution\",\"command\":\"/bin/zsh -lc \\\"printf 'hello from codex.' > hello.txt\\\"\",\"aggregated_output\":\"\",\"exit_code\":null,\"status\":\"in_progress\"}}"}
+{"dir":"stdout","line":"{\"type\":\"item.completed\",\"item\":{\"id\":\"item_0\",\"type\":\"command_execution\",\"command\":\"/bin/zsh -lc \\\"printf 'hello from codex.' > hello.txt\\\"\",\"aggregated_output\":\"\",\"exit_code\":0,\"status\":\"completed\"}}"}
+{"dir":"stdout","line":"{\"type\":\"item.completed\",\"item\":{\"id\":\"item_1\",\"type\":\"agent_message\",\"text\":\"done\"}}"}
+{"dir":"stdout","line":"{\"type\":\"turn.completed\",\"usage\":{\"input_tokens\":34521,\"cached_input_tokens\":18688,\"cache_write_input_tokens\":0,\"output_tokens\":47,\"reasoning_output_tokens\":0}}"}

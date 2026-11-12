@@ -1,0 +1,76 @@
+{
+  "note": "can_use_tool 1건 (Write), 파일 만들어짐 true, result success",
+  "argv": [
+    "claude",
+    "-p",
+    "--input-format",
+    "stream-json",
+    "--output-format",
+    "stream-json",
+    "--verbose",
+    "--include-partial-messages",
+    "--permission-prompt-tool",
+    "stdio",
+    "--permission-mode",
+    "manual",
+    "--restricted",
+    "--tools",
+    "Write,Read",
+    "--agents",
+    "{}",
+    "--append-system-prompt",
+    "You are a test probe. Be extremely brief.",
+    "--model",
+    "haiku",
+    "--disallowedTools",
+    "AskUserQuestion"
+  ],
+  "exit": {
+    "code": 0,
+    "signal": null
+  },
+  "finished": true,
+  "ms": 3165,
+  "asked": [
+    {
+      "tool_name": "Write",
+      "input": {
+        "file_path": "<TMP>/claude-permission/hello.txt",
+        "content": "hello from the probe"
+      },
+      "tool_use_id": "toolu_0152aCnATD2Ls66ykD5gvCYN",
+      "keys": [
+        "subtype",
+        "tool_name",
+        "display_name",
+        "input",
+        "description",
+        "permission_suggestions",
+        "tool_use_id"
+      ],
+      "at": 1452
+    }
+  ],
+  "cancelRequests": 0,
+  "types": {
+    "system/init": 1,
+    "system/status": 2,
+    "stream_event": 23,
+    "assistant": 2,
+    "control_request": 1,
+    "rate_limit_event": 1,
+    "user": 1,
+    "system/commands_changed": 1,
+    "result/success": 1
+  },
+  "results": [
+    {
+      "subtype": "success",
+      "is_error": false,
+      "num_turns": 2,
+      "result": "done",
+      "terminal_reason": "completed",
+      "stop_reason": "end_turn"
+    }
+  ]
+}

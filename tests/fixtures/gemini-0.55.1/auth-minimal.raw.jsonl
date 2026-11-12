@@ -1,0 +1,18 @@
+{"dir":"stderr","line":"Error authenticating: IneligibleTierError: This client is no longer supported for Gemini Code Assist for individuals. To continue using Gemini, please migrate to the Antigravity suite of products: https://antigravity.google"}
+{"dir":"stderr","line":"    at throwIneligibleOrProjectIdError (file:///opt/homebrew/lib/node_modules/@google/gemini-cli/bundle/chunk-32XQ54AJ.js:310030:11)"}
+{"dir":"stderr","line":"    at _doSetupUser (file:///opt/homebrew/lib/node_modules/@google/gemini-cli/bundle/chunk-32XQ54AJ.js:310019:5)"}
+{"dir":"stderr","line":"    at process.processTicksAndRejections (node:internal/process/task_queues:105:5) {"}
+{"dir":"stderr","line":"  ineligibleTiers: ["}
+{"dir":"stderr","line":"    {"}
+{"dir":"stderr","line":"      reasonCode: 'UNSUPPORTED_CLIENT',"}
+{"dir":"stderr","line":"      reasonMessage: 'This client is no longer supported for Gemini Code Assist for individuals. To continue using Gemini, please migrate to the Antigravity suite of products: https://antigravity.google',"}
+{"dir":"stderr","line":"      tierId: 'free-tier',"}
+{"dir":"stderr","line":"      tierName: 'Gemini Code Assist for individuals'"}
+{"dir":"stderr","line":"    }"}
+{"dir":"stderr","line":"  ]"}
+{"dir":"stderr","line":"}"}
+{"dir":"stderr","line":"Ripgrep is not available. Falling back to GrepTool."}
+{"dir":"stderr","line":"An unexpected critical error occurred:IneligibleTierError: This client is no longer supported for Gemini Code Assist for individuals. To continue using Gemini, please migrate to the Antigravity suite of products: https://antigravity.google"}
+{"dir":"stderr","line":"    at throwIneligibleOrProjectIdError (file:///opt/homebrew/lib/node_modules/@google/gemini-cli/bundle/chunk-32XQ54AJ.js:310030:11)"}
+{"dir":"stderr","line":"    at _doSetupUser (file:///opt/homebrew/lib/node_modules/@google/gemini-cli/bundle/chunk-32XQ54AJ.js:310019:5)"}
+{"dir":"stderr","line":"    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)"}

@@ -1,0 +1,44 @@
+{
+  "note": "같은 thread_id 이어짐, 이벤트 {\"thread.started\":1,\"turn.started\":1,\"item.completed\":1,\"turn.completed\":1}, 둘째 줄 쓰임 false, 종료 {\"code\":0,\"signal\":null}",
+  "argv": [
+    "codex",
+    "exec",
+    "resume",
+    "01a1cdde-aeac-75b0-a1e1-aeff8600e988",
+    "--json",
+    "--ignore-user-config",
+    "-m",
+    "gpt-6-luna",
+    "-c",
+    "model_reasoning_effort=\"low\"",
+    "--skip-git-repo-check",
+    "-"
+  ],
+  "promptViaStdin": true,
+  "exit": {
+    "code": 0,
+    "signal": null
+  },
+  "ms": 3354,
+  "threadId": "01a1cdde-aeac-75b0-a1e1-aeff8600e988",
+  "threadIdOfResume": "01a1cdde-aeac-75b0-a1e1-aeff8600e988",
+  "fileAfter": "hello from codex.",
+  "usage": {
+    "input_tokens": 52051,
+    "cached_input_tokens": 35840,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 68,
+    "reasoning_output_tokens": 0
+  },
+  "items": [
+    {
+      "type": "item.completed",
+      "item": {
+        "id": "item_0",
+        "type": "agent_message",
+        "text": "I can’t append to `hello.txt` because the current filesystem is read-only."
+      }
+    }
+  ],
+  "stderr": ""
+}

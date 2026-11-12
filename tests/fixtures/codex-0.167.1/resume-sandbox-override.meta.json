@@ -1,0 +1,97 @@
+{
+  "note": "resume + -c sandbox_mode=\"workspace-write\": 둘째 줄 쓰임 true, 종료 {\"code\":0,\"signal\":null}",
+  "argv": [
+    "codex",
+    "exec",
+    "resume",
+    "01a1cdde-aeac-75b0-a1e1-aeff8600e988",
+    "--json",
+    "--ignore-user-config",
+    "-m",
+    "gpt-6-luna",
+    "-c",
+    "model_reasoning_effort=\"low\"",
+    "--skip-git-repo-check",
+    "-c",
+    "sandbox_mode=\"workspace-write\"",
+    "-"
+  ],
+  "promptViaStdin": true,
+  "exit": {
+    "code": 0,
+    "signal": null
+  },
+  "ms": 7885,
+  "threadId": "01a1cdde-aeac-75b0-a1e1-aeff8600e988",
+  "fileAfter": "hello from codex.\nsecond",
+  "usage": {
+    "input_tokens": 106920,
+    "cached_input_tokens": 89472,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 186,
+    "reasoning_output_tokens": 0
+  },
+  "items": [
+    {
+      "type": "item.completed",
+      "item": {
+        "id": "item_0",
+        "type": "agent_message",
+        "text": "기존 내용을 확인한 뒤 두 번째 줄을 덧붙이고, 파일 전체 내용을 확인하겠습니다."
+      }
+    },
+    {
+      "type": "item.started",
+      "item": {
+        "id": "item_1",
+        "type": "command_execution",
+        "command": "/bin/zsh -lc 'cat hello.txt'",
+        "aggregated_output": "",
+        "exit_code": null,
+        "status": "in_progress"
+      }
+    },
+    {
+      "type": "item.completed",
+      "item": {
+        "id": "item_1",
+        "type": "command_execution",
+        "command": "/bin/zsh -lc 'cat hello.txt'",
+        "aggregated_output": "hello from codex.",
+        "exit_code": 0,
+        "status": "completed"
+      }
+    },
+    {
+      "type": "item.started",
+      "item": {
+        "id": "item_2",
+        "type": "command_execution",
+        "command": "/bin/zsh -lc \"printf '\\\\nsecond' >> hello.txt && cat hello.txt\"",
+        "aggregated_output": "",
+        "exit_code": null,
+        "status": "in_progress"
+      }
+    },
+    {
+      "type": "item.completed",
+      "item": {
+        "id": "item_2",
+        "type": "command_execution",
+        "command": "/bin/zsh -lc \"printf '\\\\nsecond' >> hello.txt && cat hello.txt\"",
+        "aggregated_output": "hello from codex.\nsecond",
+        "exit_code": 0,
+        "status": "completed"
+      }
+    },
+    {
+      "type": "item.completed",
+      "item": {
+        "id": "item_3",
+        "type": "agent_message",
+        "text": "hello from codex.\nsecond"
+      }
+    }
+  ],
+  "stderr": ""
+}

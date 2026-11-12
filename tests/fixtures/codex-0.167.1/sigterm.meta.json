@@ -1,0 +1,31 @@
+{
+  "note": "SIGTERM 뒤 종료 {\"code\":null,\"signal\":\"SIGTERM\"}, 마지막 이벤트 item.started, turn.completed/failed 있음 false, 고아로 남은 sleep 1개",
+  "argv": [
+    "codex",
+    "exec",
+    "--json",
+    "--ignore-user-config",
+    "-m",
+    "gpt-6-luna",
+    "-c",
+    "model_reasoning_effort=\"low\"",
+    "--skip-git-repo-check",
+    "-C",
+    "<TMP>/codex-sigterm",
+    "-s",
+    "read-only",
+    "-"
+  ],
+  "started": true,
+  "exit": {
+    "code": null,
+    "signal": "SIGTERM"
+  },
+  "orphanedChildren": 1,
+  "types": {
+    "thread.started": 1,
+    "turn.started": 1,
+    "item.started": 1
+  },
+  "stderr": ""
+}

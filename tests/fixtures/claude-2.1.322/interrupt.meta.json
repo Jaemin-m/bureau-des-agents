@@ -1,0 +1,72 @@
+{
+  "note": "중단 응답 control_response 옴, 중단 뒤 result error_during_execution/is_error=true, 중단 뒤 다음 턴 받음",
+  "argv": [
+    "claude",
+    "-p",
+    "--input-format",
+    "stream-json",
+    "--output-format",
+    "stream-json",
+    "--verbose",
+    "--include-partial-messages",
+    "--permission-prompt-tool",
+    "stdio",
+    "--permission-mode",
+    "manual",
+    "--restricted",
+    "--tools",
+    "Read",
+    "--agents",
+    "{}",
+    "--append-system-prompt",
+    "You are a test probe. Be extremely brief.",
+    "--model",
+    "haiku",
+    "--disallowedTools",
+    "AskUserQuestion"
+  ],
+  "exit": {
+    "code": 0,
+    "signal": null
+  },
+  "started": true,
+  "sentAtMs": 2280,
+  "ms": 8305,
+  "requestId": "stop-1794455497777",
+  "controlResponses": [
+    {
+      "type": "control_response",
+      "response": {
+        "subtype": "success",
+        "request_id": "stop-1794455497777",
+        "response": {
+          "still_queued": []
+        }
+      }
+    }
+  ],
+  "typesAfterInterrupt": {
+    "control_response": 1,
+    "assistant": 1,
+    "user": 1,
+    "stream_event": 3,
+    "result/error_during_execution": 1
+  },
+  "results": [
+    {
+      "subtype": "error_during_execution",
+      "is_error": true,
+      "num_turns": 2,
+      "terminal_reason": "aborted_streaming",
+      "stop_reason": null
+    },
+    {
+      "subtype": "success",
+      "is_error": false,
+      "num_turns": 1,
+      "result": "ALIVE",
+      "terminal_reason": "completed",
+      "stop_reason": "end_turn"
+    }
+  ]
+}
