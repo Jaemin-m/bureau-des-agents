@@ -56,7 +56,8 @@ export type Input =
   | { k: 'release' }
   | { k: 'signal'; who: string; gen: number; sig: Signal }
   | { k: 'effect_ok'; effect: Effect; out?: Opaque }
-  | { k: 'effect_failed'; effect: Effect; why: string }
+  /** conflict = provision이 앞 할 일의 브랜치끼리 합쳐지지 않아서 실패했다는 뜻이다(브랜치 이름들). 잠깐 실패가 아니라 재시도해도 같다 */
+  | { k: 'effect_failed'; effect: Effect; why: string; conflict?: readonly string[] }
   | { k: 'timer_fired'; timer: TimerEffect };
 
 export type Reply = { ok: true; text?: string } | { ok: false; error: string };

@@ -155,6 +155,39 @@ test('시작 실패 세 번이면 회로 차단: 할 일은 실패, 일꾼도 �
   assert.match(sim.take('send_turn', LEAD).turn, /site[\s\S]*docs는 막혔어요/);
 });
 
+test('앞 할 일의 브랜치끼리 충돌하면 재시도 없이 바로 실패로 막고, 맥스를 한 번만 깨운다', () => {
+  const cases: { name: string; conflict: string[] }[] = [
+    { name: '브랜치 둘', conflict: ['bureau/m/a', 'bureau/m/b'] },
+    { name: '앞의 둘이 먼저 합쳐지고 셋째와 부딪힘', conflict: ['bureau/m/a', 'bureau/m/b', 'bureau/m/x'] },
+  ];
+  for (const { name, conflict } of cases) {
+    const sim = planned([spec('a'), spec('b'), spec('c', { after: ['a', 'b'] }), spec('d', { after: ['c'] })]);
+    for (const key of ['a', 'b']) {
+      const w = sim.workerFor(key);
+      sim.beginTurn(w);
+      sim.endTurn(w, handback({ status: 'done', summary: `${key} 끝` }));
+      if (sim.has('send_turn', LEAD)) { sim.take('send_turn', LEAD); sim.sig(LEAD, { k: 'turn_started' }); sim.endTurn(LEAD, '확인했어요.'); }
+    }
+    const w = sim.workerFor('c');
+    const provision = sim.take('provision', w);
+    const r = sim.do({ k: 'effect_failed', effect: provision, why: '앞 할 일의 브랜치끼리 충돌해요', conflict });
+    const run = sim.s.tasks.c.run;
+    assert.equal(run.k, 'failed', `${name}: 할 일이 바로 서요`);
+    for (const b of conflict) assert.ok(run.k === 'failed' && run.why.includes(b), `${name}: 이유에 ${b}가 있어요`);
+    assert.equal(sim.s.workers[w].phase.k, 'failed', `${name}: 일꾼도 실패`);
+    assert.equal(sim.s.workers[w].startFailures, 0, `${name}: 시작 실패로 세지 않아요`);
+    assert.equal(taskStatus(sim.s.tasks, 'd'), 'blocked', `${name}: 뒤 할 일은 막혀요`);
+    assert.ok(!r.effects.some((e) => e.k === 'provision' || e.k === 'open_session'), `${name}: 다시 시도하지 않아요`);
+    assert.ok(!sim.has('provision', w) && !sim.has('open_session', w));
+    const wakes = [...r.effects, ...sim.do({ k: 'tick' }).effects].filter((e) => e.k === 'send_turn' && e.who === LEAD);
+    assert.equal(wakes.length, 1, `${name}: 맥스를 한 번만 깨워요`);
+    const turn = wakes[0].k === 'send_turn' ? wakes[0].turn : '';
+    for (const b of conflict) assert.ok(turn.includes(b), `${name}: 소식에 ${b}가 있어요`);
+    assert.match(turn, /충돌/);
+    assert.match(turn, /d는 막혔어요/);
+  }
+});
+
 test('맥스 시작 실패 세 번: 미션은 오류, 일꾼은 깨끗이 멈추고, 이어서 하면 실패한 턴부터 다시 시도한다', () => {
   const sim = planned([spec('site')]);
   const w = sim.workerFor('site');
