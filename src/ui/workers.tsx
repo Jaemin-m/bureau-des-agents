@@ -24,6 +24,17 @@ export function phaseText(phase: WorkerPhase, block?: BlockReason, parked?: bool
 /** worker 이벤트를 받는 일꾼만 단계 문구가 있다. 옛 기록의 팀원은 예전 문구를 그대로 쓴다. */
 export const hasPhase = (a: AgentView) => a.phase !== undefined;
 
+/**
+ * 일꾼 상태의 색 계열(CSS 클래스). 멈춘 일, 못 끝낸 일, 잠든 일꾼은 성공(done)의 초록이 아니다.
+ * 나머지는 지금까지처럼 a.status를 그대로 쓴다.
+ */
+export function tone(a: AgentView): string {
+  if (a.phase === 'stopped' || a.phase === 'stopping') return 'stopped';
+  if (a.phase === 'failed') return 'failed';
+  if (a.phase === 'idle' && a.parked) return 'parked';
+  return a.status;
+}
+
 export const TASK_TEXT: Record<TaskStatus, string> = {
   waiting: '기다려요', ready: '곧 시작해요', running: '하는 중', blocked: '막혔어요', done: '끝났어요', failed: '실패했어요', cancelled: '취소됐어요',
 };

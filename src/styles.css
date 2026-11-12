@@ -131,7 +131,7 @@ button:disabled { cursor: default; opacity: 0.45; }
   position: absolute;
   left: 0;
   bottom: 4px;
-  transform: translateX(calc(-50% + var(--dx, 0px)));
+  transform: translateX(calc(-50% + var(--dx, 0px))) translateY(var(--tdy, 0px));
   white-space: nowrap;
 }
 .bubble-anchor[data-lift='1'] .bubble { bottom: 2.1em; }
@@ -209,6 +209,8 @@ button:disabled { cursor: default; opacity: 0.45; }
   border-bottom: 2px solid var(--c);
   opacity: 0.85;
 }
+.bubble-anchor[data-rest='1'] .tag { display: none; }
+.bubble-anchor[data-rest='1'].hover .tag { display: block; z-index: 3; opacity: 1; }
 @keyframes pop { from { opacity: 0; transform: translateX(-50%) translateY(4px) scale(0.85); } }
 @keyframes wiggle { 0%, 100% { rotate: 0deg; } 10% { rotate: -2deg; } 20% { rotate: 2deg; } 30% { rotate: 0deg; } }
 
@@ -316,7 +318,7 @@ button:disabled { cursor: default; opacity: 0.45; }
 
 .team { display: grid; gap: 6px; }
 .agent { border: 1px solid var(--line); border-radius: 10px; background: var(--surface2); overflow: hidden; border-left: 3px solid var(--c); }
-.agent.done, .agent.failed { opacity: 0.72; }
+.agent.done, .agent.failed, .agent.stopped { opacity: 0.72; }
 .agent-head { display: flex; gap: 9px; align-items: center; width: 100%; text-align: left; background: none; border: 0; padding: 8px 9px; }
 .avatar { image-rendering: pixelated; flex: none; }
 .agent-id { display: grid; min-width: 0; flex: 1; }
@@ -327,6 +329,8 @@ button:disabled { cursor: default; opacity: 0.45; }
 .agent-status { width: 8px; height: 8px; border-radius: 50%; background: var(--orange); flex: none; animation: pulse 1.4s infinite; }
 .agent-status.done { background: var(--green); animation: none; }
 .agent-status.failed { background: #ff5d5d; animation: none; }
+.agent-status.stopped { background: #8e8e96; animation: none; border-radius: 1px; }
+.agent-status.parked { background: #8aa4ff; animation: none; }
 .agent-status.reporting { background: #fff; }
 .agent-more { padding: 0 10px 10px; font-size: 12.5px; }
 .brief { margin: 0; color: #cfcfd6; white-space: pre-wrap; max-height: 160px; overflow: auto; }
@@ -435,7 +439,8 @@ button:disabled { cursor: default; opacity: 0.45; }
   gap: 6px;
   animation: rise 0.25s ease-out;
 }
-.askbar-count { justify-self: center; font-size: 12px; color: var(--muted); padding: 2px 10px; border-radius: 999px; background: rgba(8, 8, 11, 0.85); border: 1px solid var(--line2); }
+.askbar-count { justify-self: center; font: 600 12px var(--font); color: var(--ink); padding: 3px 12px; border-radius: 999px; background: rgba(8, 8, 11, 0.9); border: 1px solid var(--line2); cursor: pointer; }
+.askbar-count:hover { border-color: var(--orange2); }
 .askbar-stack { display: grid; gap: 8px; overflow-y: auto; min-height: 0; }
 .ask-card {
   border: 1px solid rgba(255, 138, 61, 0.55);
@@ -612,6 +617,8 @@ kbd { font: 600 11px var(--pixel); background: var(--surface3); border: 1px soli
 .pill-status { font: 700 11px var(--pixel); padding: 2px 8px; border-radius: 6px; background: rgba(255, 138, 61, 0.15); color: var(--orange2); }
 .pill-status.done { background: rgba(61, 220, 151, 0.15); color: var(--green); }
 .pill-status.failed { background: rgba(255, 93, 93, 0.15); color: #ff8a8a; }
+.pill-status.stopped { background: rgba(161, 161, 166, 0.16); color: #d4d4da; box-shadow: inset 0 0 0 1px rgba(161, 161, 166, 0.45); }
+.pill-status.parked { background: rgba(138, 164, 255, 0.15); color: #aebfff; }
 .act-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; max-height: 280px; overflow-y: auto; }
 .act-list li { display: grid; grid-template-columns: 22px 1fr auto; gap: 8px; align-items: start; padding: 6px 8px; border-radius: 8px; background: var(--surface2); font-size: 13px; }
 .act-list li.fail { border-left: 2px solid #ff5d5d; }

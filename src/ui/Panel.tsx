@@ -5,6 +5,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { ROLES } from '../../shared/activity.ts';
 import type { Role } from '../../shared/protocol.ts';
 import { sfx } from '../audio/sfx.ts';
+import { agentList } from '../engine/kinds.ts';
 import { robotSprite } from '../engine/robots.ts';
 import { teamList, useOffice, type AgentView } from '../state/store.ts';
 import { EXAMPLES } from './Dialog.tsx';
@@ -13,7 +14,7 @@ import { mdToHtml } from './md.ts';
 import { openAgent } from './interact.ts';
 import { FileActions } from './Rooms.tsx';
 import { tidy } from './tidy.ts';
-import { hasPhase, KindChip, phaseText, TaskRows } from './workers.tsx';
+import { hasPhase, KindChip, phaseText, TaskRows, tone } from './workers.tsx';
 
 export function Avatar({ role, size = 32 }: { role: Role; size?: number }) {
   const ref = useRef<HTMLCanvasElement>(null);
@@ -46,6 +47,7 @@ export function Panel() {
 }
 
 function Welcome() {
+  const agents = useOffice((s) => agentList(s.installed));
   const missions = useOffice((s) => s.missions);
   const dir = useOffice((s) => s.dir);
   const send = useOffice((s) => s.send);
@@ -60,7 +62,7 @@ function Welcome() {
           <li><b>일하는 모습을 지켜봐요.</b> 말풍선 하나하나가 에이전트가 지금 실제로 하는 일이에요.</li>
           <li><b>결과물을 받아요.</b> 파일이 “결과물”과 내 폴더에 도착해요.</li>
         </ol>
-        <p className="small muted">내 컴퓨터에 깔린 진짜 코딩 에이전트(Claude Code, Codex, Gemini)가 일해요. 로봇 옆 작은 색 점이 어느 에이전트인지 알려 줘요.</p>
+        <p className="small muted">내 컴퓨터에 깔린 진짜 코딩 에이전트{agents}가 일해요. 로봇 옆 작은 색 점이 어느 에이전트인지 알려 줘요.</p>
       </section>
       <section className="card">
         <h3>미션 아이디어</h3>
@@ -163,7 +165,7 @@ function AgentCard({ a, open, onToggle }: { a: AgentView; open: boolean; onToggl
   const working = a.status === 'working' || a.status === 'reporting';
   const report = useMemo(() => (open && a.report ? mdToHtml(a.report) : ''), [open, a.report]);
   return (
-    <div className={`agent ${a.status} ${open ? 'open' : ''}`} style={{ ['--c' as string]: role.color }}>
+    <div className={`agent ${tone(a)} ${open ? 'open' : ''}`} style={{ ['--c' as string]: role.color }}>
       <button className="agent-head" onClick={onToggle}>
         <Avatar role={a.role} size={30} />
         <div className="agent-id">
@@ -171,7 +173,7 @@ function AgentCard({ a, open, onToggle }: { a: AgentView; open: boolean; onToggl
           <span className="agent-task">{a.task}</span>
           <span className="agent-now">{nowText(a, working)}</span>
         </div>
-        <span className={`agent-status ${a.status}`} />
+        <span className={`agent-status ${tone(a)}`} />
       </button>
       {open && (
         <div className="agent-more">
