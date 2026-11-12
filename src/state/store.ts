@@ -3,7 +3,8 @@
 import { create } from 'zustand';
 import { countStats, emptyStats } from '../../shared/activity.ts';
 import type {
-  ActKind, ClaudeInfo, ClientMsg, FileInfo, MissionInfo, MissionStats, OfficeEvent, PlanItem, Quota, Role, ServerMsg, Settings, TeamEntry, VersionInfo,
+  ActKind, AgentKind, BlockReason, ClaudeInfo, ClientMsg, FileInfo, MissionInfo, MissionStats, MsgKind, OfficeEvent, PlanItem, Quota, Role, ServerMsg,
+  Settings, TaskNode, TeamEntry, VersionInfo, WorkerPhase,
 } from '../../shared/protocol.ts';
 import { sfx } from '../audio/sfx.ts';
 import { say } from '../audio/voice.ts';
@@ -11,6 +12,10 @@ import { bus } from './bus.ts';
 
 export interface ActView { id: string; kind: ActKind; label: string; detail: string; at: number; ok?: boolean }
 
+export interface ThreadMsg { id: string; from: string; to: string; kind: MsgKind; text: string; replyTo?: string; at: number }
+
+// agent, phase, thread는 새 이벤트가 올 때만 채운다: 옛 기록을 접은 결과가 예전과 한 글자도 다르지 않아야 한다.
+// 읽을 때는 agentKindOf, phaseOf를 쓴다.
 export interface AgentView {
   id: string;
   role: Role;
@@ -27,6 +32,12 @@ export interface AgentView {
   leftAt?: number;
   tokens: number;
   tools: number;
+  agent?: AgentKind;
+  phase?: WorkerPhase;
+  block?: BlockReason;
+  parked?: boolean;
+  note?: string;
+  thread?: ThreadMsg[];
 }
 
 export interface ChefView {
@@ -38,7 +49,10 @@ export interface ChefView {
   acts: ActView[];
 }
 
-export interface AskView { requestId: string; who: string; tool: string; label: string; detail: string; full: boolean; at: number }
+export interface AskView {
+  requestId: string; who: string; tool: string; label: string; detail: string; full: boolean; at: number;
+  kind: 'approval' | 'question'; options?: string[];
+}
 
 export interface FeedLine { id: number; at: number; who: string; text: string; kind: 'user' | 'chef' | 'hire' | 'act' | 'report' | 'file' | 'ask' | 'end' | 'error' }
 
@@ -72,7 +86,11 @@ interface S {
   order: string[];
   plan: PlanItem[];
   files: FileInfo[];
+  /** 열린 요청, 온 순서대로. 키 = requestId */
   asks: Record<string, AskView>;
+  tasks: Record<string, TaskNode>;
+  /** 모든 일이 끝나 쉬는 중(settle). 미션을 놓아주는 end와는 다르다 */
+  settled: { text: string; at: number } | null;
   stats: MissionStats;
   feed: FeedLine[];
   final: { ok: boolean; text: string; ms: number; stopped?: boolean; at: number } | null;
@@ -124,6 +142,14 @@ let toastId = 0;
 let lastActSound = 0;
 const MAX_ACTS = 80;
 const MAX_FEED = 160;
+const MAX_THREAD = 50;
+
+/** worker 이벤트의 단계를 예전 화면이 읽는 status로 옮긴다. */
+const PHASE_STATUS: Record<WorkerPhase, AgentView['status']> = {
+  provisioning: 'working', starting: 'working', working: 'working', blocked: 'working', stopping: 'working',
+  idle: 'done', stopped: 'done', retired: 'done', failed: 'failed',
+};
+const LEGACY_PHASE: Record<AgentView['status'], WorkerPhase> = { working: 'working', reporting: 'working', done: 'retired', failed: 'failed' };
 
 export const useOffice = create<S>((set, get) => ({
   connection: 'connecting',
@@ -140,6 +166,8 @@ export const useOffice = create<S>((set, get) => ({
   plan: [],
   files: [],
   asks: {},
+  tasks: {},
+  settled: null,
   stats: emptyStats(),
   feed: [],
   final: null,
@@ -174,7 +202,7 @@ export const useOffice = create<S>((set, get) => ({
 
   resetMission: (m) => {
     set({
-      mission: m, chef: emptyChef(), agents: {}, order: [], plan: [], files: [], asks: {}, stats: emptyStats(),
+      mission: m, chef: emptyChef(), agents: {}, order: [], plan: [], files: [], asks: {}, tasks: {}, settled: null, stats: emptyStats(),
       feed: [], final: null, busySince: null, workMs: 0, showFinal: false, planHistory: [],
     });
     bus.reset();
@@ -243,7 +271,7 @@ export const useOffice = create<S>((set, get) => ({
       case 'start': {
         const first = s.feed.length === 0;
         set({
-          chef: { ...s.chef, say: '', typing: '', thinkingAt: at }, final: null, showFinal: false,
+          chef: { ...s.chef, say: '', typing: '', thinkingAt: at }, final: null, showFinal: false, settled: null,
           busySince: at, feed: feed('나', ev.text, 'user'),
         });
         if (live && !first) sfx('send');
@@ -269,9 +297,21 @@ export const useOffice = create<S>((set, get) => ({
         else if (live && ev.items.filter((i) => i.status === 'completed').length > s.plan.filter((i) => i.status === 'completed').length) sfx('check');
         break;
       case 'hire': {
+        const prev = s.agents[ev.id];
+        if (prev) {
+          // 같은 일꾼이 다시 온다(재시작 뒤 다시 알림): 한 명으로 두고 단계도 그대로 둔다. 떠났다 돌아오면 다시 일한다
+          const back = prev.leftAt !== undefined;
+          const a: AgentView = {
+            ...prev, role: ev.role, name: ev.name, task: ev.task, prompt: ev.prompt, agent: ev.agent ?? prev.agent,
+            ...(back ? { status: 'working', leftAt: undefined, phase: undefined, block: undefined, parked: undefined, note: undefined } : {}),
+          };
+          set({ agents: { ...s.agents, [ev.id]: a }, ...(back ? { feed: feed('맥스', `${ev.name} 호출: ${ev.task}`, 'hire') } : {}) });
+          if (live && back) sfx('spawn');
+          break;
+        }
         const a: AgentView = {
           id: ev.id, role: ev.role, name: ev.name, task: ev.task, prompt: ev.prompt, status: 'working', act: null, acts: [],
-          say: '', sayAt: 0, report: '', hiredAt: at, tokens: 0, tools: 0,
+          say: '', sayAt: 0, report: '', hiredAt: at, tokens: 0, tools: 0, agent: ev.agent,
         };
         const stats = { ...s.stats };
         countStats(stats, ev);
@@ -320,9 +360,10 @@ export const useOffice = create<S>((set, get) => ({
         break;
       }
       case 'ask': {
-        const ask: AskView = { requestId: ev.requestId, who: ev.who, tool: ev.tool, label: ev.label, detail: ev.detail, full: ev.full, at };
+        const kind = ev.kind ?? 'approval';
+        const ask: AskView = { requestId: ev.requestId, who: ev.who, tool: ev.tool, label: ev.label, detail: ev.detail, full: ev.full, at, kind, options: ev.options };
         set({ asks: { ...s.asks, [ev.requestId]: ask }, feed: feed(agentName(ev.who), ev.label, 'ask') });
-        if (live) { sfx('ask'); void say('feu-vert', true); }
+        if (live) { sfx('ask'); if (kind === 'approval') void say('feu-vert', true); }
         break;
       }
       case 'ask_done': {
@@ -347,6 +388,42 @@ export const useOffice = create<S>((set, get) => ({
         set({ feed: feed('맥스', ev.message, 'error') });
         if (live) get().toast('error', ev.message);
         break;
+      case 'worker': {
+        const a = s.agents[ev.id];
+        if (!a) break;
+        set({
+          agents: { ...s.agents, [ev.id]: { ...a, phase: ev.phase, block: ev.block, parked: ev.parked, note: ev.note, status: PHASE_STATUS[ev.phase] } },
+          // 쉬던 미션에 일꾼이 다시 일하기 시작하면(이어서 시킨 일) 타이머도 다시 돈다
+          ...(ev.phase === 'working' && s.settled ? { settled: null, busySince: s.busySince ?? at } : {}),
+        });
+        break;
+      }
+      case 'task':
+        set({ tasks: { ...s.tasks, [ev.key]: { key: ev.key, title: ev.title, after: ev.after, role: ev.role, agent: ev.agent, run: ev.run } } });
+        break;
+      case 'msg': {
+        const m: ThreadMsg = { id: ev.id, from: ev.from, to: ev.to, kind: ev.kind, text: ev.text, replyTo: ev.replyTo, at };
+        const agents = { ...s.agents };
+        let added = false;
+        for (const id of new Set([ev.from, ev.to])) {
+          const a = agents[id];
+          if (!a || a.thread?.some((x) => x.id === ev.id)) continue;
+          agents[id] = { ...a, thread: [...(a.thread ?? []), m].slice(-MAX_THREAD) };
+          added = true;
+        }
+        if (!added) break;
+        const fromUser = ev.from === 'user';
+        set({ agents, ...(fromUser ? { feed: feed('나', `${agentName(ev.to)}에게: ${ev.text}`, 'user') } : {}) });
+        if (live && fromUser) sfx('send');
+        break;
+      }
+      case 'settle': {
+        if (s.settled) { set({ settled: { ...s.settled, text: ev.text } }); break; }
+        const workMs = s.workMs + (s.busySince ? Math.max(0, at - s.busySince) : 0);
+        set({ settled: { text: ev.text, at }, busySince: null, workMs, feed: feed('맥스', '모두 일을 마쳤어요.', 'end') });
+        if (live) sfx('done');
+        break;
+      }
     }
     bus.emit(ev, live);
   },
@@ -354,3 +431,9 @@ export const useOffice = create<S>((set, get) => ({
 
 /** 도착한 순서대로 정렬한 팀원. */
 export const teamList = (s: S) => s.order.map((id) => s.agents[id]).filter(Boolean);
+
+/** 일꾼을 돌리는 CLI. 옛 기록의 팀원은 모두 claude. */
+export const agentKindOf = (a: AgentView): AgentKind => a.agent ?? 'claude';
+
+/** 일꾼의 단계. worker 이벤트가 없던 옛 기록은 status에서 읽는다. */
+export const phaseOf = (a: AgentView): WorkerPhase => a.phase ?? LEGACY_PHASE[a.status];

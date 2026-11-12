@@ -50,6 +50,8 @@ export class Actor {
   happyUntil = 0;
   sadUntil = 0;
   reported = false;
+  /** worker 이벤트를 받는 일꾼: 보고한 뒤 나가지 않고 제자리로 돌아간다 */
+  stays = false;
   delivered = false;
   left = false;
   gone = false;
@@ -86,6 +88,8 @@ export class World {
   grid = walkGrid();
   private seatOf = new Map<string, string>();
   private deliverTaken = new Set<number>();
+  /** 요청(requestId)마다 누가 손을 들었는지: 요청이 닫히면 그 로봇의 손을 내린다 */
+  private askOwner = new Map<string, Actor>();
   time = 0;
   speed = 1;
   /** 팀장 책상에 놓인 보고서 수 */
@@ -134,6 +138,7 @@ export class World {
     this.actors.clear();
     this.seatOf.clear();
     this.deliverTaken.clear();
+    this.askOwner.clear();
     this.fx = new Fx();
     this.inbox = 0;
     this.printUntil = 0;
@@ -338,14 +343,29 @@ export class World {
         }
         break;
       case 'ask': {
+        if (this.askOwner.has(ev.requestId)) break;
         const a = this.actors.get(ev.who) ?? chef;
+        this.askOwner.set(ev.requestId, a);
         a.asks++;
         if (live) this.fx.floatIcon(a.x, a.y - 26, 'alert');
         break;
       }
-      case 'ask_done':
-        for (const a of this.actors.values()) if (a.asks > 0) { a.asks = Math.max(0, a.asks - 1); break; }
+      case 'ask_done': {
+        const a = this.askOwner.get(ev.requestId);
+        if (!a) break;
+        this.askOwner.delete(ev.requestId);
+        a.asks = Math.max(0, a.asks - 1);
         break;
+      }
+      case 'worker': {
+        const a = this.actors.get(ev.id);
+        if (!a || a.left) break;
+        a.stays = true;
+        // 새 턴이면 다시 보고하러 갈 수 있다
+        if (ev.phase === 'working') a.reported = false;
+        if (!a.busy) this.goHome(a, live);
+        break;
+      }
       case 'end':
         this.missionActive = false;
         for (const a of this.actors.values()) if (a !== chef && !a.left) { a.left = true; if (live) this.exit(a); else this.remove(a); }
@@ -405,8 +425,22 @@ export class World {
         this.chef.happyUntil = this.time + 1.2;
       } },
       { t: 'wait', ms: 700, dir: 'up' },
-      { t: 'call', fn: () => { this.deliverTaken.delete(spot); a.delivered = true; } },
+      { t: 'call', fn: () => { this.deliverTaken.delete(spot); a.delivered = true; if (a.stays && !a.left) this.goHome(a, true); } },
     );
+  }
+
+  /** 자기 책상(또는 서 있던 자리)으로 돌아간다. */
+  private goHome(a: Actor, live: boolean) {
+    if (a.seat) {
+      if (a.seated) return;
+      if (live) this.queue(a, { t: 'walk', tile: a.seat.tile }, { t: 'sit', seat: a.seat });
+      else this.snapSeat(a, a.seat);
+    } else if (a.standSpot) {
+      const [x, y] = a.tile;
+      if (x === a.standSpot[0] && y === a.standSpot[1]) return;
+      if (live) this.queue(a, { t: 'walk', tile: a.standSpot, face: 'down' });
+      else { const f = tileFeet(a.standSpot); a.x = f.x; a.y = f.y; }
+    }
   }
 
   /** 문으로 나간다(쓰던 책상은 비워 준다). */
