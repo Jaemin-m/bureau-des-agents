@@ -1,6 +1,6 @@
 // 열린 요청 쌓기: 도구 허락(허락/거절)과 일꾼의 질문(선택지, 짧은 답)은 다른 일이라 다르게 보인다.
 // 화면 아래 AskBar와 일꾼 카드가 같은 AskCard를 쓴다.
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { ROLES } from '../../shared/activity.ts';
 import { sfx } from '../audio/sfx.ts';
@@ -60,16 +60,24 @@ export function AskCard({ ask }: { ask: AskView }) {
   );
 }
 
-/** 열린 요청을 먼저 온 순서로 쌓아 보여 준다. */
+/** 열린 요청 중 먼저 온 하나만 펼치고, 나머지는 “외 N건”으로 접어 둔다(사무실이 가려지지 않게). */
 export function AskBar() {
   const asks = useOffice(useShallow((s) => openAsks(s.asks)));
+  const [open, setOpen] = useState(false);
+  useEffect(() => { if (asks.length <= 1) setOpen(false); }, [asks.length]);
   if (!asks.length) return null;
+  const rest = asks.length - 1;
+  const shown = open ? asks : asks.slice(0, 1);
   return (
     <div className="askbar">
-      {asks.length > 1 && <div className="askbar-count">답을 기다리는 요청 {asks.length}건 · 먼저 온 것부터</div>}
       <div className="askbar-stack">
-        {asks.map((a) => <AskCard key={a.requestId} ask={a} />)}
+        {shown.map((a) => <AskCard key={a.requestId} ask={a} />)}
       </div>
+      {rest > 0 && (
+        <button className="askbar-count" aria-expanded={open} onClick={() => setOpen(!open)}>
+          {open ? '접기' : `외 ${rest}건 더 보기`}
+        </button>
+      )}
     </div>
   );
 }
