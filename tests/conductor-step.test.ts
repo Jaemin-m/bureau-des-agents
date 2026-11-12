@@ -155,6 +155,53 @@ test('시작 실패 세 번이면 회로 차단: 할 일은 실패, 일꾼도 �
   assert.match(sim.take('send_turn', LEAD).turn, /site[\s\S]*docs는 막혔어요/);
 });
 
+test('맥스 시작 실패 세 번: 미션은 오류, 일꾼은 깨끗이 멈추고, 이어서 하면 실패한 턴부터 다시 시도한다', () => {
+  const sim = planned([spec('site')]);
+  const w = sim.workerFor('site');
+  sim.beginTurn(w);
+  sim.do({ k: 'user_said', to: LEAD, text: '색을 바꿔 주세요.' });
+  const reasons = ['claude를 찾을 수 없어요', 'claude를 찾을 수 없어요', '로그인이 필요해요'];
+  for (const why of reasons) {
+    assert.equal(sim.s.status, 'working', '세 번째 실패 전에는 오류가 아니다');
+    const effect = sim.has('send_turn', LEAD) ? sim.take('send_turn', LEAD) : sim.take('open_session', LEAD);
+    sim.do({ k: 'effect_failed', effect, why });
+  }
+  assert.equal(sim.s.status, 'error');
+  assert.equal(sim.s.lead.phase.k, 'failed');
+  assert.ok(!sim.has('open_session', LEAD), '네 번째 시도는 없다');
+  const errors = sim.events.filter((e) => e.k === 'error');
+  assert.equal(errors.length, 1);
+  assert.match(errors[0].k === 'error' ? errors[0].message : '', /맥스를 시작하지 못했어요\. 로그인이 필요해요.*이어서 하기/);
+  assert.ok(sim.has('interrupt', w), '일하던 일꾼은 끊어서 멈춘다');
+  sim.sig(w, { k: 'turn_ended', outcome: 'interrupted', text: '' });
+  assert.equal(sim.s.workers[w].phase.k, 'stopped');
+  assert.equal(sim.s.tasks.site.run.k, 'pending', '멈춘 할 일은 같은 자리에서 다시 할 수 있다');
+  assert.ok(!sim.s.news.length && sim.s.wakeAt === null);
+  assert.ok(!sim.events.some((e) => e.k === 'settle' || e.k === 'end'));
+
+  const idle = sim.do({ k: 'tick' });
+  assert.deepEqual([idle.effects.filter((e) => e.k !== 'persist'), idle.events], [[], []], '오류인 미션은 저절로 다시 시작하지 않는다');
+
+  const r = sim.do({ k: 'user_resume' });
+  assert.equal(sim.s.status, 'working');
+  assert.equal(sim.s.lead.startFailures, 0);
+  const open = r.effects.find((e) => e.k === 'open_session' && e.who === LEAD);
+  assert.ok(open && open.k === 'open_session' && /색을 바꿔 주세요/.test(open.turn), '실패한 턴의 글이 그대로 다시 간다');
+  assert.equal(sim.s.lead.retry, undefined);
+  assert.equal(sim.s.workers[w].phase.k !== 'stopped', true, '멈췄던 일꾼도 다시 일한다');
+});
+
+test('맥스 시작 실패 뒤 사용자가 말해도 다시 시작하고, 실패한 턴의 글과 새 말이 함께 간다', () => {
+  const sim = new Sim();
+  sim.start('첫 요청이에요.');
+  for (let i = 0; i < 3; i++) sim.do({ k: 'effect_failed', effect: sim.take('open_session', LEAD), why: '실패' });
+  assert.equal(sim.s.status, 'error');
+  const r = sim.do({ k: 'user_said', to: LEAD, text: '다시 해 주세요.' });
+  assert.equal(sim.s.status, 'working');
+  const open = r.effects.find((e) => e.k === 'open_session' && e.who === LEAD);
+  assert.ok(open && open.k === 'open_session' && /첫 요청이에요[\s\S]*다시 해 주세요/.test(open.turn));
+});
+
 test('오래된 gen의 신호는 버린다: 상태는 같은 객체 그대로', () => {
   const sim = planned([spec('site')]);
   const w = sim.workerFor('site');

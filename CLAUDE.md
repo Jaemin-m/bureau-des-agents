@@ -32,6 +32,8 @@ Node 22.18 이상은 서버의 TypeScript를 바로 실행한다(타입 제거).
 - **미션 하나가 도는 법**: 브라우저의 `start`가 `Bureau.start`로 미션 폴더를 만들고 `Conductor.create`를 부른다. 진행자가 맥스(claude)를
   띄우고, 맥스는 MCP의 `office_plan`으로 할 일(직무, CLI, 의존 관계)을 보내고 턴을 끝낸다. 진행자가 준비된 할 일마다 일꾼을 고용해
   자기 프로세스로 띄우고(같은 미션 폴더, 직무의 도구만, MCP 없음), 일꾼은 마지막 답의 `handback` 블록으로 끝냄·질문·막힘을 알린다.
+  맥스는 읽기만 한다(claude 도구는 `ROLE_POWERS.chef`에서 나온 Read, Glob, Grep과 사무실 MCP, 사용자의 커넥터는 그대로).
+  맥스를 세 번 연속 시작하지 못하면 미션은 `error`로 서고(이유는 `error` 이벤트와 대화창에 남는다) 일꾼은 멈춘다. 이어서 하기는 실패한 턴부터 다시 시도한다.
   끝난 일과 질문은 소식으로 모여 맥스를 깨운다(일꾼의 글은 `data` 블록, 지시가 아니라 자료). 모두 조용해지면 맥스가 마무리하고
   `settle`이 온다. `end`와 마지막 `leave`는 미션을 놓아줄 때(새 미션, 서버 종료)만 온다. 브라우저의 `say`(`to`가 있으면 그 일꾼에게),
   `answer`, `reply`, `stop`(`who`), `resume`은 모두 `Conductor.input`으로 간다. 제어 상태는 `.bureau/missions/<id>.state.json`에 있고
@@ -52,6 +54,9 @@ Node 22.18 이상은 서버의 TypeScript를 바로 실행한다(타입 제거).
 
 `npm test`는 가짜 CLI(`tests/support/fake-agent.ts`, 대본대로 말한다)로 진짜 어댑터, 진행자, 서버를 돌린다. `tests/office-server.test.ts`는
 `server/index.ts`를 자식 프로세스로 띄우고 WebSocket으로 미션 하나를 끝까지 돌린다.
+`node scripts/e2e-office.ts`는 같은 진짜 서버와 진짜 화면을 헤드리스 Chrome(CDP)으로 조작한다(질문 카드 답하기, 일꾼 카드로 이어서 시키기,
+일꾼 하나만 멈추기, 미션 멈추기와 이어서 하기, 맥스가 시작하지 못할 때의 오류와 이어서 하기). 한 걸음씩 출력하고 실패하면 0이 아닌 코드로
+끝난다. 스크린샷은 `--shots <폴더>`에 남는다. CI 테스트가 아니다(Chrome이 필요하고 클라이언트를 빌드한다).
 녹화한 미션은 똑같이 다시 재생된다(`H`, 그다음 "다시 재생"). 서버가 없으면 사무실은 데모 모드가 된다. 브라우저 콘솔에서
 `window.__bureau`로 store, 세계, 카메라, `playReplay(mission, log, speed)`에 접근할 수 있다.
 사무실을 한 장면씩 촬영하려면(시계를 조종하는 캡처 스크립트) `window.__CAPTURE`가 매 장면을 그리게 하고 음악 박자를 준다

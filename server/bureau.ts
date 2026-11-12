@@ -559,7 +559,9 @@ function trackSpan(spans: Map<string, [number, number][]>, id: string, working: 
 }
 
 /** 그 시각에 일하던 일꾼이 한 명뿐이면 그 일꾼. */
-function workingAt(spans: Map<string, [number, number][]>, t: number): string | undefined {
+export function workingAt(spans: Map<string, [number, number][]>, mtimeMs: number): string | undefined {
+  // 구간은 Date.now()의 정수 밀리초이고 mtimeMs에는 소수점 아래가 있다. 턴 끝 바로 그 밀리초에 쓴 파일을 놓치지 않게 같은 단위로 비교한다
+  const t = Math.floor(mtimeMs);
   const hits = [...spans].filter(([, list]) => list.some(([a, b]) => a <= t && t <= b));
   return hits.length === 1 ? hits[0][0] : undefined;
 }

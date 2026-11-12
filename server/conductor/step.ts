@@ -121,7 +121,7 @@ function apply(d: Draft, input: Input): Reply | Same {
     case 'user_said': {
       if (input.to === LEAD) {
         wake(d);
-        if (s.lead.phase.k === 'stopped' || s.lead.phase.k === 'failed') revive(d, s.lead);
+        if (s.lead.phase.k === 'stopped') revive(d, s.lead);
         s.lead.inbox.push({ id: mint(d, 'm') as MessageId, from: 'user', kind: 'followup', text: input.text });
         d.ev.push({ k: 'start', text: input.text });
         return { ok: true };
@@ -147,8 +147,7 @@ function apply(d: Draft, input: Input): Reply | Same {
     case 'user_stop': {
       if (input.who === undefined) {
         if (s.status === 'working') s.status = 'stopped';
-        for (const m of Object.values(s.workers)) stop(d, m, 'stopped');
-        stop(d, s.lead, 'stopped');
+        haltAll(d);
         return { ok: true };
       }
       const w = workerOf(s, input.who);
@@ -263,6 +262,14 @@ function release(d: Draft): Reply {
 
 function wake(d: Draft) {
   if (d.s.status !== 'working') d.s.status = 'working';
+  // 맥스를 시작하지 못해 멈춘 미션은 다시 시작할 때 맥스부터 다시 시도한다
+  if (d.s.lead.phase.k === 'failed') revive(d, d.s.lead);
+}
+
+/** 모두 멈춘다: 일꾼은 멈춘 자리에 서고, 맥스도 쉰다. */
+function haltAll(d: Draft) {
+  for (const m of Object.values(d.s.workers)) stop(d, m, 'stopped');
+  stop(d, d.s.lead, 'stopped');
 }
 
 function revive(d: Draft, w: Worker) {
@@ -467,7 +474,7 @@ function turnEnded(d: Draft, w: Worker, outcome: 'ok' | 'error' | 'interrupted',
   };
   s.questions[q.id] = q;
   setPhase(d, w, { k: 'blocked', on: { reason: 'question', question: q.id } });
-  d.ev.push({ k: 'msg', id: mint(d, 'm'), from: w.id, to: q.audience === 'user' ? 'user' : LEAD, kind: 'note', text: asked });
+  d.ev.push({ k: 'msg', id: mint(d, 'm'), from: w.id, to: q.audience === 'user' ? 'user' : LEAD, kind: 'question', text: asked });
   if (q.audience === 'user') askUser(d, q);
   else s.news.push({ id: mint(d, 'n'), line: `${label(w)}가 할 일 '${t.key}'에서 질문했어요(${q.id}). office_message로 답해 주세요.`, data: asked, question: q.id });
   return { ok: true };
@@ -490,9 +497,14 @@ function startFailed(d: Draft, w: Worker, why: string) {
   if (w.startFailures < d.s.limits.startFailureLimit) { w.phase = { ...p, sent: false }; return; }
   const note = cut(why, 300);
   if (w.kind === 'lead') {
+    // 맥스 없이는 아무도 마무리하지 못한다. 미션을 오류로 세우고 일꾼을 멈춘 채로 둔다. 사용자가 이어서 하면 이 턴부터 다시 시도한다
+    w.retry = p.turn;
+    d.s.status = 'error';
+    d.s.news = [];
+    d.s.wakeAt = null;
     setPhase(d, w, { k: 'failed' }, note);
-    d.ev.push({ k: 'error', message: `맥스를 시작하지 못했어요: ${note}` });
-    for (const q of Object.values(d.s.questions)) if (q.state.k === 'open' && q.audience === 'lead') escalate(d, q);
+    d.ev.push({ k: 'error', message: `맥스를 시작하지 못했어요. ${note || '이유를 알 수 없어요.'} 다시 하려면 “이어서 하기”를 눌러 주세요.` });
+    for (const m of Object.values(d.s.workers)) stop(d, m, 'stopped');
     return;
   }
   const t = taskOf(d.s, w.id);
@@ -652,13 +664,16 @@ function leadWake(d: Draft) {
   }
   if (s.lead.phase.k !== 'idle') return;
   const newsDue = s.news.length > 0 && s.wakeAt !== null && d.ctx.now >= s.wakeAt;
-  if (!s.lead.inbox.length && !newsDue) return;
+  const retry = s.lead.retry;
+  if (!s.lead.inbox.length && !newsDue && retry === undefined) return;
   const said = s.lead.inbox;
   const news = newsDue ? s.news : [];
   for (const n of news) if (n.question) s.questions[n.question].told = true;
   s.lead.inbox = [];
+  s.lead.retry = undefined;
   if (newsDue) { s.news = []; s.wakeAt = null; }
-  setPhase(d, s.lead, { k: 'starting', turn: wakeText({ said, news, quiet: newsDue && workQuiet(s) }), sent: false });
+  const fresh = said.length || news.length ? wakeText({ said, news, quiet: newsDue && workQuiet(s) }) : '';
+  setPhase(d, s.lead, { k: 'starting', turn: [retry, fresh].filter((x) => x).join('\n\n'), sent: false });
 }
 
 /** provisioning·starting인데 아직 효과를 내지 않은 일꾼에게 효과 하나. 편지함은 여기서(턴 경계) 비운다. */

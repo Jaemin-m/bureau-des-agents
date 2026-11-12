@@ -2,12 +2,13 @@
 // 스토어는 브라우저용 모듈을 끌어오고(오디오), zzfx가 불러오자마자 AudioContext를 만든다: 빈 껍데기 하나만 꽂아 주면 Node에서 돈다.
 // 경로를 변수로 불러와서, 서버·테스트용 tsc가 브라우저 코드를 따라가지 않는다(스토어는 루트 tsconfig가 검사한다).
 import { readFileSync } from 'node:fs';
-import type { Logged, MissionInfo } from '../../shared/protocol.ts';
+import type { Logged, MissionInfo, ServerMsg } from '../../shared/protocol.ts';
 
 interface Store {
   getState(): Record<string, unknown> & {
     resetMission(m: MissionInfo | null): void;
     apply(ev: Logged['ev'], at: number, live: boolean): void;
+    receive(m: ServerMsg): void;
   };
   setState(patch: Record<string, unknown>): void;
 }
@@ -26,7 +27,7 @@ export const NEW_FOLDED_KEYS = { tasks: {}, settled: null } as const;
 
 /** 이벤트와 상관없는 것: 서버가 알려 주는 값, 화면 설정, 열린 창. 스토어에 키가 늘면 둘 중 하나로 분류해야 한다. */
 export const UI_KEYS = [
-  'connection', 'claude', 'dir', 'settings', 'quota', 'missions', 'replaying', 'viewer', 'modal', 'versions', 'teamHistory',
+  'connection', 'claude', 'installed', 'dir', 'settings', 'quota', 'missions', 'replaying', 'viewer', 'modal', 'versions', 'teamHistory',
   'music', 'voiceOn', 'cameraAuto', 'tour', 'historyOpen', 'settingsOpen', 'vertical', 'portrait', 'filming', 'sound', 'tod', 'draft', 'recipient',
   'send', 'receive', 'apply', 'resetMission', 'toast',
 ] as const;

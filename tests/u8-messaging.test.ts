@@ -76,6 +76,7 @@ test('멈춘 미션만 이어서 할 수 있다(일하는 중이거나 다시 �
   const { canResume } = await fold(0);
   const stopped = { ...mission, status: 'stopped' as const };
   assert.equal(canResume({ mission: stopped, busySince: null, replaying: false }), true);
+  assert.equal(canResume({ mission: { ...mission, status: 'error' }, busySince: null, replaying: false }), true, '맥스를 시작하지 못해 오류로 선 미션도 이어서 할 수 있다');
   assert.equal(canResume({ mission: { ...mission, status: 'done' }, busySince: null, replaying: false }), false);
   assert.equal(canResume({ mission: stopped, busySince: 1, replaying: false }), false);
   assert.equal(canResume({ mission: stopped, busySince: null, replaying: true }), false);
@@ -89,4 +90,33 @@ test('일꾼만 멈추기는 일하거나 기다리는 일꾼에게만 열린다
   for (const p of ['idle', 'stopping', 'stopped', 'failed', 'retired']) assert.equal(canStopWorker(at(p)), false, p);
   assert.equal(canStopWorker(at(undefined, 'working')), true, '옛 기록: 일하는 중');
   assert.equal(canStopWorker(at(undefined, 'done')), false, '옛 기록: 끝남');
+});
+
+test('미션 상태 방송만으로 시계가 멈추고(멈춤, 오류), 이어서 하면 다시 돌아서 “이어서 하기”가 열린다', async () => {
+  const { canResume, useOffice, state } = await fold(2);
+  useOffice.setState({ replaying: false });
+  const start = state().busySince;
+  assert.ok(start !== null, '일하는 중에는 시계가 돈다');
+  assert.equal(canResume(state()), false);
+
+  useOffice.getState().receive({ t: 'mission', mission: { ...mission, status: 'stopped' } });
+  assert.equal(state().busySince, null, 'end 이벤트 없이 멈춰도 시계가 선다');
+  assert.equal(canResume(state()), true);
+
+  useOffice.getState().receive({ t: 'mission', mission: { ...mission, status: 'working' } });
+  assert.ok(state().busySince !== null, '이어서 하면 시계가 다시 돈다');
+  assert.equal(canResume(state()), false);
+
+  useOffice.getState().receive({ t: 'mission', mission: { ...mission, status: 'error' } });
+  assert.equal(state().busySince, null);
+  assert.equal(canResume(state()), true);
+});
+
+test('맥스를 시작하지 못한 오류는 대화창에 이유로 남는다', async () => {
+  const { useOffice } = await fold(0);
+  const message = '맥스를 시작하지 못했어요. 로그인이 필요해요. 다시 하려면 “이어서 하기”를 눌러 주세요.';
+  useOffice.getState().apply({ k: 'error', message }, T0, false);
+  const s = useOffice.getState() as unknown as { chef: { say: string }; feed: { kind: string; text: string }[] };
+  assert.equal(s.chef.say, message);
+  assert.deepEqual([s.feed.at(-1)?.kind, s.feed.at(-1)?.text], ['error', message]);
 });

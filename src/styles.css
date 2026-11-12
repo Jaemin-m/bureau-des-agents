@@ -540,7 +540,7 @@ button:disabled { cursor: default; opacity: 0.45; }
 .plain { margin: 0; white-space: pre-wrap; font: 12.5px/1.5 ui-monospace, monospace; color: #e4e4ea; }
 .field { display: grid; gap: 6px; font-size: 13px; }
 .field > span { font-weight: 700; }
-.field select { background: var(--surface2); color: var(--ink); border: 1px solid var(--line2); border-radius: 9px; padding: 8px 10px; font: inherit; }
+.field select, .field input[type=text] { background: var(--surface2); color: var(--ink); border: 1px solid var(--line2); border-radius: 9px; padding: 8px 10px; font: inherit; }
 .radio { display: flex; gap: 8px; align-items: flex-start; font-weight: 400; color: #d8d8de; }
 .radio input { accent-color: var(--orange); margin-top: 3px; }
 .keys { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 12px; color: var(--muted); }

@@ -149,7 +149,7 @@ function ActList({ acts }: { acts: ActView[] }) {
             <span>{x.label}</span>
             {x.detail && x.detail !== x.label && <code>{(() => { const d = tidy(x.detail); return d.length > 160 ? d.slice(0, 159) + '…' : d; })()}</code>}
           </div>
-          <time>{new Date(x.at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</time>
+          <time>{new Date(x.at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</time>
         </li>
       ))}
     </ul>
@@ -211,7 +211,7 @@ function BoardRoom() {
           <ol className="timeline">
             {steps.map((s, i) => (
               <li key={i}>
-                <time>{new Date(s.at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</time>
+                <time>{new Date(s.at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</time>
                 <div>{s.lines.map((l, j) => <span key={j}>{l}</span>)}</div>
               </li>
             ))}

@@ -1,6 +1,6 @@
 // 세션을 열 때 주는 지시문(맥스, 일꾼)과, 예전 세션을 이어갈 수 없을 때 새 세션에 붙이는 요약. 순수 함수만 둔다.
 import { AGENT_KINDS, type AgentKind } from '../../shared/protocol.ts';
-import { ROLES } from '../../shared/activity.ts';
+import { ROLE_TOOLS, ROLES } from '../../shared/activity.ts';
 import { memberPrompt } from '../team.ts';
 import { LEAD, type Member, type MissionState, type Task, type Who } from './model.ts';
 import { fenceData, statusText } from './text.ts';
@@ -40,7 +40,7 @@ export function leadPrompt(rules: string, installed: readonly AgentKind[]): stri
 2. 일이 필요한 요청이면 office_plan으로 할 일을 나눠 맡긴다. 할 일마다 role과 agent(아래 목록에서)를 고르고, brief에는 무엇을 어떤 파일로 넘길지 구체적으로 쓴다. 따로 할 수 있는 일은 나란히 두고, 앞의 결과가 필요한 일만 after로 잇는다. 할 일은 꼭 필요한 만큼만 만든다.
 3. office_plan을 보냈으면 바로 턴을 끝낸다. 일꾼을 기다리거나 office_status를 되풀이해 보지 않는다. 일이 끝나거나 일꾼이 질문하면 사무실이 [사무실 소식]으로 너를 깨운다.
 4. 깨면 소식을 읽고 필요한 것만 한다. 일꾼의 질문에는 office_message로 답하고, 빠진 일이 있으면 office_plan으로 더하고, 그 밖에는 짧게 말하고 턴을 끝낸다.
-5. 조사, 코드, 글, 디자인, 분석 같은 일꾼의 일을 직접 하지 않는다. 결과물 파일도 일꾼이 만든다. 인사나 사무실에 대한 질문처럼 간단한 말에는 계획 없이 바로 답한다.
+5. 조사, 코드, 글, 디자인, 분석 같은 일꾼의 일을 직접 하지 않는다. 결과물 파일도 일꾼이 만든다. 너에게는 파일을 읽는 도구(${ROLE_TOOLS.chef.join(', ')})와 사무실 도구만 있다. 파일을 쓰거나 고치거나 명령을 실행하거나 인터넷을 찾아볼 수 없으니, 그런 일은 모두 office_plan으로 맡긴다. 인사나 사무실에 대한 질문처럼 간단한 말에는 계획 없이 바로 답한다.
 6. 사무실이 모든 할 일이 끝났다고 알리면 마무리 메시지(5줄 이하)를 쓴다. 팀이 한 일, 결과물 파일 이름, 추천하는 다음 단계를 적는다.
 
 ## 규칙

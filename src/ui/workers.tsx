@@ -14,7 +14,8 @@ const PHASE_TEXT: Record<WorkerPhase, string> = {
 };
 
 export function phaseText(phase: WorkerPhase, block?: BlockReason, parked?: boolean): string {
-  if (parked) return '잠들어 있어요';
+  // 프로세스를 놓았어도 멈춘 일꾼은 “멈췄어요”, 질문을 기다리는 일꾼은 “기다려요”라고 말한다
+  if (parked && phase === 'idle') return '잠들어 있어요';
   if (phase === 'blocked') return block === 'question' ? '질문의 답을 기다려요' : '허락을 기다려요';
   return PHASE_TEXT[phase];
 }
@@ -26,7 +27,7 @@ export const TASK_TEXT: Record<TaskStatus, string> = {
   waiting: '기다려요', ready: '곧 시작해요', running: '하는 중', blocked: '막혔어요', done: '끝났어요', failed: '실패했어요', cancelled: '취소됐어요',
 };
 
-export const MSG_TEXT: Record<MsgKind, string> = { brief: '지시', followup: '이어서 시킴', answer: '답', note: '메모', news: '소식' };
+export const MSG_TEXT: Record<MsgKind, string> = { brief: '지시', followup: '이어서 시킴', answer: '답', question: '질문', note: '메모', news: '소식' };
 
 /** 일꾼을 돌리는 CLI의 색 배지. */
 export function KindChip({ kind }: { kind: AgentKind }) {

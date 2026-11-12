@@ -3,7 +3,7 @@
 import { create } from 'zustand';
 import { countStats, emptyStats } from '../../shared/activity.ts';
 import type {
-  ActKind, AgentKind, BlockReason, ClaudeInfo, ClientMsg, FileInfo, MissionInfo, MissionStats, MsgKind, OfficeEvent, PlanItem, Quota, Role, ServerMsg,
+  ActKind, AgentInfo, AgentKind, BlockReason, ClaudeInfo, ClientMsg, FileInfo, MissionInfo, MissionStats, MsgKind, OfficeEvent, PlanItem, Quota, Role, ServerMsg,
   Settings, TaskNode, TeamEntry, VersionInfo, WorkerPhase,
 } from '../../shared/protocol.ts';
 import { sfx } from '../audio/sfx.ts';
@@ -74,6 +74,8 @@ export type Modal =
 interface S {
   connection: 'connecting' | 'live' | 'offline' | 'demo';
   claude: ClaudeInfo | null;
+  /** 이 컴퓨터에 깔린 CLI(서버의 hello.agents). 옛 서버는 보내지 않는다 */
+  installed: AgentInfo[];
   dir: string;
   settings: Settings;
   quota: Quota | null;
@@ -156,6 +158,7 @@ const LEGACY_PHASE: Record<AgentView['status'], WorkerPhase> = { working: 'worki
 export const useOffice = create<S>((set, get) => ({
   connection: 'connecting',
   claude: null,
+  installed: [],
   dir: '',
   settings: { chefModel: 'sonnet', teamModel: 'sonnet', permission: 'auto' },
   quota: null,
@@ -215,7 +218,7 @@ export const useOffice = create<S>((set, get) => ({
     const s = get();
     switch (m.t) {
       case 'hello': {
-        set({ claude: m.claude, dir: m.dir, settings: m.settings, quota: m.quota, missions: m.missions });
+        set({ claude: m.claude, installed: m.agents ?? [], dir: m.dir, settings: m.settings, quota: m.quota, missions: m.missions });
         if (s.replaying) break;
         if (m.current) {
           get().resetMission(m.current.mission);
@@ -228,7 +231,7 @@ export const useOffice = create<S>((set, get) => ({
         const list = [m.mission, ...s.missions.filter((x) => x.id !== m.mission.id)].sort((a, b) => b.createdAt - a.createdAt);
         set({ missions: list });
         if (s.replaying) break;
-        if (s.mission?.id === m.mission.id) set({ mission: m.mission });
+        if (s.mission?.id === m.mission.id) set({ mission: m.mission, ...clockFor(s, m.mission.status, Date.now()) });
         else if (m.mission.status === 'working' && (!s.mission || s.mission.id !== m.mission.id)) get().resetMission(m.mission);
         break;
       }
@@ -388,7 +391,8 @@ export const useOffice = create<S>((set, get) => ({
         break;
       }
       case 'error':
-        set({ feed: feed('맥스', ev.message, 'error') });
+        // 대화창이 이유를 계속 보여 준다(알림은 사라진다)
+        set({ chef: { ...s.chef, say: ev.message, typing: '' }, feed: feed('맥스', ev.message, 'error') });
         if (live) get().toast('error', ev.message);
         break;
       case 'worker': {
@@ -447,9 +451,18 @@ export const openAsks = (asks: Record<string, AskView>): AskView[] => Object.val
 /** 입력창이 말을 보낼 곳: 'chef' 또는 지금 사무실에 있는 일꾼의 id. */
 export const recipientOf = (s: Pick<S, 'recipient' | 'agents'>): string => (s.recipient && s.agents[s.recipient] ? s.recipient : 'chef');
 
-/** 멈춘 미션을 이어서 시킬 수 있는가. */
+/**
+ * 미션 상태가 바뀌었을 때의 시계. 사용자가 멈추거나 맥스가 시작하지 못해 오류가 되면 end 이벤트 없이 상태만 바뀌므로 여기서 멈추고,
+ * 멈췄던 미션이 다시 일하기 시작하면(이어서 하기) 여기서 다시 돌린다.
+ */
+function clockFor(s: Pick<S, 'busySince' | 'workMs'>, status: MissionInfo['status'], now: number): Partial<S> {
+  if (status === 'working') return s.busySince === null ? { busySince: now, settled: null, final: null } : {};
+  return s.busySince === null ? {} : { busySince: null, workMs: s.workMs + Math.max(0, now - s.busySince) };
+}
+
+/** 멈추거나 오류로 선 미션을 이어서 시킬 수 있는가. */
 export const canResume = (s: Pick<S, 'mission' | 'busySince' | 'replaying'>): boolean =>
-  !!s.mission && s.mission.status === 'stopped' && s.busySince === null && !s.replaying;
+  !!s.mission && (s.mission.status === 'stopped' || s.mission.status === 'error') && s.busySince === null && !s.replaying;
 
 /** 이 일꾼만 멈출 수 있는가: 일하거나 기다리는 중일 때(쉬는 일꾼, 끝난 일꾼은 멈출 게 없다). */
 export const canStopWorker = (a: AgentView): boolean => {
