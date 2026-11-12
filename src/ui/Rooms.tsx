@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ROLE_TOOLS, ROLES, TOOL_INFO } from '../../shared/activity.ts';
 import type { PlanItem, Role } from '../../shared/protocol.ts';
 import { taskOf } from '../../shared/tasks.ts';
-import { KIND } from '../engine/kinds.ts';
+import { KIND, agentList } from '../engine/kinds.ts';
 import { jukebox, TRACKS } from '../audio/music.ts';
 import { sfx } from '../audio/sfx.ts';
 import { world } from '../engine/instance.ts';
@@ -265,6 +265,7 @@ function ClockRoom() {
 
 // ── 머신(서버): Claude Code, 모델, 구독 ──
 function MachineRoom() {
+  const agents = useOffice((s) => agentList(s.installed));
   const claude = useOffice((s) => s.claude);
   const settings = useOffice((s) => s.settings);
   const mission = useOffice((s) => s.mission);
@@ -286,7 +287,7 @@ function MachineRoom() {
       <dl className="kv">{rows.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
       <section className="room-sec">
         <h4>어떻게 동작하나요</h4>
-        <p className="small">맥스는 미션 폴더에서 창 없이 실행되는 진짜 Claude Code 세션이에요. 팀원은 진짜 코딩 에이전트 CLI(Claude Code, Codex, Gemini)가 돌려요. 어느 CLI인지는 로봇 머리 옆의 작은 색 점으로 보여요. 에이전트가 도구를 쓸 때마다(검색, 페이지 읽기, 파일 쓰기) 사무실에 알려 주고, 사무실은 그걸 바로 보여 줘요. 타자 치는 로봇, 말풍선, 팀장 책상에 놓이는 보고서처럼요. 예전 미션의 팀원은 Claude Code 서브에이전트였어요.</p>
+        <p className="small">맥스는 미션 폴더에서 창 없이 실행되는 진짜 Claude Code 세션이에요. 팀원은 진짜 코딩 에이전트 CLI{agents}가 돌려요. 어느 CLI인지는 로봇 머리 옆의 작은 색 점으로 보여요. 에이전트가 도구를 쓸 때마다(검색, 페이지 읽기, 파일 쓰기) 사무실에 알려 주고, 사무실은 그걸 바로 보여 줘요. 타자 치는 로봇, 말풍선, 팀장 책상에 놓이는 보고서처럼요. 예전 미션의 팀원은 Claude Code 서브에이전트였어요.</p>
         <p className="small muted">제한 모드: 팀은 미션 폴더 밖으로 나가지 않고, 내 설정이나 다른 에이전트도 사무실에 끼어들지 않아요.</p>
       </section>
     </Shell>
@@ -336,6 +337,7 @@ function JukeboxRoom() {
 
 // ── 팀 전체: 직무와 도구, 진행 중인 미션, 기록 ──
 function TeamRoom({ role }: { role?: Role }) {
+  const agents = useOffice((s) => agentList(s.installed));
   const [tab, setTab] = useState<'roles' | 'now' | 'history'>(role ? 'roles' : 'now');
   const team = useOffice(useShallow(teamList));
   const settings = useOffice((s) => s.settings);
@@ -355,7 +357,7 @@ function TeamRoom({ role }: { role?: Role }) {
     return [...m.entries()];
   }, [history]);
   return (
-    <Shell title="팀 전체" sub="저마다 직무를 가진 진짜 코딩 에이전트(Claude Code, Codex, Gemini)" wide>
+    <Shell title="팀 전체" sub={`저마다 직무를 가진 진짜 코딩 에이전트${agents}`} wide>
       <div className="seg tabs">
         <button className={tab === 'now' ? 'on' : ''} onClick={() => setTab('now')}>이번 미션</button>
         <button className={tab === 'roles' ? 'on' : ''} onClick={() => setTab('roles')}>직무</button>
