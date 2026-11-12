@@ -7,6 +7,7 @@ export interface ExitInfo { code: number | null; signal: string | null; stderrTa
 
 const STDERR_TAIL = 4000;
 const STOP_GRACE_MS = 5000;
+const KILL_GRACE_MS = 3000;
 
 /** 한 줄의 JSON. 빈 줄과 깨진 줄은 null. */
 export function parseJsonLine(line: string): Record<string, any> | null {
@@ -61,12 +62,22 @@ export class Proc {
     return exited.then(() => clearTimeout(timer));
   }
 
-  /** 프로세스 그룹 전체에 SIGTERM. */
+  /** 입력 전체를 줄바꿈 없이 쓰고 닫는다(프롬프트를 stdin으로 받는 CLI용). */
+  end(text: string) {
+    if (!this.done) this.p.stdin.end(text);
+  }
+
+  /** 프로세스 그룹 전체에 SIGTERM. SIGTERM을 무시하면 3초 뒤 SIGKILL. */
   kill() {
     if (this.done) return;
+    this.signalGroup('SIGTERM');
+    setTimeout(() => { if (!this.done) this.signalGroup('SIGKILL'); }, KILL_GRACE_MS).unref();
+  }
+
+  private signalGroup(signal: NodeJS.Signals) {
     try {
-      if (this.p.pid && process.platform !== 'win32') process.kill(-this.p.pid, 'SIGTERM');
-      else this.p.kill('SIGTERM');
+      if (this.p.pid && process.platform !== 'win32') process.kill(-this.p.pid, signal);
+      else this.p.kill(signal);
     } catch { /* 이미 끝났다 */ }
   }
 }
