@@ -18,6 +18,12 @@ export const FOLDED_KEYS = [
   'busySince', 'workMs', 'showFinal', 'toasts',
 ] as const;
 
+/**
+ * 이벤트에서 나오지만 U1(Conductor 프로토콜)에서 새로 생긴 상태. 옛 기록에는 이 상태를 만드는 이벤트가 없으므로
+ * 스냅샷(U0a 때의 스토어)에 넣지 않고, 데모를 접은 뒤에도 처음 값 그대로인지 따로 확인한다.
+ */
+export const NEW_FOLDED_KEYS = { tasks: {}, settled: null } as const;
+
 /** 이벤트와 상관없는 것: 서버가 알려 주는 값, 화면 설정, 열린 창. 스토어에 키가 늘면 둘 중 하나로 분류해야 한다. */
 export const UI_KEYS = [
   'connection', 'claude', 'dir', 'settings', 'quota', 'missions', 'replaying', 'viewer', 'modal', 'versions', 'teamHistory',
@@ -31,10 +37,15 @@ export const DEMO_PATH = new URL('../../public/demo/mission.json', import.meta.u
 let folded: ReturnType<typeof fold> | null = null;
 export const foldDemo = () => (folded ??= fold());
 
-async function fold() {
+/** 클라이언트 스토어 모듈을 Node에서 불러온다(프로세스당 하나). */
+export async function loadStore<M = Record<string, unknown>>() {
   (globalThis as { AudioContext?: unknown }).AudioContext ??= class {};
   const storeUrl = new URL('../../src/state/store.ts', import.meta.url).href;
-  const { useOffice } = (await import(storeUrl)) as { useOffice: Store };
+  return (await import(storeUrl)) as { useOffice: Store } & M;
+}
+
+async function fold() {
+  const { useOffice } = await loadStore();
   const demo = JSON.parse(readFileSync(DEMO_PATH, 'utf8')) as { mission: MissionInfo; log: Logged[] };
 
   // 다시 보기(playReplay)와 같은 순서. 시각은 기록된 시각 그대로, live=false:
@@ -47,6 +58,8 @@ async function fold() {
   const state = useOffice.getState();
   const picked: Record<string, unknown> = {};
   for (const k of FOLDED_KEYS) picked[k] = state[k];
+  const added: Record<string, unknown> = {};
+  for (const k of Object.keys(NEW_FOLDED_KEYS)) added[k] = state[k];
   // JSON을 거치면 함수와 undefined가 빠져서 파일과 같은 모양이 된다
-  return { snapshot: JSON.parse(JSON.stringify(picked)) as unknown, keys: Object.keys(state), events: demo.log.length };
+  return { snapshot: JSON.parse(JSON.stringify(picked)) as unknown, added, keys: Object.keys(state), events: demo.log.length };
 }
