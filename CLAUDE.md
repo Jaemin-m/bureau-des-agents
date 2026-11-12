@@ -20,7 +20,7 @@ Node 22.18 이상은 서버의 TypeScript를 바로 실행한다(타입 제거).
 ## 구조
 
 - **`server/`**: `index.ts`(HTTP, WebSocket, 보안), `bureau.ts`(미션, 파일, 버전, 기록),
-  `claude.ts`(`claude -p`를 stream-json으로 실행하고 출력을 사무실 이벤트로 바꾼다), `team.ts`(직무와 지시문).
+  `agents/`(`adapter.ts` = CLI에 중립인 경계, `claude.ts` = `claude -p`를 stream-json으로 실행하고 출력을 신호와 사무실 이벤트로 바꾼다, `registry.ts`가 어댑터를 가져오는 유일한 곳), `team.ts`(직무와 지시문).
 - **`shared/protocol.ts`**: 서버와 브라우저 사이의 모든 메시지와 이벤트(`OfficeEvent`): `start`, `hire`,
   `act`, `report`, `leave`, `file`, `ask`, `end`… **`shared/activity.ts`**: 직무, 직무별 도구, 화면에 나오는 문구.
 - **`src/state/store.ts`**(zustand)가 이벤트를 하나씩 정리해 엔진에 넘긴다(`src/state/bus.ts` → `src/engine/world.ts`).

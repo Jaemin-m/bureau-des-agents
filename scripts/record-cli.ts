@@ -15,7 +15,8 @@ import os from 'node:os';
 import path from 'node:path';
 import readline from 'node:readline';
 import { Bureau } from '../server/bureau.ts';
-import { findClaude } from '../server/claude.ts';
+import { findClaude } from '../server/agents/claude.ts';
+import { adapterFor } from '../server/agents/registry.ts';
 
 type Json = Record<string, any>;
 
@@ -133,7 +134,7 @@ interface RawLine { dir: string; line: string }
 
 /**
  * claude가 보내는 줄에서 사용자 개인 환경이 실린 값을 비운다: 설치된 스킬, 슬래시 명령, 플러그인 목록(제한 모드에서도 나온다)과 자격 증명 만료 시각.
- * Normalizer는 이 값들을 읽지 않는다.
+ * 레거시 번역기는 이 값들을 읽지 않는다.
  */
 function redactClaudeLine(rawLine: string): string {
   // 생각 블록의 서명은 알아볼 수 없는 긴 암호문이다
@@ -330,7 +331,7 @@ function cleanEnv(): NodeJS.ProcessEnv {
 // ── claude ──
 interface ClaudeOpts { permissionMode: string; tools: string[]; allowedTools?: string[]; mcpConfig?: string }
 
-/** server/claude.ts와 같은 옵션(팀과 지시문은 시험에 맞게 줄였고 모델은 haiku). */
+/** server/agents/claude.ts의 claudeArgv와 같은 옵션(팀과 지시문은 시험에 맞게 줄였고 모델은 haiku). */
 function claudeArgs(o: ClaudeOpts) {
   const args = ['-p', '--input-format', 'stream-json', '--output-format', 'stream-json', '--verbose',
     '--include-partial-messages', '--permission-prompt-tool', 'stdio', '--permission-mode', o.permissionMode,
@@ -475,8 +476,8 @@ async function claudeReal(ctx: Ctx) {
     const tmp = realpathSync(mkdtempSync(path.join(ctx.scratch, 'claude-real-')));
     const recDir = path.join(tmp, 'rec');
     process.env.BUREAU_RECORD = recDir;
-    const bin = await findClaude();
-    if (!bin) throw new Error('claude를 찾지 못했다');
+    const bin = await adapterFor('claude').probe();
+    if (!bin.found) throw new Error('claude를 찾지 못했다');
     let resolveDone: () => void = () => {};
     const done = new Promise<void>((r) => { resolveDone = r; });
     const asked: string[] = [];
@@ -493,9 +494,8 @@ async function claudeReal(ctx: Ctx) {
     const cur = bureau.current!;
     const folder = cur.mission.folder;
     const status = cur.mission.status;
-    cur.live?.proc.kill();
+    cur.live?.lead.session.kill();
     for (let i = 0; i < 150 && cur.live; i++) await new Promise((r) => setTimeout(r, 20));
-    if (cur.live) cur.live.stopping = true;
     bureau.close();
     await cur.writes;
     delete process.env.BUREAU_RECORD;
