@@ -7,7 +7,10 @@ import { camera, director, renderer, timeOfDay, world } from '../engine/instance
 import { hitAt, type Hit } from '../engine/hits.ts';
 import { jukebox } from '../audio/music.ts';
 import { interact } from './interact.ts';
-import { H, W } from '../engine/layout.ts';
+import { H, W, ZONES } from '../engine/layout.ts';
+import { textWidth } from '../engine/font.ts';
+import { SIGN, SIGN_H, signPos } from '../engine/room.ts';
+import { isResting } from '../engine/seating.ts';
 import { sfx } from '../audio/sfx.ts';
 import { openAsks, useOffice, type AskView } from '../state/store.ts';
 
@@ -20,6 +23,29 @@ export const perf = { frames: 0, ms: 0 };
 
 /** 로봇에 붙은 말풍선: React를 거치지 않고 매 장면 위치를 옮긴다. */
 const bubbleEls = new Map<string, HTMLElement>();
+
+/** 구역 간판이 차지하는 자리(월드 픽셀). 간판 끝에 붙는 일꾼 수(“ 4”)까지 넉넉하게 잡는다. */
+const SIGN_RECTS = ZONES.map((z) => ({ ...signPos(z), w: textWidth(SIGN[z.role] ?? z.label) + 14, h: SIGN_H }));
+
+/** 앉아 있는 로봇의 이름표가 간판을 가리면, 이름표를 발 아래(책상 위)로 내릴 만큼(화면 픽셀). 안 가리면 0. */
+function tagDrop(el: HTMLElement, tag: HTMLElement, x: number, y: number, scale: number): number {
+  const w = tag.offsetWidth / scale;
+  const h = tag.offsetHeight / scale;
+  const left = x / scale - w / 2;
+  const bottom = y / scale - 4 / scale;
+  const top = bottom - h;
+  const hit = SIGN_RECTS.some((r) => left < r.x + r.w && left + w > r.x && top < r.y + r.h && bottom > r.y);
+  return hit ? 19 * scale + 6 + tag.offsetHeight : 0;
+}
+
+/** 마우스가 올라간 로봇: 쉬는 로봇의 이름표는 이때만 보인다. */
+let hoverId: string | null = null;
+function markHover(id: string | null) {
+  if (id === hoverId) return;
+  if (hoverId) bubbleEls.get(hoverId)?.classList.remove('hover');
+  hoverId = id;
+  if (id) bubbleEls.get(id)?.classList.add('hover');
+}
 
 function placeBubbles(scale: number) {
   const stageW = W * scale;
@@ -43,6 +69,8 @@ function placeBubbles(scale: number) {
       else if (x + half > stageW - 4) dx = stageW - 4 - (x + half);
     }
     el.style.setProperty('--dx', `${Math.round(dx)}px`);
+    const tag = b?.classList.contains('tag') ? b : null;
+    el.style.setProperty('--tdy', `${tag && seated && !a.moving ? Math.round(tagDrop(el, tag, x, y, scale)) : 0}px`);
   }
 }
 
@@ -151,6 +179,7 @@ export function Office() {
     const p = toWorld(e);
     const h = hitAt(world, p.x, p.y);
     hover.current = h;
+    markHover(h?.kind === 'actor' ? h.id : null);
     const el = tip.current;
     if (!el || !wrap.current) return;
     if (!h || useOffice.getState().filming) { el.style.opacity = '0'; wrap.current.style.cursor = ''; return; }
@@ -160,7 +189,7 @@ export function Office() {
     el.style.transform = `translate(${Math.round(e.clientX - r.left + 14)}px, ${Math.round(e.clientY - r.top + 16)}px)`;
     wrap.current.style.cursor = 'pointer';
   };
-  const onLeave = () => { if (tip.current) tip.current.style.opacity = '0'; hover.current = null; };
+  const onLeave = () => { if (tip.current) tip.current.style.opacity = '0'; hover.current = null; markHover(null); };
   const onClick = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest('.bubble.ask')) return;
     const p = toWorld(e);
@@ -209,6 +238,8 @@ interface View {
   text?: string;
   icon?: string;
   ask?: AskView;
+  /** 소파나 커피 머신 앞에서 쉬는 중: 이름표는 마우스를 올릴 때만 보인다 */
+  rest?: boolean;
 }
 
 /** 더 짧은 말풍선. 프랑스어로 녹화된 옛 미션의 « » 인용은 “:” 뒤로 옮긴다(한국어 문구는 그대로). */
@@ -272,12 +303,13 @@ function Bubbles() {
       return { ...base, mode: filming ? 'none' : 'tag' };
     }
     if (!a || !actor) return { ...base, mode: 'none' };
+    const rest = actor.managed && !actor.moving && isResting({ phase: actor.phase ?? 'working', parked: actor.parked });
     // 걷는 중: 이름만(보고서를 들고 가면 종이 아이콘도)
-    if (actor.moving || !actor.seated) return { ...base, mode: 'tag', icon: actor.carrying ? '📄' : undefined };
+    if (actor.moving || !actor.seated) return { ...base, mode: 'tag', icon: actor.carrying ? '📄' : undefined, rest };
     if (a.act && now - a.act.at < 7000) {
       return fresh.has(id) ? { ...base, mode: 'full', text: short(a.act.label), icon: ICON[a.act.kind] } : { ...base, mode: 'icon', icon: ICON[a.act.kind] };
     }
-    return { ...base, mode: filming ? 'none' : 'tag' };
+    return { ...base, mode: filming ? 'none' : 'tag', rest };
   };
 
   return <>{ids.map((id) => <Bubble key={id} id={id} v={view(id)} />)}</>;
@@ -312,7 +344,7 @@ function Bubble({ id, v }: { id: string; v: View }) {
     else bubbleEls.delete(id);
   }, [id]);
   return (
-    <div className={`bubble-anchor ${id === 'chef' ? 'is-chef' : ''}`} ref={ref} style={{ ['--c' as string]: v.color }}>
+    <div className={`bubble-anchor ${id === 'chef' ? 'is-chef' : ''}`} ref={ref} data-rest={v.rest ? '1' : '0'} style={{ ['--c' as string]: v.color }}>
       {v.mode === 'ask' && v.ask ? <AskBubble ask={v.ask} name={v.name} />
         : v.mode === 'full' ? (
           <div className="bubble">
