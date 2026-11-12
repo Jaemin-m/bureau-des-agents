@@ -14,11 +14,14 @@ import { countStats, emptyStats } from '../shared/activity.ts';
 import type { AgentInfo, AgentKind, ClaudeInfo, FileInfo, Logged, MissionInfo, OfficeEvent, Quota, Role, ServerMsg, Settings, TeamEntry, VersionInfo } from '../shared/protocol.ts';
 import type { AdapterProbe } from './agents/adapter.ts';
 import { loadSaved, reapOrphans } from './conductor/boot.ts';
+import { LEAD_LENS } from './conductor/dag.ts';
 import type { LeadMcp } from './conductor/lead-mcp.ts';
 import { LEAD, type Limits } from './conductor/model.ts';
 import { leadPrompt } from './conductor/prompts.ts';
 import { Conductor, type ConductorDeps, type UserInput } from './conductor/shell.ts';
 import { openRecorder, type Recorder } from './record.ts';
+import { resolveInside } from './roots.ts';
+import { changedFiles, checkRepo, provision, reconcile, retire, type RepoCheck } from './workspaces.ts';
 
 const RULES_FILE = '사무실 규칙.md';
 
@@ -80,7 +83,14 @@ interface Current {
   rec: Recorder | null;
   /** 기록 파일 쓰기를 한 줄로 잇는다. 따로 쏘면 줄 순서가 뒤바뀌어 다시 보기가 틀어진다 */
   writes: Promise<void>;
+  /** 저장소 미션만: 작업 폴더의 바뀐 파일을 git status로 살핀다(node_modules가 있는 저장소를 fs.watch로 통째로 보지 않는다) */
+  poll: NodeJS.Timeout | null;
+  polling: boolean;
+  /** 마지막으로 살핀 시각. 미션이 쉬기 시작한 뒤에도 한 번은 더 살핀다 */
+  polledAt: number;
 }
+
+const POLL_MS = 1200;
 
 export interface BureauOptions {
   /** 깔린 CLI마다 어댑터의 probe 결과 */
@@ -162,7 +172,16 @@ export class Bureau {
       m.status = 'stopped';
       const saved = loadSaved(this.stateFileOf(m.id));
       if (saved) await reapOrphans(Object.values(saved.procs));
+      // 저장소 미션의 작업 폴더는 지우지 않는다: 주인 없는 폴더만 옆으로 옮기고, 사라진 폴더의 기록을 정리한다
+      if (saved?.repo) await reconcile({ id: m.id, repo: saved.repo }).catch(() => {});
     }
+  }
+
+  /** 사용자가 고른 저장소를 확인한다. 미션을 바꾸지 않고 기록하지도 않는다. */
+  async repoCheck(userPath: string): Promise<RepoCheck> {
+    const p = userPath.trim();
+    const abs = p === '~' || p.startsWith('~/') ? path.join(os.homedir(), p.slice(1)) : p;
+    return checkRepo(abs, { dir: this.dir, home: os.homedir() });
   }
 
   private stateFileOf(missionId: string) { return path.join(this.recDir, `${missionId}.state.json`); }
@@ -205,11 +224,23 @@ export class Bureau {
   private mission(id: string) { return this.state.missions.find((m) => m.id === id) ?? null; }
 
   // ── 새 미션 ──
-  async start(prompt: string) {
+  /** 새 미션. target.repo가 있으면 그 git 저장소에서 일한다(사용자의 체크아웃은 건드리지 않는다). */
+  async start(prompt: string, target?: { repo: string }) {
     const text = prompt.trim();
     if (!text) throw new Error('맥스에게 원하는 걸 말해 주세요.');
     if (!this.installed.includes('claude')) throw new Error('이 컴퓨터에 Claude Code가 설치되어 있지 않아요.');
     if (this.current?.mission.status === 'working') throw new Error('팀이 이미 미션을 하고 있어요. 끝날 때까지 기다리거나 멈춰 주세요.');
+
+    const id = 'm' + Date.now().toString(36);
+    let repo: ConductorDeps['repo'];
+    if (target) {
+      const check = await this.repoCheck(target.repo);
+      if (!check.ok) throw new Error(check.why);
+      const mission = { id, repo: check.repo };
+      const lens = await provision({ mission, task: LEAD_LENS, access: 'read', upstream: [] });
+      if (lens.kind !== 'ready' || lens.ref.kind !== 'lens') throw new Error('맥스가 저장소를 읽을 폴더를 준비하지 못했어요.');
+      repo = { mission, lead: lens.ref };
+    }
     if (this.current) await this.close();
 
     const now = new Date();
@@ -219,34 +250,38 @@ export class Bureau {
     for (let n = 2; existsSync(folder); n++) folder = path.join(this.missionsDir, cleanName(`${stamp} · ${title.replace(/…$/, '')} ${n}`).slice(0, 90));
     await mkdir(folder, { recursive: true });
 
+    const r = repo?.mission.repo;
     const mission: MissionInfo = {
-      id: 'm' + Date.now().toString(36), title, prompt: text, folder, createdAt: Date.now(), workMs: 0,
-      status: 'working', stats: emptyStats(), files: [], target: { kind: 'folder' },
+      id, title, prompt: text, folder, createdAt: Date.now(), workMs: 0,
+      status: 'working', stats: emptyStats(), files: [], target: r ? { kind: 'repo', label: r.label, baseBranch: r.baseBranch } : { kind: 'folder' },
     };
     this.state.missions.push(mission);
     if (this.state.missions.length > MAX_MISSIONS) this.state.missions.splice(0, this.state.missions.length - MAX_MISSIONS);
     this.save();
     const cur: Current = {
       mission, log: [], conductor: null, watcher: null, fileTimers: new Map(), busySince: Date.now(), writers: new Map(), spans: new Map(),
-      rec: openRecorder(mission.id), writes: Promise.resolve(),
+      rec: openRecorder(mission.id), writes: Promise.resolve(), poll: null, polling: false, polledAt: 0,
     };
     this.current = cur;
     this.watch(cur);
+    if (repo) cur.poll = setInterval(() => void this.pollWorktrees(cur), POLL_MS);
     this.broadcast({ t: 'mission', mission });
     try {
-      cur.conductor = Conductor.create(this.deps(cur), text);
+      cur.conductor = Conductor.create(this.deps(cur, repo), text);
     } catch (e) {
+      if (repo) await retire(repo.lead);
       this.settleMission(cur, 'error');
       throw e;
     }
     this.sync(cur);
   }
 
-  private deps(cur: Current): ConductorDeps {
+  private deps(cur: Current, repo: ConductorDeps['repo']): ConductorDeps {
     const m = cur.mission;
     const rec = cur.rec;
+    const r = repo?.mission.repo;
     return {
-      missionId: m.id, folder: m.folder, stateFile: this.stateFileOf(m.id),
+      missionId: m.id, folder: m.folder, stateFile: this.stateFileOf(m.id), ...(repo ? { repo } : {}),
       emit: (ev) => this.onEvent(cur, ev),
       journal: (line) => {
         const file = path.join(this.recDir, `${m.id}.journal.txt`);
@@ -258,7 +293,7 @@ export class Bureau {
         const s = this.settings;
         return { autonomy: s.permission === 'ask' ? 'ask' : 'auto', chefModel: s.chefModel, teamModel: s.teamModel, codexModel: s.codexModel ?? '' };
       },
-      leadPrompt: () => leadPrompt(readRules(this.dir), this.installed),
+      leadPrompt: () => leadPrompt(readRules(this.dir), this.installed, r ? { label: r.label, baseBranch: r.baseBranch } : undefined),
       leadMcp: this.leadMcp, mcpBase: this.mcpBase,
       ...(this.limits ? { limits: this.limits } : {}),
       ...(rec ? { tap: (kind: AgentKind) => rec.session(kind) } : {}),
@@ -289,6 +324,30 @@ export class Bureau {
 
   /** 멈춘 일꾼과 맥스를 모두 다시 일하게 한다. */
   resume() { this.send({ k: 'user_resume' }); }
+
+  private conductor(): Conductor {
+    const c = this.current?.conductor;
+    if (!c) throw new Error('먼저 미션을 시작해 주세요.');
+    return c;
+  }
+
+  /** 지금 합칠 수 있으면 null, 아니면 그 이유. 사용자의 체크아웃을 바꾸지 않는다. */
+  mergeCheck(taskKey: string): Promise<string | null> { return this.conductor().mergeCheck(taskKey); }
+
+  /** 사용자가 브라우저에서 누른 “합치기”. 맥스에게는 없는 길이다. */
+  async merge(taskKey: string): Promise<string> {
+    const r = await this.conductor().merge(taskKey);
+    if (!r.ok) throw new Error(r.error);
+    return r.text ?? '합쳤어요.';
+  }
+
+  /** “버리기”: 브랜치를 지우지 않고 보관 ref로 옮긴다. */
+  async discard(taskKey: string): Promise<string> {
+    const r = await this.conductor().discard(taskKey);
+    if (this.current) this.sync(this.current);
+    if (!r.ok) throw new Error(r.error);
+    return r.text ?? '버렸어요.';
+  }
 
   private onEvent(cur: Current, ev: OfficeEvent) {
     const m = cur.mission;
@@ -354,17 +413,32 @@ export class Bureau {
     } catch { cur.watcher = null; }
   }
 
-  private async fileChanged(cur: Current, rel: string) {
+  /** 저장소 미션: 일꾼마다 자기 작업 폴더에서 바뀐 파일. 작업 폴더에는 일꾼이 한 명뿐이라 누가 썼는지가 정확하다. */
+  private async pollWorktrees(cur: Current) {
+    const c = cur.conductor;
+    if (!c || cur.polling || this.current !== cur) return;
+    if (cur.mission.status !== 'working' && cur.polledAt > (cur.mission.endedAt ?? 0)) return;
+    cur.polling = true;
+    try {
+      cur.polledAt = Date.now();
+      for (const { who, ref, upstream } of c.workspaces()) {
+        if (who === LEAD || ref.kind !== 'branch') continue;
+        for (const rel of await changedFiles(ref, upstream)) await this.fileChanged(cur, `${ref.task}/${rel}`, who);
+      }
+    } finally { cur.polling = false; }
+  }
+
+  private async fileChanged(cur: Current, rel: string, by?: string) {
     if (this.current !== cur) return;
-    const abs = path.join(cur.mission.folder, rel);
-    const st = await stat(abs).catch(() => null);
-    if (!st || !st.isFile()) return;
+    const abs = await this.resolve(cur.mission.id, rel);
+    const st = abs ? await stat(abs).catch(() => null) : null;
+    if (!abs || !st || !st.isFile()) return;
     const files = cur.mission.files;
     const i = files.findIndex((f) => f.path === rel);
     if (i >= 0 && files[i].size === st.size && files[i].at === st.mtimeMs) return;
     const file: FileInfo = {
       path: rel, name: path.basename(rel), ext: path.extname(rel).slice(1).toLowerCase(), size: st.size, at: st.mtimeMs,
-      by: cur.writers.get(abs) ?? workingAt(cur.spans, st.mtimeMs) ?? (i >= 0 ? files[i].by : 'chef'),
+      by: by ?? cur.writers.get(abs) ?? workingAt(cur.spans, st.mtimeMs) ?? (i >= 0 ? files[i].by : 'chef'),
     };
     if (i >= 0) files[i] = file; else files.push(file);
     this.record(cur, { k: 'file', file, isNew: i < 0 });
@@ -386,7 +460,7 @@ export class Bureau {
 
   /** 결과물의 버전 목록, 최신순. */
   async versions(missionId: string, file: string): Promise<VersionInfo[]> {
-    this.inside(missionId, file);
+    await this.inside(missionId, file);
     const dir = path.join(this.verDir, missionId, versionDirName(file));
     const names = await readdir(dir).catch(() => [] as string[]);
     const out: VersionInfo[] = [];
@@ -399,13 +473,20 @@ export class Bureau {
     return out.sort((a, b) => b.at - a.at);
   }
 
-  /** 사이트 미리보기용 미션 파일 경로(폴더 밖이면 null). */
-  previewPath(missionId: string, rel: string): string | null {
+  /**
+   * 미션 파일의 진짜 경로(링크를 모두 따라간 뒤), 닿을 수 없으면 null. 닿을 수 있는 곳은 정해진 뿌리뿐이다:
+   * 미션 폴더, 그리고 지금 미션의 살아 있는 작업 폴더(경로 앞이 할 일 키, 예: code-a/src/app.ts).
+   */
+  async resolve(missionId: string, rel: string): Promise<string | null> {
     const m = this.mission(missionId);
-    if (!m) return null;
-    const target = path.resolve(m.folder, rel);
-    if (!target.startsWith(m.folder + path.sep) || !existsSync(target)) return null;
-    return target;
+    if (!m || !rel) return null;
+    const cur = this.current;
+    if (cur?.mission.id === missionId) {
+      const [head, ...rest] = rel.split('/');
+      const ws = cur.conductor?.workspaces().find((w) => w.who !== LEAD && w.ref.task === head);
+      if (ws && rest.length) return resolveInside([ws.ref.path], rest.join('/'));
+    }
+    return resolveInside([m.folder], rel);
   }
 
   /** 사무실에 다녀간 모든 에이전트, 미션별(최신 미션 먼저). */
@@ -457,6 +538,7 @@ export class Bureau {
     this.current = null;
     for (const t of cur.fileTimers.values()) clearTimeout(t);
     cur.watcher?.close();
+    if (cur.poll) clearInterval(cur.poll);
     // close()의 동기 부분이 leave와 end를 내고 프로세스에 끝내라고 보낸다. 그 뒤는 프로세스가 사라지기를 기다릴 뿐이다
     const released = cur.conductor?.close();
     this.broadcast({ t: 'closed', missionId: cur.mission.id });
@@ -465,19 +547,19 @@ export class Bureau {
     await cur.writes;
   }
 
-  /** 미션 파일의 경로(폴더 밖이면 거부). */
-  private inside(missionId: string, file?: string) {
+  /** 미션 파일의 경로(닿을 수 없는 곳이면 거부). */
+  private async inside(missionId: string, file?: string) {
     const m = this.mission(missionId);
     if (!m) throw new Error('이 미션은 더 이상 없어요.');
     if (!file) return { m, target: m.folder };
-    const target = path.resolve(m.folder, file);
-    if (!target.startsWith(m.folder + path.sep) || !existsSync(target)) throw new Error('이 파일은 미션 폴더 안에 없어요.');
+    const target = await this.resolve(missionId, file);
+    if (!target) throw new Error('이 파일은 미션 폴더 안에 없어요.');
     return { m, target };
   }
 
   /** 미션 폴더(또는 그 안의 파일)를 기본 앱으로 연다. */
-  open(missionId: string, file?: string) {
-    const { target } = this.inside(missionId, file);
+  async open(missionId: string, file?: string) {
+    const { target } = await this.inside(missionId, file);
     const opener = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'explorer' : 'xdg-open';
     execFile(opener, [target], () => {});
   }
@@ -492,7 +574,7 @@ export class Bureau {
 
   /** 결과물(보고서, CSV…)의 텍스트. 사무실 안에서 읽을 때 쓴다. */
   async readText(missionId: string, file: string, version?: string) {
-    let { target } = this.inside(missionId, file);
+    let { target } = await this.inside(missionId, file);
     if (version) {
       if (!/^\d+__[\w-]*(\.[\w-]+)?$/.test(version)) throw new Error('알 수 없는 버전이에요.');
       target = path.join(this.verDir, missionId, versionDirName(file), version);
@@ -538,6 +620,7 @@ export class Bureau {
     const cur = this.current;
     if (cur) {
       cur.watcher?.close();
+      if (cur.poll) clearInterval(cur.poll);
       void cur.conductor?.close();
     }
     if (this.saveTimer) { clearTimeout(this.saveTimer); this.saveTimer = null; }

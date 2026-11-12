@@ -126,6 +126,10 @@ interface S {
   draft: string;
   /** 입력창의 받는 일꾼(그 일꾼의 id). null = 맥스. 없는 일꾼이면 맥스로 본다(recipientOf) */
   recipient: string | null;
+  /** 시작 입력창에서 고른 저장소를 서버가 확인한 답(repo_check → repo_info). 기록되지 않는다 */
+  repoInfo: Extract<ServerMsg, { t: 'repo_info' }> | null;
+  /** 할 일의 브랜치를 지금 합칠 수 있는지(merge_check → merge_info). 키 = 할 일 키 */
+  mergeInfo: Record<string, { ok: boolean; why?: string }>;
   toasts: Toast[];
   send: (m: ClientMsg) => void;
   receive: (m: ServerMsg) => void;
@@ -197,6 +201,8 @@ export const useOffice = create<S>((set, get) => ({
   tod: pref<Tod>('tod', 'auto'),
   draft: '',
   recipient: null,
+  repoInfo: null,
+  mergeInfo: {},
   toasts: [],
   send: () => {},
 
@@ -209,7 +215,7 @@ export const useOffice = create<S>((set, get) => ({
   resetMission: (m) => {
     set({
       mission: m, chef: emptyChef(), agents: {}, order: [], plan: [], files: [], asks: {}, tasks: {}, settled: null, stats: emptyStats(),
-      feed: [], final: null, busySince: null, workMs: 0, showFinal: false, planHistory: [], recipient: null,
+      feed: [], final: null, busySince: null, workMs: 0, showFinal: false, planHistory: [], recipient: null, mergeInfo: {},
     });
     bus.reset();
   },
@@ -262,6 +268,12 @@ export const useOffice = create<S>((set, get) => ({
         break;
       case 'replay':
         // 재생기(net/replay.ts)가 처리한다
+        break;
+      case 'repo_info':
+        set({ repoInfo: m });
+        break;
+      case 'merge_info':
+        set({ mergeInfo: { ...s.mergeInfo, [m.taskKey]: { ok: m.ok, ...(m.why ? { why: m.why } : {}) } } });
         break;
     }
   },

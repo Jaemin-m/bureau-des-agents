@@ -33,6 +33,10 @@ export interface TaskResult {
   del?: number;
   mergeable?: 'clean' | 'conflict' | 'unknown';
   merged?: boolean;
+  /** 사용자가 버렸다: 브랜치는 지우지 않고 보관 ref(refs/bureau/archive/…)로 옮겼다 */
+  archived?: boolean;
+  /** 이 브랜치에서 일한 일꾼의 id */
+  by?: string;
 }
 
 /**
@@ -171,6 +175,8 @@ export type ClientMsg =
   /** 저장소 경로를 확인한다. 답(repo_info)은 기록되지 않는다 */
   | { t: 'repo_check'; path: string }
   | { t: 'merge'; taskKey: string }
+  /** 지금 합칠 수 있는지 묻는다. 답(merge_info)은 기록되지 않는다 */
+  | { t: 'merge_check'; taskKey: string }
   /** 브랜치를 지우지 않고 보관 ref로 옮긴다 */
   | { t: 'discard_branch'; taskKey: string }
   | { t: 'answer'; requestId: string; allow: boolean }
@@ -199,4 +205,6 @@ export type ServerMsg =
   | { t: 'settings'; settings: Settings }
   | { t: 'toast'; kind: 'info' | 'error'; text: string }
   /** repo_check의 답. 미션 상태를 바꾸지 않고 기록되지도 않는다 */
-  | { t: 'repo_info'; path: string; ok: boolean; label?: string; branch?: string; dirty?: boolean; why?: string };
+  | { t: 'repo_info'; path: string; ok: boolean; label?: string; branch?: string; dirty?: boolean; why?: string }
+  /** merge_check의 답: 사용자의 체크아웃이 기준 브랜치에 있고, 깨끗하고, 충돌이 없으면 ok. 아니면 why(한국어) */
+  | { t: 'merge_info'; taskKey: string; ok: boolean; why?: string };

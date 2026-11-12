@@ -28,7 +28,15 @@ Node 22.18 이상은 서버의 TypeScript를 바로 실행한다(타입 제거).
   - `conductor/`: 미션 하나의 진행자. `model.ts`(상태), `dag.ts`(계획 검사, 할 일 상태), `step.ts`(순수 코어: 입력 하나 → 새 상태, 이벤트, 효과),
     `text.ts`(맥스를 깨우는 글, 일꾼의 handback 블록 읽기), `prompts.ts`(맥스와 일꾼의 지시문), `lead-mcp.ts`(맥스의 도구 `office_plan`,
     `office_message`, `office_cancel`, `office_status`), `shell.ts`(효과를 실행하고 어댑터의 신호를 코어에 넣는 셸, 상태 저장), `boot.ts`(재시작 때 남은 프로세스 정리).
-  - `workspaces.ts`, `roots.ts`: git worktree와 안전한 경로(저장소 미션용, 아직 연결하지 않음).
+  - `workspaces.ts`(git을 부르는 유일한 곳: 저장소 확인, worktree 준비, 보관 커밋, 정리, 보관 ref, 합치기), `roots.ts`(`resolveInside`: 읽기와
+    미리보기가 닿을 수 있는 뿌리 밖으로 나가는 경로를 링크까지 따라가서 거부).
+- **저장소 미션**: 입력창에서 "코드 저장소"를 고르면 `repo_check`가 `checkRepo`로 확인하고 `repo_info`(이름, 기준 브랜치, 거절 이유)로 답한다(기록 안 함).
+  `start.target`이 있으면 맥스는 기준 커밋의 읽기 렌즈(`<worktrees>/<미션>/lead`)에서, 쓰는 할 일은 `bureau/<미션>/<할 일>` 브랜치의 자기 worktree에서,
+  읽는 할 일은 자기 렌즈에서 일한다(기본 `~/.bureau-des-agents/worktrees`, `BUREAU_WORKTREES`). 뒤 할 일은 앞 할 일의 브랜치에서 시작한다.
+  커밋은 사무실이 턴 끝과 놓아줄 때 한다(`.env*`, `*.pem`, `*.key`, `id_rsa*`, 5MB 넘는 파일은 빼고 일꾼 카드에 알린다). 셸은 git 일을 한 줄로 세운다.
+  끝난 할 일의 `task.run.result`에 브랜치, 바뀐 양, 합칠 수 있는지가 실린다. "합치기"(`merge`)와 "버리기"(`discard_branch`, 보관 ref
+  `refs/bureau/archive/…`로 옮김)는 사용자만 브라우저에서 누른다. 맥스에게는 그런 도구가 없다. 사용자의 체크아웃은 합치기 말고는 건드리지 않는다.
+  작업 폴더의 파일은 `git status` 폴링으로 보고 `file.path`는 `<할 일 키>/<경로>`다. 이벤트에는 브랜치 이름과 저장소 이름만 싣는다.
 - **미션 하나가 도는 법**: 브라우저의 `start`가 `Bureau.start`로 미션 폴더를 만들고 `Conductor.create`를 부른다. 진행자가 맥스(claude)를
   띄우고, 맥스는 MCP의 `office_plan`으로 할 일(직무, CLI, 의존 관계)을 보내고 턴을 끝낸다. 진행자가 준비된 할 일마다 일꾼을 고용해
   자기 프로세스로 띄우고(같은 미션 폴더, 직무의 도구만, MCP 없음), 일꾼은 마지막 답의 `handback` 블록으로 끝냄·질문·막힘을 알린다.
@@ -55,8 +63,8 @@ Node 22.18 이상은 서버의 TypeScript를 바로 실행한다(타입 제거).
 `npm test`는 가짜 CLI(`tests/support/fake-agent.ts`, 대본대로 말한다)로 진짜 어댑터, 진행자, 서버를 돌린다. `tests/office-server.test.ts`는
 `server/index.ts`를 자식 프로세스로 띄우고 WebSocket으로 미션 하나를 끝까지 돌린다.
 `node scripts/e2e-office.ts`는 같은 진짜 서버와 진짜 화면을 헤드리스 Chrome(CDP)으로 조작한다(질문 카드 답하기, 일꾼 카드로 이어서 시키기,
-일꾼 하나만 멈추기, 미션 멈추기와 이어서 하기, 맥스가 시작하지 못할 때의 오류와 이어서 하기). 한 걸음씩 출력하고 실패하면 0이 아닌 코드로
-끝난다. 스크린샷은 `--shots <폴더>`에 남는다. CI 테스트가 아니다(Chrome이 필요하고 클라이언트를 빌드한다).
+일꾼 하나만 멈추기, 미션 멈추기와 이어서 하기, 맥스가 시작하지 못할 때의 오류와 이어서 하기, 임시 저장소를 골라 브랜치 카드에서 합치기). 한 걸음씩 출력하고 실패하면 0이 아닌 코드로
+끝난다. 스크린샷은 `--shots <폴더>`에 남고, `--only office|lead|repo`로 한 부분만 돌린다. CI 테스트가 아니다(Chrome이 필요하고 클라이언트를 빌드한다).
 녹화한 미션은 똑같이 다시 재생된다(`H`, 그다음 "다시 재생"). 서버가 없으면 사무실은 데모 모드가 된다. 브라우저 콘솔에서
 `window.__bureau`로 store, 세계, 카메라, `playReplay(mission, log, speed)`에 접근할 수 있다.
 사무실을 한 장면씩 촬영하려면(시계를 조종하는 캡처 스크립트) `window.__CAPTURE`가 매 장면을 그리게 하고 음악 박자를 준다

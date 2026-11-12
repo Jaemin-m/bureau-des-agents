@@ -1,7 +1,7 @@
 // 함수형 코어. step(state, input, ctx) = apply(input) 다음 converge(state). 파일, 타이머, 프로세스, 시계가 없다.
 // converge는 상태만 보고 할 일을 정하고(레벨 트리거), 낸 효과를 상태에 적어 두어 다시 돌려도 같은 효과를 두 번 내지 않는다.
 // 그래서 재시작은 "state.json을 읽고 boot를 넣고 converge가 내는 효과를 실행"이 전부다.
-import type { AgentKind, OfficeEvent, PlanItem } from '../../shared/protocol.ts';
+import type { AgentKind, OfficeEvent, PlanItem, TaskResult } from '../../shared/protocol.ts';
 import { NAMES, ROLES, cut } from '../../shared/activity.ts';
 import { taskStatus } from '../../shared/tasks.ts';
 import { type PlanSpec, validatePlan } from './dag.ts';
@@ -30,14 +30,19 @@ export type Effect =
   | { k: 'send_turn'; key: string; who: Who; gen: number; turn: string }
   | { k: 'answer_approval'; key: string; who: Who; gen: number; approvalId: string; allow: boolean }
   | { k: 'interrupt' | 'kill' | 'park'; key: string; who: Who; gen: number }
-  | { k: 'checkpoint'; key: string; worker: WorkerId; message: string }
+  | { k: 'checkpoint'; key: string; worker: WorkerId; message: string; task?: TaskKey }
   | { k: 'retire'; key: string; worker: WorkerId }
   | TimerEffect
   | { k: 'persist'; key: 'persist' };
 
 export type Input =
-  | { k: 'boot' }
+  /** lost = 작업 폴더가 사라진 일꾼. 다음 일 때 작업 폴더를 다시 준비한다(브랜치는 그대로 다시 붙는다) */
+  | { k: 'boot'; lost?: readonly string[] }
   | { k: 'tick' }
+  /** 셸이 git으로 알아낸 끝난 할 일의 브랜치 정보(보관 뒤의 비교, 합치기, 버리기). note는 그 일꾼 카드에 남는다 */
+  | { k: 'task_result'; task: string; patch: Partial<TaskResult>; note?: string }
+  /** 사용자가 쉬는 일꾼을 내보낸다(브랜치를 버리기 전에 작업 폴더를 정리한다) */
+  | { k: 'user_retire'; who: string }
   | { k: 'user_said'; to: string; text: string; replyTo?: string }
   | { k: 'user_replied'; questionId: string; text: string }
   | { k: 'user_approved'; requestId: string; allow: boolean }
@@ -116,8 +121,27 @@ function finish(d: Draft, before: MissionState | null, reply: Reply): StepResult
 function apply(d: Draft, input: Input): Reply | Same {
   const { s } = d;
   switch (input.k) {
-    case 'boot': return boot(d);
+    case 'boot': return boot(d, input.lost ?? []);
     case 'tick': return { ok: true };
+    case 'task_result': {
+      const t = s.tasks[input.task];
+      if (!t) return { same: { ok: false, error: `할 일 '${input.task}'는 없어요.` } };
+      const before = JSON.stringify(t.run);
+      if (t.run.k === 'done') t.run = { k: 'done', result: { ...t.run.result, ...input.patch } };
+      const w = t.seat ? s.workers[t.seat] : undefined;
+      if (input.note && w) d.ev.push(workerEv(w, input.note));
+      if (JSON.stringify(t.run) !== before) d.ev.push(taskEv(t));
+      else if (!input.note || !w) return { same: { ok: true } };
+      return { ok: true };
+    }
+    case 'user_retire': {
+      const w = s.workers[input.who];
+      if (!w) return { same: { ok: false, error: '그런 일꾼은 없어요.' } };
+      if (w.phase.k === 'retired') return { same: { ok: true } };
+      if (!['idle', 'stopped', 'failed'].includes(w.phase.k)) return { same: { ok: false, error: `${w.name}가 아직 일하는 중이에요. 멈춘 뒤에 해 주세요.` } };
+      land(d, w, 'retired');
+      return { ok: true };
+    }
     case 'user_said': {
       if (input.to === LEAD) {
         wake(d);
@@ -205,11 +229,12 @@ function apply(d: Draft, input: Input): Reply | Same {
 }
 
 /** 서버가 다시 켜짐: 돌던 것은 모두 내려놓고 미션은 멈춘다. 저절로 다시 시작하지 않는다. */
-function boot(d: Draft): Reply {
+function boot(d: Draft, lost: readonly string[]): Reply {
   const { s } = d;
   const note = '서버가 다시 켜져서 멈췄어요.';
   if (s.status === 'working') s.status = 'stopped';
   s.wakeAt = null;
+  for (const id of lost) if (s.workers[id]) s.workers[id].workspace = undefined;
   for (const w of allWorkers(s)) {
     w.residency = 'parked';
     w.gen++;
@@ -224,7 +249,7 @@ function boot(d: Draft): Reply {
         if (p.k === 'provisioning' || p.k === 'starting') t.carry = p.turn;
         setRun(d, t, { k: 'pending' });
       }
-      d.fx.push({ k: 'checkpoint', key: `checkpoint:${w.id}:${w.turns}:boot`, worker: w.id, message: '중단된 작업 보관' });
+      d.fx.push({ k: 'checkpoint', key: `checkpoint:${w.id}:${w.turns}:boot`, worker: w.id, message: '사무실: 중단된 작업 보관', ...(t ? { task: t.key } : {}) });
     }
     setPhase(d, w, { k: 'idle' }, note);
   }
@@ -450,7 +475,7 @@ function turnEnded(d: Draft, w: Worker, outcome: 'ok' | 'error' | 'interrupted',
   }
 
   const t = taskOf(s, w.id);
-  d.fx.push({ k: 'checkpoint', key: `checkpoint:${w.id}:${w.turns}`, worker: w.id, message: t ? `${t.key}: ${t.title}` : w.name });
+  d.fx.push({ k: 'checkpoint', key: `checkpoint:${w.id}:${w.turns}`, worker: w.id, message: t ? `${t.key}: ${t.title}` : w.name, ...(t ? { task: t.key } : {}) });
   if (!t) { setPhase(d, w, { k: 'idle' }); return { ok: true }; }
   if (outcome !== 'ok') {
     const why = cut(text, 300) || '턴이 오류로 끝났어요.';

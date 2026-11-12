@@ -14,13 +14,18 @@ const HANDBACK = `## 일을 넘기는 법
 블록 앞의 글은 보고서로 화면에 나온다. 블록이 없으면 마지막 답 전체가 끝낸 일의 요약이 된다.`;
 
 /** 일꾼 세션의 지시문. 할 일의 구체적인 지시는 첫 메시지로 간다. */
-export function workerPrompt(m: Member, task: Task | undefined): string {
+export function workerPrompt(m: Member, task: Task | undefined, repo?: { label: string; branch?: string }): string {
   const parts = [
     `# 에이전트 사무실의 일꾼\n너는 ${m.name}, 에이전트 사무실의 ${ROLES[m.role].label} 일꾼이다. 팀장 맥스가 일을 나눠 맡겼고, 네가 하는 일은 대표님(사용자)의 화면에 그대로 보인다.`,
     memberPrompt(m.role),
   ];
+  if (repo) {
+    parts.push(repo.branch
+      ? `## 저장소에서 일하기\n지금 폴더는 '${repo.label}' 저장소의 네 작업 폴더다(브랜치 ${repo.branch}). 대표님의 체크아웃이 아니니 마음 놓고 고쳐도 된다.`
+      : `## 저장소에서 일하기\n지금 폴더는 '${repo.label}' 저장소를 읽기만 하는 폴더다.`);
+  }
   if (m.access === 'read') parts.push('이 일은 읽기 전용이다. 파일을 만들거나 고치지 않고, 명령도 실행하지 않는다.');
-  parts.push('git으로 커밋하거나 브랜치를 바꾸지 않는다. 보관은 사무실이 한다.');
+  parts.push('git에 쓰는 명령(commit, add, checkout, switch, branch, reset, stash, merge, rebase, push)은 실행하지 않는다. 턴이 끝날 때마다 사무실이 네 작업을 브랜치에 저장한다.');
   if (task) parts.push(`## 지금 맡은 일\n${task.title}`);
   parts.push(HANDBACK);
   return parts.join('\n\n');
@@ -30,7 +35,18 @@ export function workerPrompt(m: Member, task: Task | undefined): string {
  * 맥스의 지시문. rules는 대표님이 직접 쓴 사무실 규칙(예시 주석을 뺀 것), installed는 이 컴퓨터에 깔린 CLI다.
  * 맥스는 계획하고, 답하고, 마무리할 뿐 일꾼의 일을 하지 않는다. 일꾼이 쓴 글은 data 블록으로만 받는다.
  */
-export function leadPrompt(rules: string, installed: readonly AgentKind[]): string {
+export function leadPrompt(rules: string, installed: readonly AgentKind[], repo?: { label: string; baseBranch: string }): string {
+  const repoText = repo ? `
+## 저장소 미션
+이 미션은 대표님의 '${repo.label}' 저장소(${repo.baseBranch} 브랜치)에서 일한다. 네 폴더는 그 저장소를 읽기만 하는 사본이다.
+- 코드를 고치는 할 일(access write)은 일꾼마다 자기 브랜치와 작업 폴더를 받는다. after로 이은 할 일은 앞 할 일의 브랜치에서 시작한다.
+- 읽기만 하는 할 일(조사, 검토)은 access read로 맡긴다.
+- 커밋은 사무실이 한다. 브랜치를 ${repo.baseBranch}에 합칠지는 대표님이 화면에서 정한다. 마무리 메시지에서 브랜치를 확인해 달라고 말한다.
+` : '';
+  return leadPromptText(rules, installed) + repoText;
+}
+
+function leadPromptText(rules: string, installed: readonly AgentKind[]): string {
   return `# 에이전트 사무실
 
 너는 맥스, 에이전트 사무실의 팀장이다. 이 사무실에서는 AI 일꾼들이 대표님(사용자)을 위해, 대표님이 보는 앞에서 일한다. 네가 하는 모든 일은 작은 픽셀 아트 게임 화면에 실시간으로 나온다. 명확하고 생기 있게 행동한다.

@@ -118,7 +118,8 @@ async function midOperation(root: string): Promise<string | null> {
 }
 
 async function dirty(cwd: string): Promise<boolean> {
-  return (await git(cwd, ['status', '--porcelain'])) !== '';
+  // Asking must not rewrite the user's index (status refreshes it opportunistically).
+  return (await git(cwd, ['--no-optional-locks', 'status', '--porcelain'])) !== '';
 }
 
 interface Listed { path: string; head: string | null; branch: string | null }
@@ -349,19 +350,29 @@ export async function review(ref: BranchRef): Promise<Review> {
   } catch (e) { return failed(e); }
 }
 
-export async function mergeIntoBase(ref: BranchRef): Promise<Merged> {
-  const no = (why: string): Merged => ({ kind: 'refused', why });
+/** Why the guarded merge would refuse right now, or null when the base checkout is on its branch, clean and conflict-free. */
+export async function mergeBlocker(ref: BranchRef): Promise<string | null> {
   const { root, baseBranch, label } = ref.repo;
   try {
     const op = await midOperation(root);
-    if (op) return no(`'${label}' 저장소가 ${op} 중이에요. 끝낸 뒤 합칠 수 있어요.`);
+    if (op) return `'${label}' 저장소가 ${op} 중이에요. 끝낸 뒤 합칠 수 있어요.`;
     const current = await maybe(root, ['symbolic-ref', '--quiet', '--short', 'HEAD']);
-    if (current !== baseBranch) return no(`'${label}' 저장소가 ${baseBranch} 브랜치에 있지 않아요. ${baseBranch}로 돌아간 뒤 합칠 수 있어요.`);
-    if (await dirty(root)) return no(`'${label}' 저장소에 저장하지 않은 변경이 있어요. 정리한 뒤 합칠 수 있어요.`);
+    if (current !== baseBranch) return `'${label}' 저장소가 ${baseBranch} 브랜치에 있지 않아요. ${baseBranch}로 돌아간 뒤 합칠 수 있어요.`;
+    if (await dirty(root)) return `'${label}' 저장소에 저장하지 않은 변경이 있어요. 정리한 뒤 합칠 수 있어요.`;
     const tip = await sha(root, `refs/heads/${ref.branch}`);
-    if (!tip) return no('합칠 브랜치가 없어요.');
+    if (!tip) return '합칠 브랜치가 없어요.';
     const verdict = await mergeable(root, 'HEAD', tip);
-    if (verdict !== 'clean') return no(verdict === 'conflict' ? `${baseBranch}와 충돌이 나서 합칠 수 없어요.` : '합칠 수 있는지 확인하지 못했어요.');
+    if (verdict !== 'clean') return verdict === 'conflict' ? `${baseBranch}와 충돌이 나서 합칠 수 없어요.` : '합칠 수 있는지 확인하지 못했어요.';
+    return null;
+  } catch (e) { return failed(e).why; }
+}
+
+export async function mergeIntoBase(ref: BranchRef): Promise<Merged> {
+  const no = (why: string): Merged => ({ kind: 'refused', why });
+  const root = ref.repo.root;
+  try {
+    const why = await mergeBlocker(ref);
+    if (why) return no(why);
     const m = await run(root, [...await identity(root), 'merge', '--no-ff', '--no-edit', ref.branch]);
     if (m.code !== 0) {
       if ((await midOperation(root)) === '병합') await run(root, ['merge', '--abort']);
@@ -369,6 +380,32 @@ export async function mergeIntoBase(ref: BranchRef): Promise<Merged> {
     }
     return { kind: 'merged', head: await git(root, ['rev-parse', 'HEAD']) };
   } catch (e) { return no(failed(e).why); }
+}
+
+const MAX_CHANGED = 500;
+
+/**
+ * Files this worktree's worker changed, committed by the office or not, relative to the worktree. Commits that came
+ * from the base or from the upstream tasks' branches are not this worker's.
+ * `--no-optional-locks`: a poll must never hold the index lock that a checkpoint's `git add` needs.
+ */
+export async function changedFiles(ref: WorkspaceRef, upstream: readonly string[] = []): Promise<string[]> {
+  const mission = ref.mission;
+  const not = upstream.map((t) => `refs/heads/${branchName(mission, t)}`);
+  const committed = await run(ref.path, ['log', '--ignore-missing', '--format=', '--name-only', '-z', '--no-renames', 'HEAD', '--not', ref.repo.baseSha, ...not]);
+  const status = await run(ref.path, ['--no-optional-locks', 'status', '--porcelain=v1', '-z', '--untracked-files=all']);
+  if (committed.code !== 0 || status.code !== 0) return [];
+  const logged = committed.out.split('\0').map((f) => f.replace(/^\n+/, '')).filter(Boolean);
+  return [...new Set([...logged, ...parseStatus(status.out)])].slice(0, MAX_CHANGED);
+}
+
+/** A ref read back from saved state: only the shape this module produces passes. */
+export function asWorkspaceRef(o: unknown): WorkspaceRef | null {
+  const r = o as Partial<BranchRef> | null;
+  if (!r || typeof r !== 'object' || (r.kind !== 'branch' && r.kind !== 'lens')) return null;
+  if (typeof r.path !== 'string' || typeof r.mission !== 'string' || typeof r.task !== 'string' || typeof r.repo?.root !== 'string') return null;
+  if (r.kind === 'branch' && typeof r.branch !== 'string') return null;
+  return r as WorkspaceRef;
 }
 
 export async function reconcile(mission: Mission): Promise<Reconciled> {

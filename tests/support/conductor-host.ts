@@ -2,10 +2,10 @@
 // 설정은 CONDUCTOR_HOST(JSON), 이벤트는 stdout에 한 줄에 하나씩 쓴다.
 import http from 'node:http';
 import { LeadMcp } from '../../server/conductor/lead-mcp.ts';
-import { Conductor } from '../../server/conductor/shell.ts';
+import { Conductor, type ConductorDeps } from '../../server/conductor/shell.ts';
 import { conductorDeps } from './scenario.ts';
 
-const cfg = JSON.parse(process.env.CONDUCTOR_HOST ?? '{}') as { missionId: string; folder: string; stateFile: string; opening: string };
+const cfg = JSON.parse(process.env.CONDUCTOR_HOST ?? '{}') as { missionId: string; folder: string; stateFile: string; opening: string; repo?: ConductorDeps['repo'] };
 const mcp = new LeadMcp();
 const server = http.createServer((req, res) => { if (!mcp.handle(req, res)) { res.writeHead(404); res.end(); } });
 server.listen(0, '127.0.0.1', () => {
