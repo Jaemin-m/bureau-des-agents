@@ -1,37 +1,25 @@
 import assert from 'node:assert/strict';
-import { chmodSync, existsSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, readFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
 import type { Logged, ServerMsg } from '../shared/protocol.ts';
+import { adapterFor } from '../server/agents/registry.ts';
 import { Bureau } from '../server/bureau.ts';
+import { fakeClaude, replay } from './support/fake-claude.ts';
 
 const FIXTURE = new URL('./fixtures/claude/hand-minimal-1.raw.jsonl', import.meta.url);
 const stdoutLines = readFileSync(FIXTURE, 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l) as { dir: string; line: string }).filter((r) => r.dir === 'stdout').map((r) => r.line);
 
-// claude를 흉내 내는 실행 파일: 첫 입력 줄을 받으면 픽스처의 stdout을 그대로 쏟고, 입력이 닫힐 때까지 산다
-const FAKE = `#!/usr/bin/env node
-const fs = require('node:fs');
-const lines = JSON.parse(fs.readFileSync(process.env.FAKE_CLAUDE_OUT, 'utf8'));
-let sent = false;
-process.stdin.on('data', () => { if (sent) return; sent = true; for (const l of lines) process.stdout.write(l + '\\n'); });
-process.stdin.on('end', () => process.exit(0));
-`;
-
 const TIMEOUT = 8000;
 
 async function runMission(tmp: string, record: string | undefined) {
-  const bin = path.join(tmp, 'fake-claude');
-  const out = path.join(tmp, 'out.json');
-  writeFileSync(bin, FAKE);
-  chmodSync(bin, 0o755);
-  writeFileSync(out, JSON.stringify(stdoutLines));
-  process.env.FAKE_CLAUDE_OUT = out;
+  fakeClaude(replay(stdoutLines));
   if (record) process.env.BUREAU_RECORD = record; else delete process.env.BUREAU_RECORD;
 
   let finished: (id: string) => void = () => {};
   const done = new Promise<string>((resolve) => { finished = resolve; });
-  const bureau = new Bureau({ path: bin, version: 'fake' }, (m: ServerMsg) => { if (m.t === 'mission' && m.mission.status === 'done') finished(m.mission.id); }, path.join(tmp, 'office'));
+  const bureau = new Bureau(await adapterFor('claude').probe(), (m: ServerMsg) => { if (m.t === 'mission' && m.mission.status === 'done') finished(m.mission.id); }, path.join(tmp, 'office'));
   await bureau.init();
   await bureau.start('경쟁사 한 곳을 조사해 주세요.');
   const timer = setTimeout(() => finished(''), TIMEOUT);
@@ -41,9 +29,7 @@ async function runMission(tmp: string, record: string | undefined) {
 
   const cur = bureau.current!;
   const log = cur.log;
-  const proc = cur.live!;
-  proc.stopping = true;
-  proc.proc.kill();
+  cur.live!.lead.session.kill();
   for (let i = 0; i < 100 && cur.live; i++) await new Promise((r) => setTimeout(r, 20));
   bureau.close();
   await cur.writes;

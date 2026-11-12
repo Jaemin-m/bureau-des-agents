@@ -11,7 +11,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { countStats, emptyStats } from '../shared/activity.ts';
 import type { ClaudeInfo, FileInfo, Logged, MissionInfo, OfficeEvent, Quota, Role, ServerMsg, Settings, TeamEntry, VersionInfo } from '../shared/protocol.ts';
-import { ClaudeProcess, Normalizer, type ClaudeBinary, type TurnResult } from './claude.ts';
+import type { AdapterProbe, SessionSpec } from './agents/adapter.ts';
+import { openLegacyLead, type LegacyLead, type TurnResult } from './agents/registry.ts';
 import { openTap, type LoggedFrom, type WireTap } from './record.ts';
 import { agentsJson, ALWAYS_ALLOWED, chefPrompt, SESSION_TOOLS } from './team.ts';
 
@@ -58,9 +59,7 @@ const versionDirName = (rel: string) => rel.replace(/[\\/]+/g, '__').replace(/[^
 interface State { missions: MissionInfo[]; settings: Settings }
 
 interface Live {
-  proc: ClaudeProcess;
-  norm: Normalizer;
-  stopping: boolean;
+  lead: LegacyLead;
   /** 마지막으로 보낸 메시지(세션 이어가기가 실패하면 다시 보낸다) */
   lastText: string;
   resumed: boolean;
@@ -116,10 +115,10 @@ export class Bureau {
   current: Current | null = null;
   quota: Quota | null = null;
 
-  private claude: ClaudeBinary | null;
+  private claude: AdapterProbe | null;
   private broadcast: (m: ServerMsg) => void;
 
-  constructor(claude: ClaudeBinary | null, broadcast: (m: ServerMsg) => void, dir?: string) {
+  constructor(claude: AdapterProbe | null, broadcast: (m: ServerMsg) => void, dir?: string) {
     this.claude = claude;
     this.broadcast = broadcast;
     this.dir = dir ?? path.join(os.homedir(), 'Documents', '에이전트 사무실');
@@ -146,7 +145,7 @@ export class Bureau {
   }
 
   claudeInfo(): ClaudeInfo {
-    return this.claude ? { found: true, version: this.claude.version, path: this.claude.path } : { found: false };
+    return this.claude?.found ? { found: true, version: this.claude.version, path: this.claude.path } : { found: false };
   }
 
   get settings() { return this.state.settings; }
@@ -215,10 +214,10 @@ export class Bureau {
     const clean = text.trim();
     if (!clean) return;
     if (!this.claude) throw new Error('이 컴퓨터에 Claude Code가 설치되어 있지 않아요.');
-    let l = cur.live;
-    if (!l || !l.proc.alive) l = this.spawn(cur);
+    // 프로세스를 띄우다 실패하면 아무것도 바뀌지 않은 채로 던진다
+    const running = cur.live?.lead.session.alive ? cur.live : null;
+    if (!running) this.launch(cur, clean);
     if (cur.idleTimer) { clearTimeout(cur.idleTimer); cur.idleTimer = null; }
-    l.lastText = clean;
     cur.stopAsked = false;
     if (cur.mission.status !== 'working') {
       cur.mission.status = 'working';
@@ -227,45 +226,38 @@ export class Bureau {
       this.broadcast({ t: 'mission', mission: cur.mission });
     }
     this.record(cur, { k: 'start', text: clean });
-    l.proc.send(clean);
+    if (running) {
+      running.lastText = clean;
+      running.lead.session.send({ text: clean }, 'turn');
+    }
   }
 
-  private spawn(cur: Current, opts: { fresh?: boolean } = {}): Live {
-    if (!this.claude) throw new Error('이 컴퓨터에 Claude Code가 설치되어 있지 않아요.');
+  /** 팀장 프로세스를 띄우고 첫 말을 바로 보낸다. */
+  private launch(cur: Current, text: string, opts: { fresh?: boolean } = {}) {
     const s = this.settings;
-    const resume = opts.fresh ? undefined : cur.mission.sessionId;
+    const folder = cur.mission.folder;
+    const sessionId = opts.fresh ? undefined : cur.mission.sessionId;
     cur.tap = openTap(cur.mission.id, ++cur.spawns);
-    // Normalizer는 현재 미션으로 이벤트를 보낸다. “proc”은 바로 다음 줄이 실행되면 정해진다
-    const norm: Normalizer = new Normalizer({
-      emit: (ev) => { if (cur.live?.proc === proc) this.onEvent(cur, ev); },
+    const spec: SessionSpec = {
+      cwd: folder, powers: { tools: SESSION_TOOLS, preapproved: ALWAYS_ALLOWED }, access: 'write',
+      autonomy: s.permission === 'ask' ? 'ask' : 'auto', systemPrompt: chefPrompt(readRules(this.dir)),
+      model: s.chefModel || undefined, resume: sessionId ? { id: sessionId, cwd: folder } : undefined, tap: cur.tap ?? undefined,
+    };
+    // 콜백은 현재 미션으로 이벤트를 보낸다. “lead”는 바로 다음 줄이 실행되면 정해진다
+    const lead: LegacyLead = openLegacyLead(spec, { text }, agentsJson(s), {
+      emit: (ev) => { if (cur.live?.lead === lead) this.onEvent(cur, ev); },
       onQuota: (q) => { this.quota = q; this.broadcast({ t: 'quota', quota: q }); },
-      onResult: (r) => { if (cur.live?.proc === proc) this.onResult(cur, r); },
-      folder: cur.mission.folder,
+      onResult: (r) => { if (cur.live?.lead === lead) this.onResult(cur, r); },
+      onExit: (e) => this.onExit(cur, lead, e),
       names: cur.names,
     });
-    const proc: ClaudeProcess = new ClaudeProcess(
-      {
-        bin: this.claude.path, cwd: cur.mission.folder, permissionMode: s.permission === 'ask' ? 'acceptEdits' : 'auto',
-        model: s.chefModel || undefined, resume, tools: SESSION_TOOLS, allowedTools: ALWAYS_ALLOWED,
-        agents: agentsJson(s), appendSystemPrompt: chefPrompt(readRules(this.dir)), useApiKey: process.env.BUREAU_USE_API_KEY === '1', tap: cur.tap,
-      },
-      (m) => {
-        if (cur.live?.proc !== proc) return; // 아직 말하고 있는 예전 프로세스
-        const refuse = norm.handle(m);
-        if (refuse) proc.refuseControl(refuse);
-      },
-      (code, signal, stderr) => this.onExit(cur, proc, code, signal, stderr),
-    );
-    const l: Live = { proc, norm, stopping: false, lastText: '', resumed: !!resume };
-    cur.live = l;
-    proc.start();
-    return l;
+    cur.live = { lead, lastText: text, resumed: !!sessionId };
   }
 
   private onEvent(cur: Current, ev: OfficeEvent) {
     const m = cur.mission;
     if (ev.k === 'init') {
-      const sid = cur.live?.norm.sessionId;
+      const sid = cur.live?.lead.translator.sessionId;
       if (sid) m.sessionId = sid;
       m.model = ev.model;
     }
@@ -278,7 +270,7 @@ export class Bureau {
   private onResult(cur: Current, r: TurnResult) {
     const l = cur.live;
     // 팀원이 아직 일하는 중: 팀원들이 결과를 넘기면 맥스가 다시 이어받는다
-    if (l && l.norm.present.size > 0 && r.ok && !cur.stopAsked) return;
+    if (l && l.lead.translator.present.size > 0 && r.ok && !cur.stopAsked) return;
     this.finish(cur, r.ok, r.text.trim() || cur.lastChefText, r.ms, cur.stopAsked);
   }
 
@@ -286,7 +278,7 @@ export class Bureau {
     const m = cur.mission;
     if (m.status !== 'working') return;
     // 아직 일하던 팀원(미션 중단, 오류)은 자리를 떠난다
-    const present = cur.live?.norm.present;
+    const present = cur.live?.lead.translator.present;
     if (present?.size) {
       for (const id of present) this.record(cur, { k: 'leave', who: id, ok: false, tokens: 0, tools: 0, ms: 0 });
       present.clear();
@@ -299,29 +291,28 @@ export class Bureau {
     if (text) m.final = text.slice(0, 20000);
     // 아직 열려 있는 요청은 더 이상 의미가 없다
     const l = cur.live;
-    if (l) for (const id of l.norm.pendingRequests()) { l.norm.forgetRequest(id); this.record(cur, { k: 'ask_done', requestId: id, allow: false, cancelled: true }); }
+    if (l) for (const id of l.lead.translator.pendingRequests()) { l.lead.translator.forgetRequest(id); this.record(cur, { k: 'ask_done', requestId: id, allow: false, cancelled: true }); }
     this.record(cur, { k: 'end', ok, text: m.final ?? '', ms, stopped });
     this.broadcast({ t: 'mission', mission: m });
     this.save();
     // 맥스는 수정 요청을 위해 잠시 대기하다가 잠든다(다시 말을 걸면 세션을 이어간다)
     if (cur.idleTimer) clearTimeout(cur.idleTimer);
     cur.idleTimer = setTimeout(() => {
-      if (this.current === cur && cur.mission.status !== 'working' && cur.live) { cur.live.stopping = true; cur.live.proc.stop(); }
+      if (this.current === cur && cur.mission.status !== 'working' && cur.live) { void cur.live.lead.session.park(); }
     }, IDLE_STOP_MS);
   }
 
-  private onExit(cur: Current, proc: ClaudeProcess, code: number | null, signal: string | null, stderr: string) {
+  private onExit(cur: Current, lead: LegacyLead, e: { code: number | null; signal: string | null; expected: boolean; stderrTail: string }) {
     const l = cur.live;
-    if (!l || l.proc !== proc) return;
+    if (!l || l.lead !== lead) return;
     cur.live = null;
-    const failed = !l.stopping && (code !== 0 || signal !== null);
+    const { code, signal, stderrTail: stderr } = e;
+    const failed = !e.expected && (code !== 0 || signal !== null);
     // 이어갈 세션이 더 이상 없다(Claude Code는 오래된 세션을 지운다). 처음부터 다시 시작한다.
-    if (failed && l.resumed && !l.norm.started && l.lastText && this.current === cur) {
+    if (failed && l.resumed && !l.lead.translator.started && l.lastText && this.current === cur) {
       this.record(cur, { k: 'error', message: '예전 대화를 찾을 수 없어요. 마지막 메시지로 처음부터 다시 시작할게요.' });
       cur.mission.sessionId = undefined;
-      const fresh = this.spawn(cur, { fresh: true });
-      fresh.lastText = l.lastText;
-      fresh.proc.send(l.lastText);
+      this.launch(cur, l.lastText, { fresh: true });
       return;
     }
     if (cur.mission.status === 'working') {
@@ -330,8 +321,8 @@ export class Bureau {
         : 'Claude Code가 멈췄어요.';
       if (!cur.stopAsked) this.record(cur, { k: 'error', message });
       // 아직 남아 있는 팀원은 떠난다
-      for (const id of l.norm.present) this.record(cur, { k: 'leave', who: id, ok: false, tokens: 0, tools: 0, ms: 0 });
-      l.norm.present.clear();
+      for (const id of l.lead.translator.present) this.record(cur, { k: 'leave', who: id, ok: false, tokens: 0, tools: 0, ms: 0 });
+      l.lead.translator.present.clear();
       cur.live = l; // 열린 요청을 정리하는 동안만
       this.finish(cur, false, cur.lastChefText, 0, cur.stopAsked);
       cur.live = null;
@@ -376,7 +367,7 @@ export class Bureau {
     if (i >= 0 && files[i].size === st.size && files[i].at === st.mtimeMs) return;
     const file: FileInfo = {
       path: rel, name: path.basename(rel), ext: path.extname(rel).slice(1).toLowerCase(), size: st.size, at: st.mtimeMs,
-      by: cur.live?.norm.writers.get(abs) ?? (i >= 0 ? files[i].by : 'chef'),
+      by: cur.live?.lead.translator.writers.get(abs) ?? (i >= 0 ? files[i].by : 'chef'),
     };
     if (i >= 0) files[i] = file; else files.push(file);
     this.record(cur, { k: 'file', file, isNew: i < 0 });
@@ -454,16 +445,16 @@ export class Bureau {
     const cur = this.current;
     if (!cur || cur.mission.status !== 'working') return;
     cur.stopAsked = true;
-    if (cur.live?.proc.alive) cur.live.proc.interrupt();
+    if (cur.live?.lead.session.alive) cur.live.lead.session.interrupt();
     else this.finish(cur, false, cur.lastChefText, 0, true);
   }
 
   answer(requestId: string, allow: boolean) {
     const cur = this.current;
     const l = cur?.live;
-    if (!cur || !l || !l.norm.hasRequest(requestId)) return;
-    l.proc.answerPermission(requestId, allow, l.norm.inputOf(requestId));
-    l.norm.forgetRequest(requestId);
+    if (!cur || !l || !l.lead.translator.hasRequest(requestId)) return;
+    l.lead.session.answerApproval(requestId, allow);
+    l.lead.translator.forgetRequest(requestId);
     this.record(cur, { k: 'ask_done', requestId, allow });
   }
 
@@ -475,7 +466,7 @@ export class Bureau {
     if (cur.idleTimer) clearTimeout(cur.idleTimer);
     for (const t of cur.fileTimers.values()) clearTimeout(t);
     cur.watcher?.close();
-    if (cur.live) { cur.live.stopping = true; cur.live.proc.stop(); }
+    if (cur.live) void cur.live.lead.session.park();
     this.current = null;
     this.broadcast({ t: 'closed', missionId: cur.mission.id });
     this.save();
@@ -555,7 +546,7 @@ export class Bureau {
     if (cur) {
       if (cur.mission.status === 'working') { cur.mission.status = 'stopped'; cur.mission.endedAt = Date.now(); if (cur.busySince) cur.mission.workMs += Date.now() - cur.busySince; }
       cur.watcher?.close();
-      if (cur.live) { cur.live.stopping = true; cur.live.proc.kill(); }
+      cur.live?.lead.session.kill();
     }
     if (this.saveTimer) { clearTimeout(this.saveTimer); this.saveTimer = null; }
     try {

@@ -7,7 +7,7 @@ import { appendFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import type { Logged } from '../shared/protocol.ts';
 
-/** 이벤트를 만든 쪽: Normalizer가 claude의 말에서 만들었는가, 서버가 직접 기록했는가. */
+/** 이벤트를 만든 쪽: 번역기가 claude의 말에서 만들었는가, 서버가 직접 기록했는가. */
 export type LoggedFrom = 'normalizer' | 'bureau';
 
 export class WireTap {

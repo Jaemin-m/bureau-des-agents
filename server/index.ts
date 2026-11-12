@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 import { WebSocketServer, type WebSocket } from 'ws';
 import type { ClientMsg, ServerMsg } from '../shared/protocol.ts';
 import { Bureau } from './bureau.ts';
-import { findClaude } from './claude.ts';
+import { adapterFor } from './agents/registry.ts';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = path.join(ROOT, 'dist');
@@ -42,7 +42,8 @@ const TYPES: Record<string, string> = {
 // 스크립트는 돌지만 사무실을 읽거나 브리지에 연결할 수는 없다.
 const PREVIEW_CSP = "sandbox allow-scripts allow-forms allow-popups allow-modals; frame-ancestors 'self'";
 
-const claude = await findClaude();
+const claudeProbe = await adapterFor('claude').probe();
+const claude = claudeProbe.found ? claudeProbe : null;
 // 빌드된 사무실의 버전: 바뀌면 열려 있던 탭이 새로고침한다
 const BUILD = (() => { try { return String(Math.round(statSync(path.join(DIST, 'index.html')).mtimeMs)); } catch { return 'dev'; } })();
 const clients = new Set<WebSocket>();
