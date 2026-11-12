@@ -1,0 +1,209 @@
+{
+  "versions": {
+    "claude": "2.1.322",
+    "codex": "0.167.1"
+  },
+  "settings": {
+    "chefModel": "haiku",
+    "teamModel": "haiku",
+    "permission": "auto",
+    "codexModel": "gpt-6-luna"
+  },
+  "prompt": "할 일을 정확히 둘만 만들어 주세요. 첫째는 키 readme(agent: claude, role: code)로, 저장소의 README.md 맨 끝에 \"claude was here\" 한 줄을 덧붙이는 일이에요. 둘째는 키 notes(agent: codex, role: code, after: [\"readme\"])로, 저장소의 NOTES.md 맨 끝에 \"codex was here\" 한 줄을 덧붙이는 일이에요. 둘째는 첫째가 끝난 뒤에 해야 해요. 다른 할 일은 만들지 마세요. 끝나면 한 문장으로 알려 주세요.",
+  "followupPrompt": "NOTES.md 맨 끝에 \"codex again\" 한 줄을 더 덧붙여 주세요. 다른 것은 바꾸지 마세요.",
+  "repoInfo": {
+    "ok": true,
+    "label": "repo",
+    "branch": "main",
+    "dirty": false
+  },
+  "tasks": {
+    "readme": {
+      "agent": "claude",
+      "after": [],
+      "run": "done",
+      "result": {
+        "branch": "bureau/mmwd6bgx0/readme",
+        "base": "main",
+        "head": "7c022bd1bc02e80656e624d24f9c5fd4a460cc86",
+        "files": 1,
+        "ins": 1,
+        "del": 0,
+        "mergeable": "clean",
+        "by": "w-4-lvw3"
+      }
+    },
+    "notes": {
+      "agent": "codex",
+      "after": [
+        "readme"
+      ],
+      "run": "done",
+      "result": {
+        "branch": "bureau/mmwd6bgx0/notes",
+        "base": "main",
+        "head": "16a516c51ce1392dcf97e23aec4a73ce190bdd78",
+        "files": 2,
+        "ins": 2,
+        "del": 0,
+        "mergeable": "clean",
+        "by": "w-7-3h8a"
+      }
+    }
+  },
+  "planCalls": 1,
+  "afterSettle": {
+    "headSame": true,
+    "statusSame": true,
+    "readmeInRoot": "hello\n",
+    "notesInRoot": "notes\n",
+    "branches": [
+      "bureau/mmwd6bgx0/notes",
+      "bureau/mmwd6bgx0/readme"
+    ],
+    "worktrees": [
+      "<REPO>",
+      "<WORKTREES>/mmwd6bgx0/lead",
+      "<WORKTREES>/mmwd6bgx0/notes",
+      "<WORKTREES>/mmwd6bgx0/readme"
+    ],
+    "codexDescendsFromClaude": true,
+    "claudeLog": [
+      "7c022bd 에이전트 사무실 <office@localhost> readme: README.md 끝에 한 줄 추가"
+    ],
+    "codexLog": [
+      "16a516c 에이전트 사무실 <office@localhost> notes: NOTES.md 끝에 한 줄 추가",
+      "7c022bd 에이전트 사무실 <office@localhost> readme: README.md 끝에 한 줄 추가"
+    ],
+    "claudeBranchReadme": "hello\nclaude was here",
+    "codexBranchNotes": "notes\ncodex was here",
+    "codexBranchReadme": "hello\nclaude was here"
+  },
+  "codexExecCalls": [
+    {
+      "cwd": "<WORKTREES>/mmwd6bgx0/notes",
+      "argv": [
+        "exec",
+        "--json",
+        "--ignore-user-config",
+        "--skip-git-repo-check",
+        "-C",
+        "<WORKTREES>/mmwd6bgx0/notes",
+        "-s",
+        "workspace-write",
+        "-m",
+        "gpt-6-luna",
+        "-"
+      ]
+    },
+    {
+      "cwd": "<WORKTREES>/mmwd6bgx0/notes",
+      "argv": [
+        "exec",
+        "resume",
+        "01a1ce77-ef86-7932-a958-f9660a33d588",
+        "--json",
+        "--ignore-user-config",
+        "--skip-git-repo-check",
+        "-c",
+        "sandbox_mode=\"workspace-write\"",
+        "-m",
+        "gpt-6-luna",
+        "-"
+      ]
+    }
+  ],
+  "codexExecCallsAfterFollowup": [
+    {
+      "cwd": "<WORKTREES>/mmwd6bgx0/notes",
+      "argv": [
+        "exec",
+        "resume",
+        "01a1ce77-ef86-7932-a958-f9660a33d588",
+        "--json",
+        "--ignore-user-config",
+        "--skip-git-repo-check",
+        "-c",
+        "sandbox_mode=\"workspace-write\"",
+        "-m",
+        "gpt-6-luna",
+        "-"
+      ]
+    }
+  ],
+  "followup": {
+    "worktree": "<WORKTREES>/mmwd6bgx0/notes",
+    "notesInWorktree": "notes\ncodex was here\ncodex again\n",
+    "notesInRoot": "notes\n",
+    "notesInMissionFolder": null,
+    "codexLogAfter": [
+      "e24e701 에이전트 사무실 <office@localhost> f.11: 이어서: NOTES.md 맨 끝에 \"codex again\" 한 줄을 더 덧붙여 …",
+      "16a516c 에이전트 사무실 <office@localhost> notes: NOTES.md 끝에 한 줄 추가",
+      "7c022bd 에이전트 사무실 <office@localhost> readme: README.md 끝에 한 줄 추가"
+    ],
+    "notesOnBranch": "notes\ncodex was here\ncodex again",
+    "statusInWorktree": "",
+    "rootHeadSame": true,
+    "rootStatusSame": true,
+    "tasksAfter": {
+      "readme": {
+        "run": "done",
+        "head": "7c022bd1bc02e80656e624d24f9c5fd4a460cc86",
+        "files": 1,
+        "ins": 1
+      },
+      "notes": {
+        "run": "done",
+        "head": "16a516c51ce1392dcf97e23aec4a73ce190bdd78",
+        "files": 2,
+        "ins": 2
+      },
+      "f.11": {
+        "run": "done",
+        "head": "e24e7012c8112ef08100f2f56efe89488bca619b",
+        "files": 2,
+        "ins": 3
+      }
+    },
+    "eventsAfter": "worker msg task task worker plan worker think say act act_done file say task report worker worker plan task plan worker init worker think"
+  },
+  "secondSettle": true,
+  "merge": {
+    "toast": [
+      "bureau/mmwd6bgx0/notes를 main에 합쳤어요."
+    ],
+    "baseBefore": "e37a08b451ec7c327a4f7482acf22a67b877baea",
+    "baseAfter": "b17ca9714299afa4e34eccba1eb2d89ba3f332e3",
+    "checkedOut": "main",
+    "parents": 2,
+    "mergeCommit": "b17ca97 에이전트 사무실 <office@localhost> Merge branch 'bureau/mmwd6bgx0/notes'",
+    "statusAfter": "",
+    "readme": "hello\nclaude was here\n",
+    "notes": "notes\ncodex was here\ncodex again\n",
+    "taskMerged": true
+  },
+  "sessions": [
+    "<MISSION>-1-claude.raw.jsonl",
+    "<MISSION>-2-claude.raw.jsonl",
+    "<MISSION>-3-codex.raw.jsonl",
+    "<MISSION>-4-codex.raw.jsonl",
+    "<MISSION>-5-claude.raw.jsonl"
+  ],
+  "codexThreadIds": [
+    [
+      "01a1ce77-ef86-7932-a958-f9660a33d588"
+    ],
+    [
+      "01a1ce77-ef86-7932-a958-f9660a33d588"
+    ]
+  ],
+  "turnsPerSession": {
+    "<MISSION>-1-claude.raw.jsonl": 3,
+    "<MISSION>-2-claude.raw.jsonl": 1,
+    "<MISSION>-3-codex.raw.jsonl": 1,
+    "<MISSION>-4-codex.raw.jsonl": 1,
+    "<MISSION>-5-claude.raw.jsonl": 1
+  },
+  "ms": 47413,
+  "pathsInLog": 0
+}
