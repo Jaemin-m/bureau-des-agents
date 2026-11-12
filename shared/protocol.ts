@@ -91,8 +91,8 @@ export type OfficeEvent =
   | { k: 'typing'; who: string; text: string }
   | { k: 'say'; who: string; text: string }
   | { k: 'plan'; items: PlanItem[] }
-  /** 같은 id로 다시 와도 팀원은 한 명이다. agent가 없으면(옛 기록) claude. taskKey = 처음 맡은 할 일(참고용; 지금 맡은 일은 task.run에서 나온다) */
-  | { k: 'hire'; id: string; role: Role; type: string; name: string; task: string; prompt: string; agent?: AgentKind; taskKey?: string }
+  /** 같은 id로 다시 와도 팀원은 한 명이다. agent가 없으면(옛 기록) claude. 맡은 일은 task.run에서 나온다 */
+  | { k: 'hire'; id: string; role: Role; type: string; name: string; task: string; prompt: string; agent?: AgentKind }
   | { k: 'act'; who: string; id: string; kind: ActKind; tool: string; label: string; detail: string }
   | { k: 'act_done'; who: string; id: string; ok: boolean }
   /** 에이전트가 팀장에게 제출하는 보고서 */
