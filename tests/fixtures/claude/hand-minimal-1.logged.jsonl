@@ -1,0 +1,16 @@
+{"at":1790000000000,"ev":{"k":"start","text":"경쟁사 한 곳을 조사해 주세요."},"from":"bureau"}
+{"at":1790000000500,"ev":{"k":"init","model":"claude-sonnet-5-5","auth":"none"},"from":"normalizer"}
+{"at":1790000001000,"ev":{"k":"think","who":"chef"},"from":"normalizer"}
+{"at":1790000001500,"ev":{"k":"say","who":"chef","text":"먼저 폴더를 살펴볼게요."},"from":"normalizer"}
+{"at":1790000002000,"ev":{"k":"plan","items":[{"text":"폴더 확인","status":"in_progress"},{"text":"경쟁사 조사","status":"pending"}]},"from":"normalizer"}
+{"at":1790000002500,"ev":{"k":"act","who":"chef","id":"toolu_read","kind":"read","tool":"Read","label":"brief.md 읽는 중","detail":"/work/mission/brief.md"},"from":"normalizer"}
+{"at":1790000003000,"ev":{"k":"act_done","who":"chef","id":"toolu_read","ok":true},"from":"normalizer"}
+{"at":1790000003500,"ev":{"k":"hire","id":"toolu_agent","role":"recherche","type":"chercheur","name":"아이리스","task":"경쟁사 가격 조사","prompt":"경쟁사 한 곳의 가격표를 찾아 주세요."},"from":"normalizer"}
+{"at":1790000004000,"ev":{"k":"think","who":"toolu_agent"},"from":"normalizer"}
+{"at":1790000004500,"ev":{"k":"act","who":"toolu_agent","id":"toolu_search","kind":"search","tool":"WebSearch","label":"“원두 구독 가격” 검색 중","detail":"원두 구독 가격"},"from":"normalizer"}
+{"at":1790000005000,"ev":{"k":"act_done","who":"toolu_agent","id":"toolu_search","ok":true},"from":"normalizer"}
+{"at":1790000005500,"ev":{"k":"say","who":"toolu_agent","text":"가격표를 찾았어요."},"from":"normalizer"}
+{"at":1790000006000,"ev":{"k":"report","who":"toolu_agent","text":"월 구독은 2만 원이에요."},"from":"normalizer"}
+{"at":1790000006500,"ev":{"k":"leave","who":"toolu_agent","ok":true,"tokens":1234,"tools":1,"ms":4200},"from":"normalizer"}
+{"at":1790000007000,"ev":{"k":"say","who":"chef","text":"조사를 마쳤어요. 월 구독은 2만 원이에요."},"from":"normalizer"}
+{"at":1790000007500,"ev":{"k":"end","ok":true,"text":"조사를 마쳤어요. 월 구독은 2만 원이에요.","ms":9000,"stopped":false},"from":"bureau"}

@@ -12,6 +12,7 @@ import path from 'node:path';
 import { countStats, emptyStats } from '../shared/activity.ts';
 import type { ClaudeInfo, FileInfo, Logged, MissionInfo, OfficeEvent, Quota, Role, ServerMsg, Settings, TeamEntry, VersionInfo } from '../shared/protocol.ts';
 import { ClaudeProcess, Normalizer, type ClaudeBinary, type TurnResult } from './claude.ts';
+import { openTap, type LoggedFrom, type WireTap } from './record.ts';
 import { agentsJson, ALWAYS_ALLOWED, chefPrompt, SESSION_TOOLS } from './team.ts';
 
 const RULES_FILE = '사무실 규칙.md';
@@ -78,6 +79,9 @@ interface Current {
   busySince: number | null;
   stopAsked: boolean;
   lastChefText: string;
+  /** 개발용 녹화(BUREAU_RECORD): 지금 프로세스의 파일 한 쌍, 그리고 지금까지 띄운 프로세스 수 */
+  tap: WireTap | null;
+  spawns: number;
 }
 
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -194,7 +198,7 @@ export class Bureau {
     this.save();
     const cur: Current = {
       mission, log: [], live: null, names: new Set(), watcher: null, fileTimers: new Map(), idleTimer: null,
-      busySince: Date.now(), stopAsked: false, lastChefText: '',
+      busySince: Date.now(), stopAsked: false, lastChefText: '', tap: null, spawns: 0,
     };
     this.current = cur;
     this.watch(cur);
@@ -228,6 +232,7 @@ export class Bureau {
     if (!this.claude) throw new Error('이 컴퓨터에 Claude Code가 설치되어 있지 않아요.');
     const s = this.settings;
     const resume = opts.fresh ? undefined : cur.mission.sessionId;
+    cur.tap = openTap(cur.mission.id, ++cur.spawns);
     // Normalizer는 현재 미션으로 이벤트를 보낸다. “proc”은 바로 다음 줄이 실행되면 정해진다
     const norm: Normalizer = new Normalizer({
       emit: (ev) => { if (cur.live?.proc === proc) this.onEvent(cur, ev); },
@@ -240,7 +245,7 @@ export class Bureau {
       {
         bin: this.claude.path, cwd: cur.mission.folder, permissionMode: s.permission === 'ask' ? 'acceptEdits' : 'auto',
         model: s.chefModel || undefined, resume, tools: SESSION_TOOLS, allowedTools: ALWAYS_ALLOWED,
-        agents: agentsJson(s), appendSystemPrompt: chefPrompt(readRules(this.dir)), useApiKey: process.env.BUREAU_USE_API_KEY === '1',
+        agents: agentsJson(s), appendSystemPrompt: chefPrompt(readRules(this.dir)), useApiKey: process.env.BUREAU_USE_API_KEY === '1', tap: cur.tap,
       },
       (m) => {
         if (cur.live?.proc !== proc) return; // 아직 말하고 있는 예전 프로세스
@@ -264,7 +269,7 @@ export class Bureau {
     }
     if (ev.k === 'say' && ev.who === 'chef') cur.lastChefText = ev.text;
     countStats(m.stats, ev);
-    this.record(cur, ev);
+    this.record(cur, ev, 'normalizer');
     if (ev.k === 'hire' || ev.k === 'init') this.save();
   }
 
@@ -331,10 +336,11 @@ export class Bureau {
     }
   }
 
-  private record(cur: Current, ev: OfficeEvent) {
+  private record(cur: Current, ev: OfficeEvent, from: LoggedFrom = 'bureau') {
     const at = Date.now();
     this.broadcast({ t: 'ev', missionId: cur.mission.id, at, ev });
     if (ev.k === 'typing') return; // 기록하기엔 너무 잦다
+    cur.tap?.logged({ at, ev }, from);
     cur.log.push({ at, ev });
     if (cur.log.length > MAX_LOG) cur.log.splice(0, cur.log.length - MAX_LOG);
     void appendFile(path.join(this.recDir, `${cur.mission.id}.jsonl`), JSON.stringify({ at, ev }) + '\n').catch(() => {});

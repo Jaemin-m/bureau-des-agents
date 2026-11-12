@@ -8,9 +8,11 @@
 
 - `npm start`: Node를 확인하고, 클라이언트를 빌드하고, http://localhost:4848 에 서버를 띄운 뒤 브라우저를 연다.
 - `npm run dev`: 서버 + Vite 핫 리로드, http://localhost:5174.
-- `npm run check`: 타입 검사(클라이언트와 서버). `npm run build`: 빌드. 둘 다 pull request 전에 통과해야 한다.
+- `npm run check`: 타입 검사(클라이언트, 서버, 테스트). `npm run build`: 빌드. `npm test`: 테스트(`node --test`, 의존성 없음). 셋 다 pull request 전에 통과해야 한다.
+- `npm run snapshot-demo`: `tests/fixtures/demo-store-snapshot.json`(데모 미션을 거친 스토어 상태)을 다시 만든다. 스토어를 일부러 바꿀 때만 쓴다.
 - 쓸 만한 환경 변수: `PORT`(서버 포트), `BUREAU_DIR`(사무실 폴더, 기본값 `~/Documents/에이전트 사무실`). 미션 폴더는
-  `미션/YYYY-MM-DD HH시 MM분 · 제목`.
+  `미션/YYYY-MM-DD HH시 MM분 · 제목`. `BUREAU_RECORD=<폴더>`를 주면 claude와 오간 원문 줄과 사무실 이벤트를 쌍으로 남긴다
+  (`tests/fixtures/claude/`의 골든 픽스처, `server/record.ts`).
 
 Node 22.18 이상은 서버의 TypeScript를 바로 실행한다(타입 제거). 그래서 `server/`와 `shared/`에서는 import에 `.ts` 확장자를
 붙이고, 진짜 컴파일이 필요한 문법(`enum`, `namespace`, 매개변수 프로퍼티)은 쓰지 않는다.

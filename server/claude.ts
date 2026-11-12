@@ -11,6 +11,7 @@ import path from 'node:path';
 import readline from 'node:readline';
 import { describeAct, NAMES, permissionText, roleOfType, ROLES, cut } from '../shared/activity.ts';
 import type { OfficeEvent, PlanItem, Quota, Role } from '../shared/protocol.ts';
+import type { WireTap } from './record.ts';
 
 export interface ClaudeBinary { path: string; version: string }
 
@@ -50,6 +51,8 @@ export interface ProcessOptions {
   /** 팀장 지시문. Claude Code의 지시문 뒤에 덧붙인다 */
   appendSystemPrompt: string;
   useApiKey: boolean;
+  /** 개발용 녹화(BUREAU_RECORD). 없으면 아무것도 남기지 않는다 */
+  tap?: WireTap | null;
 }
 
 type Json = Record<string, any>;
@@ -100,6 +103,7 @@ export class ClaudeProcess {
     const p = spawn(o.bin, args, { cwd: o.cwd, env, stdio: ['pipe', 'pipe', 'pipe'] });
     this.proc = p;
     readline.createInterface({ input: p.stdout }).on('line', (line) => {
+      o.tap?.raw('stdout', line);
       if (!line.trim()) return;
       let m: Json;
       try { m = JSON.parse(line); } catch { return; }
@@ -120,7 +124,9 @@ export class ClaudeProcess {
 
   private write(o: Json) {
     if (!this.alive) return false;
-    this.proc!.stdin.write(JSON.stringify(o) + '\n');
+    const line = JSON.stringify(o);
+    this.opts.tap?.raw('stdin', line);
+    this.proc!.stdin.write(line + '\n');
     return true;
   }
 

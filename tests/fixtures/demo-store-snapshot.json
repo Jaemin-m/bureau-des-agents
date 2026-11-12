@@ -1,0 +1,1489 @@
+{
+  "mission": {
+    "id": "mmv8foo4e",
+    "title": "원두 커피 브랜드를 시작해요",
+    "prompt": "원두 커피 브랜드를 시작해요. 경쟁사 5곳을 분석하고(경쟁사마다 에이전트 한 명), 가격을 비교해서 출시 사이트를 만들어 주세요.",
+    "folder": "미션/2026-10-14 20시 18분 · 원두 커피 브랜드를 시작해요",
+    "createdAt": 1792001937182,
+    "workMs": 288139,
+    "status": "working",
+    "stats": {
+      "agents": 7,
+      "searches": 18,
+      "pages": 41,
+      "reads": 2,
+      "writes": 4,
+      "commands": 3
+    },
+    "files": [
+      {
+        "path": "comparatif.csv",
+        "name": "comparatif.csv",
+        "ext": "csv",
+        "size": 3773,
+        "at": 1792002144203.3928,
+        "by": "chef"
+      },
+      {
+        "path": "comparatif.md",
+        "name": "comparatif.md",
+        "ext": "md",
+        "size": 4385,
+        "at": 1792002174346.2126,
+        "by": "chef"
+      },
+      {
+        "path": "index.html",
+        "name": "index.html",
+        "ext": "html",
+        "size": 19898,
+        "at": 1792002208323.1443,
+        "by": "chef"
+      },
+      {
+        "path": "rapport.md",
+        "name": "rapport.md",
+        "ext": "md",
+        "size": 3452,
+        "at": 1792002221213.8574,
+        "by": "chef"
+      }
+    ],
+    "model": "claude-sonnet-5-5",
+    "endedAt": 1792002225321,
+    "final": "리서처 5명이 가격을 조사했고, 분석가가 비교표를 만들었고, 디자이너가 사이트를 만들었어요. `index.html`은 브라우저에서 테스트하지 않았어요.\n\n- **경쟁사:** 이름을 따로 주지 않아서 Lavazza, Malongo, Café Joyeux, Terres de Café, Belleville Brûlerie로 정했어요. 바꾸고 싶으면 말해 주세요.\n- **가격:** Lavazza의 20~29 €/kg부터 Belleville의 65~108 €/kg까지 있어요. 50~65 €/kg 구간이 가장 비어 있어요.\n- **제안하는 출시 가격:** 250 g 14,90 €, 1 kg 47,90 €, 사이트에도 맞춰 뒀어요. 원가도 수요도 모르니 어디까지나 가설이에요.\n- **사이트:** 임시 이름 “Maison Grain”, 가상의 커피 이름, 연결 안 된 이메일 폼, 법적 고지는 아직 써야 해요.\n- **파일:** `rapport.md`(요약), `comparatif.md`, `comparatif.csv`, `index.html`.\n\n다음 단계: 진짜 이름을 정하고 원가를 계산해서 두 가격을 확정해 주세요."
+  },
+  "chef": {
+    "say": "리서처 5명이 가격을 조사했고, 분석가가 비교표를 만들었고, 디자이너가 사이트를 만들었어요. `index.html`은 브라우저에서 테스트하지 않았어요.\n\n- **경쟁사:** 이름을 따로 주지 않아서 Lavazza, Malongo, Café Joyeux, Terres de Café, Belleville Brûlerie로 정했어요. 바꾸고 싶으면 말해 주세요.\n- **가격:** Lavazza의 20~29 €/kg부터 Belleville의 65~108 €/kg까지 있어요. 50~65 €/kg 구간이 가장 비어 있어요.\n- **제안하는 출시 가격:** 250 g 14,90 €, 1 kg 47,90 €, 사이트에도 맞춰 뒀어요. 원가도 수요도 모르니 어디까지나 가설이에요.\n- **사이트:** 임시 이름 “Maison Grain”, 가상의 커피 이름, 연결 안 된 이메일 폼, 법적 고지는 아직 써야 해요.\n- **파일:** `rapport.md`(요약), `comparatif.md`, `comparatif.csv`, `index.html`.\n\n다음 단계: 진짜 이름을 정하고 원가를 계산해서 두 가격을 확정해 주세요.",
+    "sayAt": 1792002225311,
+    "typing": "",
+    "thinkingAt": 1792002209931,
+    "act": {
+      "id": "toolu_01QEbEmifbYwnmVTocSeehgo",
+      "kind": "write",
+      "label": "rapport.md 작성 중",
+      "detail": "rapport.md",
+      "at": 1792002221157
+    },
+    "acts": [
+      {
+        "id": "toolu_01CWb1hUXgx1kDfEx2ZGdYje",
+        "kind": "read",
+        "label": "“11,90|39,90|47,60|59,60|47,90…” 검색 중",
+        "detail": "11,90|39,90|47,60|59,60|47,90|14,90 (index.html)",
+        "at": 1792002203466,
+        "ok": true
+      },
+      {
+        "id": "toolu_01XSvgxnZRQAqjUdLUbDKSsM",
+        "kind": "edit",
+        "label": "index.html 수정 중",
+        "detail": "index.html",
+        "at": 1792002206903,
+        "ok": true
+      },
+      {
+        "id": "toolu_01VJD9dsq1unUXD442UfptvE",
+        "kind": "edit",
+        "label": "index.html 수정 중",
+        "detail": "index.html",
+        "at": 1792002207786,
+        "ok": true
+      },
+      {
+        "id": "toolu_01EXMdT5GWDTgBXuApF5rPqC",
+        "kind": "read",
+        "label": "comparatif.md 읽는 중",
+        "detail": "comparatif.md",
+        "at": 1792002208251,
+        "ok": true
+      },
+      {
+        "id": "toolu_01QEbEmifbYwnmVTocSeehgo",
+        "kind": "write",
+        "label": "rapport.md 작성 중",
+        "detail": "rapport.md",
+        "at": 1792002221157,
+        "ok": true
+      }
+    ]
+  },
+  "agents": {
+    "toolu_01WxcgEW6heEKiSrKnQYEhbV": {
+      "id": "toolu_01WxcgEW6heEKiSrKnQYEhbV",
+      "role": "recherche",
+      "name": "아이리스",
+      "task": "Lavazza 가격",
+      "prompt": "프랑스에서 팔리는 Lavazza의 원두 커피를 분석해 주세요. 정리할 것: (1) 주요 원두 제품 5~8개와 무게, 현재 부가세 포함 가격, kg당 가격(직접 계산), (2) 판매처 (공식 사이트, 대형 마트, Amazon), (3) 포지셔닝과 브랜드 약속, (4) 고객 리뷰로 본 장점 / 단점, (5) 할인과 구독. 가격마다 출처 URL과 조사 날짜를 적어 주세요. 숫자는 지어내지 마세요: 못 찾으면 “찾지 못함”이라고 쓰세요. 답은 한국어로, 간결한 마크다운으로.",
+      "status": "done",
+      "act": {
+        "id": "toolu_01UZEAtj6XTx4rYxWeeXReBm",
+        "kind": "search",
+        "label": "“Lavazza marque positionnement \"depuis 1895\"…” 검색 중",
+        "detail": "Lavazza marque positionnement \"depuis 1895\" café italien Turin promesse de marque",
+        "at": 1792001980398
+      },
+      "acts": [
+        {
+          "id": "toolu_01EfHpwa1Rh4DyFu22xFxX63",
+          "kind": "search",
+          "label": "“Lavazza café grains 1kg prix France” 검색 중",
+          "detail": "Lavazza café grains 1kg prix France",
+          "at": 1792001951698,
+          "ok": true
+        },
+        {
+          "id": "toolu_01TGy6AvLWEZT2quP9TA4yxX",
+          "kind": "web",
+          "label": "lavazza.fr 읽는 중",
+          "detail": "https://www.lavazza.fr/fr/cafe-en-grains",
+          "at": 1792001952611,
+          "ok": true
+        },
+        {
+          "id": "toolu_01LQXEgECF6ZZmTYX6Nr8HFA",
+          "kind": "search",
+          "label": "“Lavazza Qualità Oro grains 1kg avis clients…” 검색 중",
+          "detail": "Lavazza Qualità Oro grains 1kg avis clients Amazon.fr",
+          "at": 1792001967119,
+          "ok": true
+        },
+        {
+          "id": "toolu_01GfVURAAa3BsDW2Wdz3UAde",
+          "kind": "search",
+          "label": "“Lavazza café en grains 1kg Carrefour Auchan…” 검색 중",
+          "detail": "Lavazza café en grains 1kg Carrefour Auchan Leclerc prix",
+          "at": 1792001967477,
+          "ok": true
+        },
+        {
+          "id": "toolu_014iPwz9KvbVUJZcQfqikfLX",
+          "kind": "web",
+          "label": "lavazza.fr 읽는 중",
+          "detail": "https://www.lavazza.fr/fr/cafe-en-grains/qualita-oro-1kg",
+          "at": 1792001968118,
+          "ok": true
+        },
+        {
+          "id": "toolu_01Mm4wZr3wiLoef4G27Bzdqv",
+          "kind": "web",
+          "label": "auchan.fr 읽는 중",
+          "detail": "https://www.auchan.fr/lavazza-cafe-en-grains-qualita-oro-pur-arabica-intensite-5/pr-C1321596",
+          "at": 1792001979487,
+          "ok": true
+        },
+        {
+          "id": "toolu_0121UY4nUk6piP8fWmH5QfMi",
+          "kind": "search",
+          "label": "“Lavazza café en grains avis amertume acidit…” 검색 중",
+          "detail": "Lavazza café en grains avis amertume acidité qualité test comparatif grains Qualità Oro Crema e Aroma",
+          "at": 1792001979939,
+          "ok": true
+        },
+        {
+          "id": "toolu_01UZEAtj6XTx4rYxWeeXReBm",
+          "kind": "search",
+          "label": "“Lavazza marque positionnement \"depuis 1895\"…” 검색 중",
+          "detail": "Lavazza marque positionnement \"depuis 1895\" café italien Turin promesse de marque",
+          "at": 1792001980398,
+          "ok": true
+        }
+      ],
+      "say": "",
+      "sayAt": 0,
+      "report": "# Lavazza – 원두 커피, 프랑스 (2026-10-14 조사)\n\n공식 사이트 가격은 WebFetch로 https://www.lavazza.fr/fr/cafe-en-grains 에서 읽었어요. 페이지에 “부가세 포함”이라고 적혀 있진 않지만 소비자 가격이에요. kg당 가격은 제가 계산했어요(가격 ÷ 무게).\n\n## 1. 주요 제품 (공식 사이트, 2026-10-14)\n| 제품 | 무게 | 표시 가격 | €/kg (계산) |\n|---|---|---|---|\n| Momento Dolce | 1 kg | 20,49 € | 20,49 |\n| Momento Vivace | 1 kg | 20,49 € | 20,49 |\n| Espresso Barista Perfetto | 1 kg | 26,95 € | 26,95 |\n| Espresso Barista Intenso | 1 kg | 26,95 € | 26,95 |\n| Qualità Oro | 1 kg | 26,95 € | 26,95 |\n| Espresso Maestro Organic (유기농) | 1 kg | 29,19 € | 29,19 |\n| Espresso Italiano Classico | 500 g | 12,79 € | 25,58 (사이트 표시) |\n| Décaféiné (디카페인) | 500 g | 13,39 € | 26,78 (사이트 표시) |\n| Tales of Napoli / Tales of Roma | 450 g | 12,89 € | 28,64 (계산) |\n\n- 일부 제품은 페이지에 품절로 표시돼 있어요(어떤 제품인지는 안 나와 있어요).\n- 세트: Barista Perfetto 또는 Qualità Oro 4 kg + 머그컵, 119,79 € 대신 107,80 €, 즉 26,95 €/kg(계산). 3 kg “Sélection” 세트는 80,08 €, 즉 26,69 €/kg(계산).\n- 다른 판매처의 매장·온라인 가격(모두 날짜가 불분명한 일회성 조사):\n  - Crema Classica 1 kg: mondoffice 19,82 €, 배송비 9,90 € 별도. Rakuten 23,10 €, Amazon 28,80 € 배송비 포함 (https://www.achatmoinscher.com/comparateur-de-prix-Cafe-dosettes/cafe-en-grains-lavazza-crema-classica-1kg.html).\n  - Barista Perfetto 1 kg: coffee-webstore 19,99 €, Monoprix 21,90 € (https://www.achatmoinscher.com/comparateur-de-prix-Cafe-dosettes/lavazza-espresso-barista-perfetto-lavazza-1000-g-cafe-en-grains.html).\n  - Lavazza 1 kg (제품 불명): Kaufland.fr 23,99 € + 배송비 4,99 € (https://www.kaufland.fr/product/149959971/).\n  - Qualità Oro 1 kg: Kaufland.fr 할인 후 19,09 € (https://www.kaufland.fr/product/183989321/).\n- Espresso Maestro, Super Crema, Crema e Aroma의 현재 가격은 찾지 못했어요. Crema Classica와 Crema e Aroma는 다른 곳에서 팔지만 공식 사이트 목록엔 없어요.\n\n## 2. 판매처\n- **공식 사이트**: lavazza.fr, 배송비 4,99 €, 50 € 이상 무료, 2~3일 소요.\n- **대형 마트**:\n  - Carrefour: Momento Dolce 또는 Vivace 1 kg 할인가 19,50 €(Dealabs 기준). 할인은 7월 18일까지여서 아마 끝났어요. Carrefour Market의 Barista Perfetto 2×1 kg 묶음 할인은 5월 17일에 끝났어요.\n  - E.Leclerc: 2026년 5월 19~30일 할인, 평소 가격 21,15 €, 할인가는 불분명.\n  - Monoprix: Barista Perfetto 1 kg, 21,90 €(achatmoinscher) 또는 할인가 15,33 €.\n  - Auchan: Qualità Oro 1 kg 상품 페이지는 있지만(https://www.auchan.fr/lavazza-cafe-en-grains-qualita-oro-pur-arabica-intensite-5/pr-C1321596), 클릭 없이는 가격이 안 보여요. 가격: 찾지 못함.\n  - 할인 정보 출처: https://www.promocatalogues.fr/offres/grains/lavazza, Dealabs.\n- **Amazon**: 입점(Crema Classica 1 kg 28,80 €, achatmoinscher 조사). 그 밖의 판매처: Rakuten, Kaufland, coffee-webstore, Maxicoffee. 다른 제품의 현재 Amazon 가격: 찾지 못함.\n\n## 3. 포지셔닝과 브랜드 약속\n- 1895년 토리노에서 시작한 가족 기업으로, 정체성은 “1895년부터 이어진 이탈리아 에스프레소”로 요약돼요. 출처: https://www.coffee-webstore.com/blog/marque-cafe-lavazza-n2017, 파도바 대학교 논문(https://thesis.unipd.it/handle/20.500.12608/65455). 언급된 캠페인은 “There's More to Taste”와 “More than Italian”이에요.\n- 내세우는 노하우: 전통과 현대 사이의 블렌딩 기술.\n- 가격대: 대형 유통 기준 중~고가. 약 20~27 €/kg이고 할인이 잦아요. “Tales of” 라인(450 g)과 유기농 라인(Maestro Organic)으로 고급화하고 있어요.\n- 정확한 브랜드 약속이 담긴 공식 문서는 찾지 못했어요. 위 표현은 제3자 출처를 종합한 거예요.\n\n## 4. 고객 리뷰와 테스트\n**장점**\n- “부드럽고 맛이 아주 좋다”, 향이 좋다(Auchan 고객 리뷰, Qualità Oro, 리뷰 10개 평균 4,9/5).\n- Qualità Oro: 꽃과 과일 향, 부드러운 피니시(Meilleurtest, 8,9~9/10). Crema e Aroma: 가성비가 최고라는 평가(Meilleurtest, 비교 출처라 신중하게 볼 것).\n- 한 리뷰 모음 사이트는 Qualità Oro 2×1 kg 묶음에 리뷰 1052개 평균 4,6/5를 표시해요(https://www.les-calories.com/showroom/lavazza/produits-services/cafe-espresso-qualita-oro-cafe-grain-selection-premium-100-arabica-italien-intensite-5-2-paquets-de-1-kg). Amazon 상품 페이지도, 단품도 아니에요.\n\n**단점**\n- Auchan 구매자 한 명은 “너무 비싸다”고 했어요. 다른 한 명은 가성비에 3/5를 줬어요. Auchan 가성비 평균: 4,0/5.\n- 까다로운 입맛에는 개성이 부족하다(Meilleurtest). “Oro” 제품치고 향이 약하다(독일 Roastmarket 테스트). 산미가 두드러질 수 있다(Clearly Coffee).\n- Amazon.fr와 lavazza.fr 평점: 찾지 못함. 리뷰 출처가 적고, 일부는 제휴 사이트예요.\n\n## 5. 할인과 구독 (lavazza.fr)\n- 원두 구독: 최대 -20 %.\n- 머신 + 캡슐 구독: 최대 -60 %. 전자동 원두 머신: 구독 시 -40 %.\n- Assoluta 세트(머신 + 원두): -25 %. 예: Assoluta + Barista Perfetto 3 kg, 679,85 € 대신 509,85 €.\n- 밀라노 머그컵 증정 원두 세트: 예를 들어 4 kg 119,79 € 대신 107,80 €, 약 -10 %.\n- 50 € 이상 무료 배송.\n- 캐시백과 환급 할인(Shopmium, 쿠폰)이 Dealabs에 자주 올라와요. 예: https://www.dealabs.com/bons-plans/paquet-d1kg-de-cafe-en-grains-lavazza-momento-dolce-ou-vivace-via-975eur-en-bon-dachat-et-odr-585eur-3377110\n\n## 한계\n- 대형 마트 가격은 매장에서 확인하지 않았고, 이미 끝난 할인이 많아요.\n- 만든 파일 없음.\n- 다음 단계로 Amazon.fr와 Carrefour/Leclerc 드라이브 가격 조사가 필요해요.",
+      "hiredAt": 1792001944678,
+      "tokens": 21352,
+      "tools": 9,
+      "leftAt": 1792002007982
+    },
+    "toolu_019sW2dSsmoNsyXdT8pNDRNP": {
+      "id": "toolu_019sW2dSsmoNsyXdT8pNDRNP",
+      "role": "recherche",
+      "name": "위고",
+      "task": "Malongo 가격",
+      "prompt": "프랑스에서 팔리는 Malongo의 원두 커피를 분석해 주세요. 정리할 것: (1) 주요 원두 제품 5~8개와 무게, 현재 부가세 포함 가격, kg당 가격(직접 계산), (2) 판매처 (공식 사이트, 대형 마트, Amazon), (3) 포지셔닝과 브랜드 약속, (4) 고객 리뷰로 본 장점 / 단점, (5) 할인과 구독. 가격마다 출처 URL과 조사 날짜를 적어 주세요. 숫자는 지어내지 마세요: 못 찾으면 “찾지 못함”이라고 쓰세요. 답은 한국어로, 간결한 마크다운으로.",
+      "status": "done",
+      "act": {
+        "id": "toolu_0189s3oEcf78nL9CcuM1WuuV",
+        "kind": "web",
+        "label": "malongo.com 읽는 중",
+        "detail": "https://www.malongo.com/boutique/fr/1525-cafe-grains-equitable-petits-producteurs-original.html",
+        "at": 1792002017183
+      },
+      "acts": [
+        {
+          "id": "toolu_01PkVaKEkTLRUizf9578qqtn",
+          "kind": "web",
+          "label": "malongo.com 읽는 중",
+          "detail": "https://www.malongo.com/fr/cafe-en-grains",
+          "at": 1792001952428,
+          "ok": true
+        },
+        {
+          "id": "toolu_01TNRw6bsDAYPXgYW7jJfN65",
+          "kind": "search",
+          "label": "“Malongo café grains 1kg prix” 검색 중",
+          "detail": "Malongo café grains 1kg prix",
+          "at": 1792001953164,
+          "ok": true
+        },
+        {
+          "id": "toolu_01HVwqyADSM12yZVQoNp5kyx",
+          "kind": "web",
+          "label": "malongo.com 읽는 중",
+          "detail": "https://www.malongo.com",
+          "at": 1792001962415,
+          "ok": true
+        },
+        {
+          "id": "toolu_012ePJSB9SR45FCBh4f4ciAc",
+          "kind": "search",
+          "label": "“malongo.com boutique café en grains 1kg Mal…” 검색 중",
+          "detail": "malongo.com boutique café en grains 1kg Malongo prix",
+          "at": 1792001962712,
+          "ok": true
+        },
+        {
+          "id": "toolu_01JVJv5rDwJFwTTCKmueEjHY",
+          "kind": "web",
+          "label": "malongo.com 읽는 중",
+          "detail": "https://www.malongo.com/boutique/fr/22-cafes-en-grains",
+          "at": 1792001971914,
+          "ok": true
+        },
+        {
+          "id": "toolu_01LZ7enZbo6SA8AWNgLXVbKf",
+          "kind": "web",
+          "label": "malongo.com 읽는 중",
+          "detail": "https://www.malongo.com/boutique/fr/content/27-nos-abonnements",
+          "at": 1792001972618,
+          "ok": true
+        },
+        {
+          "id": "toolu_01UsS3a7YbNYq5fYhkB19s8G",
+          "kind": "web",
+          "label": "malongo.com 읽는 중",
+          "detail": "https://www.malongo.com/boutique/fr/content/11-offre-malongo",
+          "at": 1792001972873,
+          "ok": true
+        },
+        {
+          "id": "toolu_01CsWcC3NhvyhxPmuHcyjcLt",
+          "kind": "web",
+          "label": "auchan.fr 읽는 중",
+          "detail": "https://www.auchan.fr/malongo-cafe-en-grains-des-petits-producteurs/pr-C1263239",
+          "at": 1792002006529,
+          "ok": true
+        },
+        {
+          "id": "toolu_0187YnKg5XGnNqi5Dv7PHR7m",
+          "kind": "search",
+          "label": "“Malongo café en grains Amazon.fr 1kg Petits…” 검색 중",
+          "detail": "Malongo café en grains Amazon.fr 1kg Petits Producteurs avis",
+          "at": 1792002007012,
+          "ok": true
+        },
+        {
+          "id": "toolu_01SnedxgJq4TzXLc4hrshj3L",
+          "kind": "web",
+          "label": "fr.trustpilot.com 읽는 중",
+          "detail": "https://fr.trustpilot.com/review/malongo.com",
+          "at": 1792002007476,
+          "ok": true
+        },
+        {
+          "id": "toolu_01J7s9sZkKM8EJCbg9z4cGNd",
+          "kind": "search",
+          "label": "“Carrefour Malongo café grains Petits Produc…” 검색 중",
+          "detail": "Carrefour Malongo café grains Petits Producteurs 1kg prix drive",
+          "at": 1792002016001,
+          "ok": true
+        },
+        {
+          "id": "toolu_01KFxrFsSDbbchnYs1UnyoP6",
+          "kind": "web",
+          "label": "quechoisir.org 읽는 중",
+          "detail": "https://www.quechoisir.org/comparatif-cafes-en-grains-n103032/malongo-l-original-des-petits-producteurs-p257900/",
+          "at": 1792002016562,
+          "ok": true
+        },
+        {
+          "id": "toolu_0189s3oEcf78nL9CcuM1WuuV",
+          "kind": "web",
+          "label": "malongo.com 읽는 중",
+          "detail": "https://www.malongo.com/boutique/fr/1525-cafe-grains-equitable-petits-producteurs-original.html",
+          "at": 1792002017183,
+          "ok": true
+        }
+      ],
+      "say": "",
+      "sayAt": 0,
+      "report": "# Malongo – 원두 커피 (프랑스) – 2026/10/14 조사\n\n만든 파일 없음. 아래 가격은 공식 사이트(malongo.com/boutique)에서 2026/10/14에 확인했어요. kg당 가격은 제가 계산했어요: 가격 ÷ 무게 × 1000.\n\n## 1) 주요 원두 제품 (공식 사이트, 500 g, 부가세 포함)\n카테고리: https://www.malongo.com/boutique/fr/22-cafes-en-grains (1/2페이지 확인, 안내된 60개 중 42개 제품).\n\n| 제품 | 무게 | 가격(부가세 포함) | €/kg (계산) | URL |\n|---|---|---|---|---|\n| Petits Producteurs – L'original (공정무역, 강도 3/5) | 500 g | 15,40 € | 30,80 | https://www.malongo.com/boutique/fr/1525-cafe-grains-equitable-petits-producteurs-original.html |\n| Goût Italien | 500 g | 13,80 € | 27,60 | https://www.malongo.com/boutique/fr/1523-cafe-grains-gout-italien.html |\n| La Grande Réserve | 500 g | 16,40 € | 32,80 | https://www.malongo.com/boutique/fr/1524-cafe-grains-la-grande-reserve.html |\n| Les 6 Arabicas | 500 g | 16,80 € | 33,60 | https://www.malongo.com/boutique/fr/94-cafe-grains-les-six-arabicas.html |\n| Ristretto Italien | 500 g | 16,80 € | 33,60 | https://www.malongo.com/boutique/fr/1532-cafe-grains-ristretto-italien.html |\n| Les Purs Matins (유기농, 공정무역) | 500 g | 18,60 € | 37,20 | https://www.malongo.com/boutique/fr/1531-cafe-grains-bio-equitable-les-purs-matins.html |\n| La Tierra (유기농, 공정무역) | 500 g | 18,60 € | 37,20 | https://www.malongo.com/boutique/fr/1528-cafe-grains-bio-equitable-la-tierra.html |\n| Congo Virunga (유기농, 공정무역) | 500 g | 19,60 € | 39,20 | https://www.malongo.com/boutique/fr/993-cafe-grains-bio-equitable-congo-virunga.html |\n\n- 이 8개 제품은 제가 골랐어요. 입문~중간 가격대 블렌드에 유기농 두 가지를 더했어요. 판매량 데이터는 찾지 못했어요.\n- 같은 페이지의 다른 가격: Déca Aqua 18,60 €, Moka d'Éthiopie 18,60 €, Blue Mountain de la Jamaïque 58,20 € (116,40 €/kg).\n- 사이트의 일부 항목은 이상하거나 앞뒤가 안 맞아 보여요. 예: Kenya 480 g 11,45 €, Laos Peaberry 500 g 10,90 €. 단종 정리 상품일 수도 있어요. 표에는 넣지 않았어요.\n- 사이트의 수량 할인(Petits Producteurs 상품 페이지 기준): 2개 구매 시 개당 14,63 €(29,26 €/kg), 4개 구매 시 개당 13,86 €(27,72 €/kg).\n- 1 kg 포장: 공식 사이트에서 찾지 못함. 1 kg 가격은 하나만 찾았어요: Carrefour, 유기농 아라비카 100 %, 17,36 €, 즉 17,36 €/kg. 날짜 없는 가격 비교 사이트(https://www.cherchons.com/alimentation/boissons/boisson-non-alcoolisee/cafe/malongo-cafe.html) 정보라 확인이 필요해요.\n- Accio 페이지는 21,15~25,85 €/kg로 나와요. 자동 생성된 페이지 같아서 믿기 어려워요(https://fr.accio.com/business/malongo-grain-1kg-prix-tendance).\n\n## 2) 판매처\n- **공식 사이트**: malongo.com/boutique, 원두 제품 60종 안내. 50 € 이상 구매 시 무료 배송. 영업일 기준 3~5일 소요.\n- **대형 마트와 온라인몰**:\n  - Auchan: Petits Producteurs 500 g. 매장을 고르지 않으면 가격이 안 보여서 찾지 못함(https://www.auchan.fr/malongo-cafe-en-grains-des-petits-producteurs/pr-C1263239).\n  - Carrefour: 유기농 1 kg 17,36 €(가격 비교 사이트, 위 참고).\n  - Intermarché: “petits producteurs” 원두 제품 18,20 €, promocatalogues.fr 기준 할인가 13,65 €. 무게가 안 나와 있어서 kg당 가격은 계산하지 않았어요.\n  - Greenweez(유기농): Guatemala Maya 500 g 18,60 €, 검색 결과 기준 37,20 €/kg. 공식 사이트에는 이 제품이 250 g으로 나와 있는데, 이 차이는 해결하지 못했어요.\n  - Monoprix: 가격 비교 사이트 기준 Petits Producteurs 4 × 250 g 묶음 5,99 €. 원두인지 분쇄인지 불분명하고, 가격도 개당 가격 같아요. 확인 없이 쓰지 마세요.\n- **Amazon.fr**: 가격과 리뷰가 있는 공식 상품 페이지는 못 찾았어요. 가격 비교 사이트에 제3자 판매가 있어요(예: “Italian Style” 1 kg). 가격: 찾지 못함.\n\n## 3) 포지셔닝과 브랜드 약속\n- 프랑스 로스터, 중~고가 포지셔닝, 유통사 자체 브랜드보다 kg당 확실히 비싸요. 비교할 자체 브랜드 가격은 없어요.\n- 약속: “땅과 사람을 존중하는 유기농·공정무역” 커피(Malongo 홍보 문구 발췌). 사이트에는 40종 넘는 크뤼(싱글 오리진과 블렌드)와 재활용 가능한 포장이 소개돼 있어요.\n- Fairtrade/Max Havelaar 인증. “Les Petits Producteurs” 라인은 1997년에 시작했어요(Malongo 보고서).\n- 강도: Petits Producteurs “균형 잡히고 살짝 새콤함”, 3/5.\n- Que Choisir의 이 제품 테스트는 2022년 9월 것이에요. 점수는 구독자 전용이라 찾지 못함(https://www.quechoisir.org/comparatif-cafes-en-grains-n103032/malongo-l-original-des-petits-producteurs-p257900/).\n\n## 4) 고객 리뷰\n- **Trustpilot (malongo.com)**: 리뷰 7 475개 평균 4,7/5, 82 %가 별 5개. 원두가 아니라 온라인 매장 전체에 대한 리뷰예요(https://fr.trustpilot.com/review/malongo.com).\n- **Auchan, Petits Producteurs 500 g**: 리뷰 약 35개 평균 4,5/5, 마지막 리뷰 2026/05/01. 가성비 점수: 4,0.\n- 장점:\n  - 커피 품질과 다양한 선택지;\n  - 윤리적이고 지속 가능한 활동;\n  - 쉬운 주문, 빠른 배송;\n  - 빠른 고객 응대;\n  - 커피의 신선도와 좋은 보관 상태.\n- 단점:\n  - 비싸다는 평가;\n  - 배송: 너무 큰 상자;\n  - 머신(캡슐) 문제;\n  - 뜯기 어려운 포장(특히 캡슐);\n  - 일부 고객에 따르면 기존 머신 보상 회수가 지켜지지 않음.\n- 마지막 세 가지는 주로 캡슐·머신 사업 이야기이고 원두와는 관계없어요.\n- 공식 상품 페이지에는 점수가 표시된 리뷰가 없어요.\n\n## 5) 할인과 구독\n출처: https://www.malongo.com/boutique/fr/content/27-nos-abonnements, https://www.malongo.com/boutique/fr/content/11-offre-malongo\n- **커피 구독**:\n  - 10 % 할인과 무료 배송;\n  - 주기는 자유롭게 고르고 바꿀 수 있음;\n  - 최소 6개월 약정;\n  - 요금제에 따라 최소 3개 또는 6개 제품;\n  - 카드 결제만 가능;\n  - 1년에 2번 일시 정지 가능.\n- **적립**: 구매 금액의 10 % 적립.\n- **수량별 할인**(위 참고).\n- **뉴스레터**: 첫 주문 할인, 금액은 찾지 못함.\n- **진행 중인 할인**: EOH 캡슐 머신 할인. 페이지에 “9/14까지” French Days 행사가 나와 있어서 아마 끝났어요. 원두 전용 할인은 없어요. 할인 코드도 없어요.\n\n## 한계\n- 카테고리 2페이지(남은 18개 제품)는 읽지 않았어요.\n- 대형 마트 가격은 일부만: Auchan은 가격 없음, Carrefour는 날짜 없는 가격 비교 사이트.\n- Amazon: 찾지 못함.\n- 시장 점유율과 판매량 데이터는 없어요.",
+      "hiredAt": 1792001945984,
+      "tokens": 24143,
+      "tools": 14,
+      "leftAt": 1792002042883
+    },
+    "toolu_017Mw9uGmBckac7UEF2jXpMc": {
+      "id": "toolu_017Mw9uGmBckac7UEF2jXpMc",
+      "role": "recherche",
+      "name": "레아",
+      "task": "Belleville 가격",
+      "prompt": "프랑스에서 팔리는 Belleville Brûlerie의 원두 커피를 분석해 주세요. 정리할 것: (1) 주요 원두 제품 5~8개와 무게, 현재 부가세 포함 가격, kg당 가격(직접 계산), (2) 판매처, (3) 포지셔닝과 브랜드 약속, (4) 고객 리뷰로 본 장점 / 단점, (5) 할인과 구독. 가격마다 출처 URL과 조사 날짜를 적어 주세요. 숫자는 지어내지 마세요: 못 찾으면 “찾지 못함”이라고 쓰세요. 답은 한국어로, 간결한 마크다운으로.",
+      "status": "done",
+      "act": {
+        "id": "toolu_01Jfei2iYskSkgY6q4xtMZYY",
+        "kind": "web",
+        "label": "cafesbelleville.com 읽는 중",
+        "detail": "https://cafesbelleville.com/pages/livraison",
+        "at": 1792002008390
+      },
+      "acts": [
+        {
+          "id": "toolu_01T7pATPsSN8ZrqygxfZHLvs",
+          "kind": "web",
+          "label": "cafesbelleville.com 읽는 중",
+          "detail": "https://www.cafesbelleville.com/collections/cafe-en-grains",
+          "at": 1792001952112,
+          "ok": true
+        },
+        {
+          "id": "toolu_01UiiXtwNpwYwtZXiQALUosg",
+          "kind": "search",
+          "label": "“Belleville Brûlerie café en grains prix 1kg” 검색 중",
+          "detail": "Belleville Brûlerie café en grains prix 1kg",
+          "at": 1792001952744,
+          "ok": true
+        },
+        {
+          "id": "toolu_016pecmXBT3395xoBLwMn38Q",
+          "kind": "web",
+          "label": "belleville-brulerie.com 읽는 중",
+          "detail": "https://www.belleville-brulerie.com",
+          "at": 1792001960468,
+          "ok": false
+        },
+        {
+          "id": "toolu_01Wmdrfo8F9VRF7fzMDRWwGx",
+          "kind": "search",
+          "label": "“Belleville Brûlerie boutique en ligne café …” 검색 중",
+          "detail": "Belleville Brûlerie boutique en ligne café en grains 250g abonnement",
+          "at": 1792001960811,
+          "ok": true
+        },
+        {
+          "id": "toolu_01MN17ASkxnrzSBUwD1k3PKW",
+          "kind": "web",
+          "label": "cafesbelleville.com 읽는 중",
+          "detail": "https://cafesbelleville.com",
+          "at": 1792001971176,
+          "ok": true
+        },
+        {
+          "id": "toolu_01MFur4gk3BdW8uKfdK9EtLq",
+          "kind": "web",
+          "label": "cafesbelleville.com 읽는 중",
+          "detail": "https://cafesbelleville.com/products.json?limit=250",
+          "at": 1792001971759,
+          "ok": true
+        },
+        {
+          "id": "toolu_01CK7TA75BM4fAQycTo2xdB2",
+          "kind": "web",
+          "label": "cafesbelleville.com 읽는 중",
+          "detail": "https://cafesbelleville.com/collections/assemblages",
+          "at": 1792001981865,
+          "ok": true
+        },
+        {
+          "id": "toolu_01QtopbgkdiQrCKvgAsCb616",
+          "kind": "web",
+          "label": "cafesbelleville.com 읽는 중",
+          "detail": "https://cafesbelleville.com/collections/pures-origines",
+          "at": 1792001982335,
+          "ok": true
+        },
+        {
+          "id": "toolu_01XAwo3zWYCtUFQ4r42ZkvZc",
+          "kind": "web",
+          "label": "cafesbelleville.com 읽는 중",
+          "detail": "https://cafesbelleville.com/collections/abonnements",
+          "at": 1792001982973,
+          "ok": true
+        },
+        {
+          "id": "toolu_01Qk5k1JfdQXEPdCyPc1TBS3",
+          "kind": "web",
+          "label": "trustpilot.com 읽는 중",
+          "detail": "https://www.trustpilot.com/review/cafesbelleville.com",
+          "at": 1792001983353,
+          "ok": true
+        },
+        {
+          "id": "toolu_01XBkQEonoz41RoGEovMuJ8L",
+          "kind": "web",
+          "label": "cafesbelleville.com 읽는 중",
+          "detail": "https://cafesbelleville.com/products/la-pantoufle",
+          "at": 1792001997527,
+          "ok": true
+        },
+        {
+          "id": "toolu_01DHwmxrA3j1yUrH13xHpchZ",
+          "kind": "web",
+          "label": "cafesbelleville.com 읽는 중",
+          "detail": "https://cafesbelleville.com/collections/cafes",
+          "at": 1792001998172,
+          "ok": true
+        },
+        {
+          "id": "toolu_011C9o1rbMVfGXGMbfpi1xVb",
+          "kind": "web",
+          "label": "cafesbelleville.com 읽는 중",
+          "detail": "https://cafesbelleville.com/pages/abonnement",
+          "at": 1792001998560,
+          "ok": true
+        },
+        {
+          "id": "toolu_01Qh2VvfFMu7CddnFLAj4eSt",
+          "kind": "web",
+          "label": "cafesbelleville.com 읽는 중",
+          "detail": "https://cafesbelleville.com/collections/cafes/products/la-pantoufle-assemblage-cafe-belleville",
+          "at": 1792002007985,
+          "ok": true
+        },
+        {
+          "id": "toolu_01Jfei2iYskSkgY6q4xtMZYY",
+          "kind": "web",
+          "label": "cafesbelleville.com 읽는 중",
+          "detail": "https://cafesbelleville.com/pages/livraison",
+          "at": 1792002008390,
+          "ok": true
+        }
+      ],
+      "say": "",
+      "sayAt": 0,
+      "report": "# Belleville Brûlerie: 원두 커피 (프랑스)\n2026-10-14 조사. 공식 사이트: https://cafesbelleville.com\n\n## 1. 원두 제품 (250 g, “Grain” 옵션)\n부가세 포함 가격 = https://cafesbelleville.com/collections/cafes 컬렉션에 표시된 가격. kg당 가격 = 가격 ÷ 0,25 (계산).\n\n| 커피 | 무게 | 가격(부가세 포함) | kg당 가격 | 상품 URL |\n|---|---|---|---|---|\n| La Pantoufle (블렌드: 브라질 50 % / 코스타리카 50 %) | 250 g | 16,30 € | 65,20 € | /collections/cafes/products/la-pantoufle-assemblage-cafe-belleville |\n| Body Builder (블렌드) | 250 g | 17,20 € | 68,80 € | /collections/cafes/products/body-builder-assemblage-cafe-belleville |\n| Château Belleville (블렌드) | 250 g | 17,60 € | 70,40 € | /collections/cafes/products/chateau-belleville-assemblage-cafe-belleville |\n| Le Mistral (블렌드) | 250 g | 19,00 € | 76,00 € | /collections/cafes/products/le-mistral-assemblage-cafe-belleville |\n| Neptaly Bautista Finca Jazmin (온두라스, 싱글 오리진) | 250 g | 21,90 € | 87,60 € | /collections/cafes/products/neptaly-bautista-honduras-cafe-belleville |\n| Banko Gotiti 워시드 (에티오피아) | 250 g | 22,00 € | 88,00 € | /collections/cafes/products/banko-gotiti-lave-ethiopie |\n| Frinsa Honey Tempe | 250 g | 23,90 € | 95,60 € | /collections/cafes/products/frinsa-java |\n| Kii AB (케냐) | 250 g | 26,90 € | 107,60 € | /collections/cafes/products/kieni-ab-cafe-kenya |\n\n위 표에 없는 다른 제품:\n- Neptaly Bautista Finca Dania: 23,90 €/250 g, 즉 95,60 €/kg.\n- La Salsa SL-28: 28,95 €/250 g, 즉 115,80 €/kg.\n- 디스커버리 셀렉션(3 × 250 g): 44,90 €, 즉 59,87 €/kg. 필터용과 에스프레소용이 하나씩 있어요.\n\n유의할 점:\n- 싱글 오리진 6종은 사이트 상품 피드로 250 g 무게를 확인했어요. La Pantoufle는 페이지에서 250 g과 1 kg 두 가지를 확인했어요.\n- 표시 가격은 250 g 가격으로 보여요. 1 kg 옵션마다 가격이 따로 있는지는 확인하지 못했어요. **1 kg 가격: 찾지 못함.**\n- La Pantoufle 가격은 홈페이지와 상품 페이지에서 확인했어요. 나머지 가격은 컬렉션 페이지에서 가져왔어요.\n\n## 2. 판매처\n- **온라인:** cafesbelleville.com. 주문 후 로스팅하고 로스팅 당일 발송해요.\n- **매장:** 파리 19구의 “Quartier Général” 매장(14 bis rue Lally-Tollendal). Time Out에는 토요일 11시~18시 30분에만 연다고 나와 있어요. 오래된 정보라 다시 확인이 필요해요(https://www.timeout.fr/paris/shopping/brulerie-de-belleville).\n- **기업 고객:** 사이트에 “Professionnels(기업)” 메뉴가 있어요.\n- **다른 판매처(주류 매장, 식료품점, 마켓플레이스):** 찾지 못함.\n\n## 3. 포지셔닝과 브랜드 약속\n- 스페셜티 커피, 갓 로스팅해서 빠르게 배송.\n- 두 가지 라인: 블렌드(아라비카 100 %, La Pantoufle, Body Builder, Le Mistral 같은 재치 있는 이름)와 싱글 오리진(온두라스, 에티오피아, 케냐 등).\n- 유쾌하고 친근한 말투: “슬리퍼 차림이든 회의 중이든”. La Pantoufle는 아몬드와 초콜릿 노트의 “위로가 되는” 커피로 소개돼요.\n- 시작 가격(65 €/kg)은 고가 쪽이지만 스페셜티치고는 부담 없는 편이에요. 싱글 오리진은 116 €/kg까지 올라가요.\n- 장비, 시음 워크숍, 기프트 카드, 인스턴트 커피도 팔아요.\n\n## 4. 고객 리뷰\n출처: Trustpilot(https://www.trustpilot.com/review/cafesbelleville.com), 2026-10-14 조사.\n- 리뷰 1 423개 평균 4,9/5, 이 중 최근 12개월 리뷰는 29개. 리뷰의 93 %가 별 5개.\n- **장점:** 커피 품질, 빠른 배송, 꼼꼼한 포장, 빠른 고객 응대, 경쟁력 있는 가격.\n- **단점:** 비판적인 리뷰가 거의 없어요. 보이는 건 2022년 12월 배송 문제 하나뿐이고, 재발송으로 해결됐어요.\n- 보이는 리뷰는 2022년 10월~2024년 11월 것이에요. 그중 하나(2024년 11월 28일)는 주제와 관계없어 보여요.\n- 커피별 상세 리뷰(맛, 로스팅, 산미)는 **찾지 못함**. 상품 페이지에는 리뷰가 없어요.\n\n## 5. 할인과 구독\n출처: https://cafesbelleville.com/pages/abonnement, 2026-10-14 조사.\n- **월간 구독 “Café Frais”:** 월 16,90 €부터. 매달 250 g 봉지 1~3개, 원두 또는 분쇄, 시음 카드와 추출 팁 포함. 커피는 고객이 골라요.\n- **구독 할인:** 찾지 못함. 약정 기간과 해지 조건: 찾지 못함(아마 이용 약관에 있을 거예요).\n- **디스커버리 셀렉션:** 3 × 250 g에 44,90 €(필터용 또는 에스프레소용).\n- **무료 배송:** 기준 금액과 배송비 **찾지 못함**.\n- **기타:** 기프트 카드와 “선물하기” 메뉴.\n\n## 확인할 것\n- 1 kg 가격, 무료 배송 기준, 구독 할인, 다른 판매처. 이용 약관을 보거나 고객센터(info@cafesbelleville.com)에 물어보면 돼요.\n- /collections/assemblages, /collections/pures-origines, /pages/livraison URL은 404 오류가 나요.",
+      "hiredAt": 1792001947250,
+      "tokens": 20150,
+      "tools": 16,
+      "leftAt": 1792002028852
+    },
+    "toolu_011x3Kbtj32eEmnPnJxBYNy4": {
+      "id": "toolu_011x3Kbtj32eEmnPnJxBYNy4",
+      "role": "recherche",
+      "name": "말로",
+      "task": "Terres de Café 가격",
+      "prompt": "프랑스에서 팔리는 Terres de Café의 원두 커피를 분석해 주세요. 정리할 것: (1) 주요 원두 제품 5~8개와 무게, 현재 부가세 포함 가격, kg당 가격(직접 계산), (2) 판매처, (3) 포지셔닝과 브랜드 약속, (4) 고객 리뷰로 본 장점 / 단점, (5) 할인과 구독. 가격마다 출처 URL과 조사 날짜를 적어 주세요. 숫자는 지어내지 마세요: 못 찾으면 “찾지 못함”이라고 쓰세요. 답은 한국어로, 간결한 마크다운으로.",
+      "status": "done",
+      "act": {
+        "id": "toolu_01Lt11rZUeVKW9yMpeLgqHKX",
+        "kind": "web",
+        "label": "fr.trustpilot.com 읽는 중",
+        "detail": "https://fr.trustpilot.com/review/www.terresdecafe.com",
+        "at": 1792002040887
+      },
+      "acts": [
+        {
+          "id": "toolu_011yXvDbxTSZuq4YvzKBZdRJ",
+          "kind": "web",
+          "label": "terresdecafe.com 읽는 중",
+          "detail": "https://www.terresdecafe.com/fr/cafe-en-grains",
+          "at": 1792001952067,
+          "ok": true
+        },
+        {
+          "id": "toolu_012orCrE3i3mUKmiteBFM37a",
+          "kind": "search",
+          "label": "“Terres de Café café en grains 1kg prix” 검색 중",
+          "detail": "Terres de Café café en grains 1kg prix",
+          "at": 1792001952705,
+          "ok": true
+        },
+        {
+          "id": "toolu_01UYVHRqUyvtKwnDxpCzfAaa",
+          "kind": "web",
+          "label": "terresdecafe.com 읽는 중",
+          "detail": "https://www.terresdecafe.com",
+          "at": 1792001961775,
+          "ok": true
+        },
+        {
+          "id": "toolu_01HWrK54f52ZJX1jHgS9gx6d",
+          "kind": "web",
+          "label": "maxicoffee.com 읽는 중",
+          "detail": "https://www.maxicoffee.com/cafe-grain-full-monkey-1kg-terres-cafe-p-129312.html",
+          "at": 1792001962367,
+          "ok": true
+        },
+        {
+          "id": "toolu_014tAWP63LiUFEa6zqokwF4k",
+          "kind": "web",
+          "label": "terresdecafe.com 읽는 중",
+          "detail": "https://www.terresdecafe.com/fr/10-cafes-en-grains-ou-moulus",
+          "at": 1792001970146,
+          "ok": true
+        },
+        {
+          "id": "toolu_01P87FHNJMoLa39GfYcvZiKx",
+          "kind": "web",
+          "label": "terresdecafe.com 읽는 중",
+          "detail": "https://www.terresdecafe.com/fr/content/85-abonnements",
+          "at": 1792001970892,
+          "ok": true
+        },
+        {
+          "id": "toolu_016quwP7JtRBLBut8Y7cf4x4",
+          "kind": "web",
+          "label": "terresdecafe.com 읽는 중",
+          "detail": "https://www.terresdecafe.com/fr/content/6-la-marque",
+          "at": 1792001971191,
+          "ok": true
+        },
+        {
+          "id": "toolu_017M3TLE9i9ZVbS4wwpsCbZq",
+          "kind": "search",
+          "label": "“Terres de Café avis clients Trustpilot café…” 검색 중",
+          "detail": "Terres de Café avis clients Trustpilot café en grains",
+          "at": 1792002030729,
+          "ok": true
+        },
+        {
+          "id": "toolu_01KXnKE2xHmtBSqm42m9bGus",
+          "kind": "web",
+          "label": "terresdecafe.com 읽는 중",
+          "detail": "https://www.terresdecafe.com/fr/content/70-nos-boutiques",
+          "at": 1792002031028,
+          "ok": true
+        },
+        {
+          "id": "toolu_01Lt11rZUeVKW9yMpeLgqHKX",
+          "kind": "web",
+          "label": "fr.trustpilot.com 읽는 중",
+          "detail": "https://fr.trustpilot.com/review/www.terresdecafe.com",
+          "at": 1792002040887,
+          "ok": true
+        }
+      ],
+      "say": "",
+      "sayAt": 0,
+      "report": "# Terres de Café: 원두 커피 (프랑스), 2026/10/14 조사\n\n주요 가격 출처: https://www.terresdecafe.com/fr/10-cafes-en-grains-ou-moulus (2026/10/14 조사). 이 페이지에 원두·분쇄 제품 74종이 있어요. 온라인 매장 가격이고, 부가세 포함으로 보여요(명시돼 있지는 않아요). kg당 가격은 제가 계산했어요(가격 ÷ 무게).\n\n## 1. 주요 제품 (상시 라인, 같은 출처 URL)\n| 제품 | 무게 | 가격(부가세 포함) | kg당 가격 |\n|---|---|---|---|\n| Classic Expresso | 250 g | 11,90 € | 47,60 € |\n| Classic Expresso - KG | 1 kg | 42,70 € | 42,70 € |\n| Organic Expresso Bio | 250 g | 12,90 € | 51,60 € |\n| Organic Expresso Bio - KG | 1 kg | 46,40 € | 46,40 € |\n| The Forest Bio | 250 g | 14,70 € | 58,80 € |\n| The Forest Bio - KG | 1 kg | 52,90 € | 52,90 € |\n| H3 Bio | 250 g | 15,90 € | 63,60 € |\n| H3 Bio - KG | 1 kg | 58,00 € | 58,00 € |\n| \"10\" Blend | 250 g | 16,90 € | 67,60 € |\n| \"10\" Blend - KG | 1 kg | 59,90 € | 59,90 € |\n| Barista - KG | 1 kg | 39,90 € | 39,90 € |\n| Get Lucky Rose - KG | 1 kg | 36,00 € | 36,00 € |\n\n같은 페이지의 다른 참고 가격:\n- 싱글 오리진 250 g: 12,90 €(Dipilto Viejo)부터 32,00 €(Altos de Bijao Geisha)까지, 즉 51,60~128 €/kg.\n- “Légendes” 라인(100~200 g): 26,90 €부터 45,90 €까지, 즉 약 150~459 €/kg.\n- Permanent Coffee 세트: 2 x 250 g 32,90 €, 즉 65,80 €/kg.\n- Discovery 세트: 8,50 €, 무게 표시 없음.\n\n다른 판매처 MaxiCoffee 가격(2026/10/14): The Full Monkeys 1 kg 37,90 €, 즉 37,90 €/kg. https://www.maxicoffee.com/cafe-grain-full-monkey-1kg-terres-cafe-p-129312.html\n- 페이지에 “품절”과 “재고 있음”이 함께 표시돼 있어요.\n- 예전 웹 검색에서는 이 제품이 36,50 €였어서, 가격이 바뀌어요.\n- Full Monkeys는 공식 카탈로그에서 찾지 못했어요.\n\n## 2. 판매처\n- 공식 온라인 매장: terresdecafe.com.\n- 온라인 판매처: MaxiCoffee, 전용 제품(Organic Blend, The Forest, Blend 10, Full Monkeys)을 250 g과 1 kg으로 판매.\n- 매장 / 커피숍(https://www.terresdecafe.com/fr/content/70-nos-boutiques):\n  - 파리: 10곳(Capucines, Beaumarchais, Blancs Manteaux, Rambuteau, Batignolles, Bourdonnais, Bourbon Le Château, Saint-Honoré, Daguerre, Tiquetonne).\n  - 지방: 엑상프로방스, 렌, 베르사유, 릴.\n  - 해외: 브뤼셀, 서울.\n- 대형 유통: 찾지 못함.\n\n## 3. 포지셔닝과 브랜드 약속\n출처: https://www.terresdecafe.com/fr/content/6-la-marque\n- 프리미엄 스페셜티 커피. 2009년 파리에서 Christophe Servell이 세웠고, “프랑스 최고의 로스터”로 소개돼요.\n- 상시 라인 4개에 단독 커피 30종 이상.\n- 약속: 산지와 소비자를 투명하게 잇는 것. 한 잔마다 생산자, 산지, 이야기가 있고, “좋은 와인처럼” 즐기는 커피.\n- 아프리카와 라틴아메리카의 소규모 생산자·협동조합에서 지속 가능한 방식으로 공급받아요.\n- 일드프랑스에서 Loring 로스터(7, 35, 70 kg)로 커피마다 맞춘 프로필로 로스팅해요. 좋은 커피는 에스프레소용과 필터용으로 두 번 로스팅해요.\n- 가격: 입문 라인 약 36~43 €/kg, 유기농·싱글 오리진 46~72 €/kg, 프리미엄은 최고가.\n\n## 4. 고객 리뷰\n출처: https://fr.trustpilot.com/review/www.terresdecafe.com (2026/10/14 확인)\n- 점수: 리뷰 47개 평균 2,6/5, 이 중 최근 12개월 리뷰는 9개뿐이에요. 47 %가 별 1개, 43 %가 별 5개. 평가가 극단적으로 갈려요.\n- 사이트가 최근 리뷰를 요청하지 않아서, 표본이 대표성이 있다고 보긴 어려워요.\n- 장점:\n  - 커피 품질과 맛.\n  - 친절하고 조언을 잘해 주는 매장 직원.\n  - 배송이 빠르고 포장이 꼼꼼할 때도 있음.\n- 단점:\n  - 고객센터 연락이 안 되거나 느림(가장 큰 불만).\n  - 주문 오류나 지연, 광고와 다른 구독.\n  - 파손이나 불량 장비.\n  - 재고 있음으로 표시됐는데 실제로는 없음.\n  - “4개 사면 1개 더” 할인이 오해를 부른다는 평가.\n  - 일부 커피의 산미.\n- 제품별 리뷰: 찾지 못함. 상품 페이지에 점수가 없어요.\n- 확인할 점: MaxiCoffee 페이지의 Trustpilot “리뷰 9.351개”는 Terres de Café가 아니라 MaxiCoffee 것이에요.\n\n## 5. 할인과 구독\n출처: https://www.terresdecafe.com/fr/content/85-abonnements (2026/10/14). 가격은 “~부터” 금액이에요.\n- 약정 없음: 37,50 €부터.\n- 3개월: 106,60 €부터.\n- 6개월: 207,80 €부터, 책 “Les goûts du café” 포함.\n- 12개월: 405,30 €부터, 250 g 밀폐 용기와 책 “Les goûts du café” 포함.\n- 옵션:\n  - 한 달에 커피 2종 또는 4종, 합계 250 g(용량은 확인 필요).\n  - 원두 또는 분쇄.\n  - 에스프레소용 또는 핸드드립용.\n- 배송:\n  - 무료, 픽업 지점 또는 집으로.\n  - 매달 1~5일 사이 발송.\n  - 자동 결제.\n  - 언제든 변경이나 일시 정지 가능.\n- 뉴스레터: 커피·캡슐 첫 주문 10 % 할인.\n- 다른 할인(예: “4개 사면 1개 더”): 리뷰에 언급, 사이트에서는 확인하지 못함.\n\n## 한계\n- 페이지에 부가세 포함 여부가 명시돼 있지 않아요.\n- 리뷰 출처가 하나뿐이에요(Trustpilot).\n- 활동 상세(“Nos engagements” 페이지)는 읽지 않았어요.\n- 만든 파일 없음.",
+      "hiredAt": 1792001948517,
+      "tokens": 23787,
+      "tools": 11,
+      "leftAt": 1792002066935
+    },
+    "toolu_015Q2jA3pf6GZgvkuAMcgQtE": {
+      "id": "toolu_015Q2jA3pf6GZgvkuAMcgQtE",
+      "role": "recherche",
+      "name": "조에",
+      "task": "Café Joyeux 가격",
+      "prompt": "프랑스에서 팔리는 Café Joyeux의 원두 커피를 분석해 주세요. 정리할 것: (1) 주요 원두 제품 5~8개와 무게, 현재 부가세 포함 가격, kg당 가격(직접 계산), (2) 판매처, (3) 포지셔닝과 브랜드 약속, (4) 고객 리뷰로 본 장점 / 단점, (5) 할인과 구독. 가격마다 출처 URL과 조사 날짜를 적어 주세요. 숫자는 지어내지 마세요: 못 찾으면 “찾지 못함”이라고 쓰세요. 답은 한국어로, 간결한 마크다운으로.",
+      "status": "done",
+      "act": {
+        "id": "toolu_01VesL8TL41KKYk5Y7YLWvGS",
+        "kind": "web",
+        "label": "cafejoyeux.com 읽는 중",
+        "detail": "https://www.cafejoyeux.com/fr/36-n5-le-naturel-bio-1-kg.html",
+        "at": 1792002075533
+      },
+      "acts": [
+        {
+          "id": "toolu_01KiNKCkAfvvVAZ7CT4pVQ7h",
+          "kind": "web",
+          "label": "cafejoyeux.com 읽는 중",
+          "detail": "https://cafejoyeux.com/collections/cafe-en-grains",
+          "at": 1792001952070,
+          "ok": true
+        },
+        {
+          "id": "toolu_019hJQPB9SNaajZTHPa5Fioc",
+          "kind": "search",
+          "label": "“Café Joyeux café en grains 1kg prix” 검색 중",
+          "detail": "Café Joyeux café en grains 1kg prix",
+          "at": 1792001952701,
+          "ok": true
+        },
+        {
+          "id": "toolu_012Xh9HhsBH8NgQBN16TMKMe",
+          "kind": "web",
+          "label": "cafejoyeux.com 읽는 중",
+          "detail": "https://cafejoyeux.com",
+          "at": 1792001964741,
+          "ok": true
+        },
+        {
+          "id": "toolu_01MvRtg8GLiUB7QY2b7cj5SC",
+          "kind": "web",
+          "label": "maxicoffee.com 읽는 중",
+          "detail": "https://www.maxicoffee.com/cafe-grains-cafe-joyeux-n3-rayonnant-1kg-p-101480.html",
+          "at": 1792001965151,
+          "ok": true
+        },
+        {
+          "id": "toolu_016KDwwbvapkDnH1NGK7dERh",
+          "kind": "search",
+          "label": "“cafejoyeux.com café en grains N°1 L'Ordinai…” 검색 중",
+          "detail": "cafejoyeux.com café en grains N°1 L'Ordinaire 1kg 250g prix abonnement",
+          "at": 1792001973143,
+          "ok": true
+        },
+        {
+          "id": "toolu_01SnsJS88Mg7dS4etT8qNRLM",
+          "kind": "web",
+          "label": "maxicoffee.com 읽는 중",
+          "detail": "https://maxicoffee.com/en-eu/cafe-joyeux-coffee-beans-n1-lordinaire-1kg-coffee-beans-p-101474.html",
+          "at": 1792001973698,
+          "ok": false
+        },
+        {
+          "id": "toolu_01QqJ1uCof17bvgsRM3CkV6m",
+          "kind": "web",
+          "label": "cafejoyeux.com 읽는 중",
+          "detail": "https://www.cafejoyeux.com/fr/10-cafes-en-grains",
+          "at": 1792002051298,
+          "ok": true
+        },
+        {
+          "id": "toolu_01DdwiBkW1s1yG3XRLWopWc5",
+          "kind": "web",
+          "label": "cafejoyeux.com 읽는 중",
+          "detail": "https://www.cafejoyeux.com/fr/4-n2-lextra-ordinaire-1-kg.html",
+          "at": 1792002051745,
+          "ok": true
+        },
+        {
+          "id": "toolu_015qnuRD8BLWWdBqTagnFedN",
+          "kind": "search",
+          "label": "“Café Joyeux café en grains avis clients goû…” 검색 중",
+          "detail": "Café Joyeux café en grains avis clients goût amertume avis-verifies",
+          "at": 1792002063825,
+          "ok": true
+        },
+        {
+          "id": "toolu_01Fm3ad9YVdsVWFrvLJ1ymTX",
+          "kind": "search",
+          "label": "“Café Joyeux café grains disponible Carrefou…” 검색 중",
+          "detail": "Café Joyeux café grains disponible Carrefour Monoprix Auchan Cdiscount Amazon prix",
+          "at": 1792002064523,
+          "ok": true
+        },
+        {
+          "id": "toolu_01GBiWckekB85b8tTorQoek8",
+          "kind": "web",
+          "label": "cafejoyeux.com 읽는 중",
+          "detail": "https://www.cafejoyeux.com/fr/3-n1-loriginal-1-kg.html",
+          "at": 1792002064997,
+          "ok": true
+        },
+        {
+          "id": "toolu_01MueBkSXhbgtHK28jysmjnj",
+          "kind": "search",
+          "label": "“cafejoyeux.com avis clients Trustpilot OR a…” 검색 중",
+          "detail": "cafejoyeux.com avis clients Trustpilot OR avis-verifies Café Joyeux note",
+          "at": 1792002075179,
+          "ok": true
+        },
+        {
+          "id": "toolu_01VesL8TL41KKYk5Y7YLWvGS",
+          "kind": "web",
+          "label": "cafejoyeux.com 읽는 중",
+          "detail": "https://www.cafejoyeux.com/fr/36-n5-le-naturel-bio-1-kg.html",
+          "at": 1792002075533,
+          "ok": true
+        }
+      ],
+      "say": "",
+      "sayAt": 0,
+      "report": "# Café Joyeux – 원두 커피 (프랑스)\n2026/10/14 조사. 가격은 공식 사이트 cafejoyeux.com(카테고리 페이지 https://www.cafejoyeux.com/fr/10-cafes-en-grains)에서 가져왔어요. kg당 가격은 제가 계산했어요(가격 ÷ 무게).\n\n## 1. 주요 원두 제품 (부가세 포함 가격)\n| 제품 | 무게 | 가격(부가세 포함) | €/kg (계산) | 출처 URL |\n|---|---|---|---|---|\n| N°1 l'Original (브라질 + 온두라스, 꿀/캐러멜/구운 아몬드, 중간 강도) | 1 kg | 33,75 € | 33,75 | https://www.cafejoyeux.com/fr/3-n1-loriginal-1-kg.html |\n| N°1 l'Original | 250 g | 10,99 € | 43,96 | https://www.cafejoyeux.com/fr/13-n1-loriginal-250-g.html |\n| N°2 l'Extra-Ordinaire (콜롬비아 + 브라질, 아라비카 100 %, 다크 초콜릿/스파이시) | 1 kg | 33,75 € | 33,75 | https://www.cafejoyeux.com/fr/4-n2-lextra-ordinaire-1-kg.html |\n| N°2 l'Extra-Ordinaire | 250 g | 10,99 € | 43,96 | https://www.cafejoyeux.com/fr/14-n2-lextra-ordinaire-250-g.html |\n| N°3 le Rayonnant | 1 kg | 33,75 € | 33,75 | https://www.cafejoyeux.com/fr/5-n3-le-rayonnant-1-kg.html |\n| N°3 le Rayonnant | 250 g | 10,99 € | 43,96 | https://www.cafejoyeux.com/fr/15-n3-le-rayonnant-250-g.html |\n| N°4 le Fort | 1 kg | 33,75 € | 33,75 | https://www.cafejoyeux.com/fr/18-n4-le-fort-1-kg.html |\n| N°5 le Naturel Bio (유기농 아라비카 FR BIO 10, 페루 + 멕시코, 코코넛/캐러멜) | 1 kg | 34,95 € | 34,95 | https://www.cafejoyeux.com/fr/36-n5-le-naturel-bio-1-kg.html |\n| N°5 le Naturel Bio | 250 g | 11,65 € | 46,60 | https://www.cafejoyeux.com/fr/95-n5-le-naturel-bio-250-g.html |\n| N°0 le Déca-lé | 250 g | 11,65 € | 46,60 | https://www.cafejoyeux.com/fr/25-n0-le-deca-le-250-g.html |\n| 시음 세트 3×250 g | 750 g | 34,50 € | 46,00 | https://www.cafejoyeux.com/fr/34-coffret-degustation-grains-3x250-g.html |\n\n- 카탈로그에는 원두 제품이 11종 있어요. 1 kg 블렌드 5종, 250 g 5종(le Fort는 1 kg만), 그리고 세트.\n- 1 kg이 250 g보다 kg당 약 23 % 싸요. 계산: 33,75 ÷ 43,96 = 0,77.\n- 모든 커피는 스트라스부르에서 로스팅해요. Café Joyeux는 이를 “스페셜티 커피”(SCA, “세계 상위 5 %”)로 분류해요. 회사 주장이고, 제가 확인하진 않았어요.\n\n## 2. 판매처\n- **공식 사이트** cafejoyeux.com: 45 € 이상 무료 배송, 48시간 안에 발송.\n- **Maxicoffee**: N°1~N°5 1 kg. “en-eu” 버전에 34,50 €로 표시, 검색 엔진으로 확인했고 직접 확인하진 못했어요. 예: https://maxicoffee.com/en-eu/cafe-joyeux-coffee-beans-n1-lordinaire-1kg-coffee-beans-p-101474.html. 페이지는 열지 못했어요(404 오류 또는 연결 거부).\n- **Carrefour**(대형 유통): Café Joyeux 원두 12,90 €(하이퍼마켓), 500 g 11,19 €(Carrefour Market). 리뷰 모음 사이트(https://www.promocatalogues.fr/offres/cafe/carrefour-market)의 2026년 3월 할인 가격이에요. 아마 지난 가격이고, 첫 번째 제품의 무게와 할인 전 가격은 몰라요.\n- **Café Joyeux 카페·레스토랑**(프랑스, 브뤼셀, 리스본, 카스카이스, 뉴욕)과 **기업 고객용 서비스**(커피, 머신 대여).\n- Monoprix, Auchan, Cdiscount, Amazon: 찾지 못함.\n\n## 3. 포지셔닝과 브랜드 약속\n- 사회적 브랜드: 카페·레스토랑에서 정신·인지 장애가 있는 사람들을 고용해요. 사이트는 수익의 100 %를 포용에 쓴다고 말해요.\n- 제품: 아라비카 100 % “스페셜티 커피”, 스트라스부르 로스팅, N°0부터 N°5까지 번호가 붙은 라인(디카페인부터 진한 맛, 유기농 하나 포함).\n- 가격: 33,75 €/kg, 원두로는 중~고가. 경쟁사와는 비교하지 않았어요.\n- “즐겁고” 친근한 분위기, 향미 계열(“과일 향 & 달콤함”, “달콤함”). 사이트에 Dammann Frères와 함께한 차 라인도 있어요.\n\n## 4. 고객 리뷰\n- 공식 사이트에는 점수도 리뷰도 없어요. avis-verifies.com으로 연결되는데, 접속하지 못했어요. Trustpilot: 찾지 못함.\n- 찾은 숫자는 하나뿐: l'Extra-Ordinaire 1 kg이 Maxicoffee에서 리뷰 7개 평균 4,4/5(출처: 검색 결과 요약, 직접 확인 안 함, 표본이 아주 작음). https://maxicoffee.com/en-gb/cafe-joyeux-coffee-beans-n2-lextra-ordinaire-1kg-coffee-beans-p-101477.html\n- 리뷰에서 뽑은 장단점: **찾지 못함**. 지어내지 않았어요. 찾은 맛 설명은 소비자가 아니라 브랜드와 판매처가 쓴 거예요.\n- 할 일: avis-verifies.com, Maxicoffee와 Carrefour 상품 페이지의 리뷰 읽기.\n\n## 5. 할인과 구독\n- **구독**(확인한 상품 페이지 Original, Extra-Ordinaire, Naturel Bio 모두 같음): 1, 2, 3개월마다 배송, 약정 없음, 고객 계정에서 날짜 변경 가능.\n- **할인**: 첫 주문 10 %. 구독 정기 가격은 표시되지 않음: 찾지 못함.\n- 벨기에 사이트(be.cafejoyeux.com)에 구독 5 % 할인이 나오지만, 다른 사이트·다른 라인이라 프랑스에는 해당하지 않아요.\n- **무료 배송**: 45 € 이상 구매 시.\n- 시음 세트 3×250 g 34,50 €, kg당 가격이 1 kg보다 비싸요.\n- 2026/10/14 기준 상품 할인 없음.\n\n## 한계\n- Maxicoffee와 Carrefour 정보는 간접 정보(검색 결과 요약)이고, 페이지에서 확인하지 않았어요.\n- 소비자 리뷰가 가장 부족해요. 맥스, 다음 단계는 avis-verifies.com에서 리뷰를 모으는 거예요.",
+      "hiredAt": 1792001949758,
+      "tokens": 24210,
+      "tools": 14,
+      "leftAt": 1792002099008
+    },
+    "toolu_01GJUvfWwnQj51bW2EyuSdba": {
+      "id": "toolu_01GJUvfWwnQj51bW2EyuSdba",
+      "role": "analyse",
+      "name": "마리",
+      "task": "가격 비교",
+      "prompt": "미션 폴더에 파일 두 개를 만들어 주세요: comparatif.csv(제품당 한 줄)와 comparatif.md(읽기 쉬운 요약). 열: 브랜드, 제품, 무게_g, 가격_eur, kg당_가격(가격 ÷ 무게 × 1000, 직접 계산), 출처, 비고. 2026/10/14 조사, 모두 프랑스의 원두 커피. LAVAZZA (lavazza.fr): Momento Dolce 1000g 20,49; Momento Vivace 1000g 20,49; Espresso Barista Perfetto 1000g 26,95; Espresso Barista Intenso 1000g 26,95; Qualità Oro 1000g 26,95; Espresso Maestro Organic 유기농 1000g 29,19; Espresso Italiano Classico 500g 12,79; Décaféiné 500g 13,39; Tales of Napoli/Roma 450g 12,89. 50 € 이상 무료 배송. 원두 구독 최대 -20 %. MALONGO (malongo.com): Petits Producteurs L'original 500g 15,40; Goût Italien 500g 13,80; La Grande Réserve 500g 16,40; Les 6 Arabicas 500g 16,80; Ristretto Italien 500g 16,80; Les Purs Matins 유기농 500g 18,60; La Tierra 유기농 500g 18,60; Congo Virunga 유기농 500g 19,60. 50 € 이상 무료 배송. 구독 -10 %, 6개월 약정. BELLEVILLE BRÛLERIE (cafesbelleville.com): La Pantoufle 250g 16,30; Body Builder 250g 17,20; Château Belleville 250g 17,60; Le Mistral 250g 19,00; Neptaly Bautista Honduras 250g 21,90; Banko Gotiti Éthiopie 250g 22,00; Frinsa Honey 250g 23,90; Kii AB Kenya 250g 26,90. 구독 월 16,90 €부터. 1 kg 가격 찾지 못함. Trustpilot 4,9/5 (리뷰 1 423개). TERRES DE CAFÉ (terresdecafe.com): Classic Expresso 250g 11,90; Classic Expresso 1000g 42,70; Organic Expresso Bio 250g 12,90; Organic Expresso Bio 1000g 46,40; The Forest Bio 250g 14,70; The Forest Bio 1000g 52,90; H3 Bio 250g 15,90; H3 Bio 1000g 58,00; \"10\" Blend 250g 16,90; \"10\" Blend 1000g 59,90; Barista 1000g 39,90; Get Lucky Rose 1000g 36,00. Trustpilot 2,6/5 (리뷰 47개), 고객센터 불만 많음. CAFÉ JOYEUX (cafejoyeux.com): N°1 l'Original 1000g 33,75, 250g 10,99; N°2 l'Extra-Ordinaire 1000g 33,75, 250g 10,99; N°3 le Rayonnant 1000g 33,75, 250g 10,99; N°4 le Fort 1000g 33,75; N°5 le …",
+      "status": "done",
+      "act": {
+        "id": "toolu_014XG6nSUvHKjxB5rwv8Brtz",
+        "kind": "bash",
+        "label": "cd \"~/Documents/에이전트… 실행 중",
+        "detail": "cd \".\" && python3 -I - <<'E'\np=\"comparatif.md\";t=open(p,encoding=\"utf-8\").read()\nt=t.replace(\"- 76 €/kg 위: Belleville뿐 (76,00 이상 47개 중 8개, 조사상 76~107,60에 5개), 싱글 오리진 단품 구간.\",\"- 75 €/kg 위: 47개 중 5개, 모두 Belleville (76,00~107,60), 250 g 싱글 오리진.\")\nt=t.replace(\"| Lavazza, Malongo (저가), Malongo/Lavazza 500 g |\",\"| Lavazza (1 kg, 500 g, 450 g), Malongo Goût Italien 500 g |\")\nt=t.replace(\"| Belleville (8) + Terres \\\"10\\\" Blend 250 g (1); 76 위로는 아주 드묾 |\",\"| Belleville (8) + Terres \\\"10\\\" Blend 250 g (1) |\")\nopen(p,\"w\",encoding=\"utf-8\").write(t)\nE",
+        "at": 1792002173661
+      },
+      "acts": [
+        {
+          "id": "toolu_01Nb5D9TerhB15mhsg2tC2oN",
+          "kind": "bash",
+          "label": "mkdir -p /tmp/scr && cat > /tmp/scr/d.p… 실행 중",
+          "detail": "mkdir -p /tmp/scr && cat > /tmp/scr/d.py <<'E'\nimport csv,statistics as st,json\nL=[(\"Lavazza\",\"lavazza.fr\",[(\"Momento Dolce\",1000,20.49),(\"Momento Vivace\",1000,20.49),(\"Espresso Barista Perfetto\",1000,26.95),(\"Espresso Barista Intenso\",1000,26.95),(\"Qualità Oro\",1000,26.95),(\"Espresso Maestro Organic bio\",1000,29.19),(\"Espresso Italiano Classico\",500,12.79),(\"Décaféiné\",500,13.39),(\"Tales of Napoli/Roma\",450,12.89)]),\n(\"Malongo\",\"malongo.com\",[(\"Petits Producteurs L'original\",500,15.40),(\"Goût Italien\",500,13.80),(\"La Grande Réserve\",500,16.40),(\"Les 6 Arabicas\",500,16.80),(\"Ristretto Italien\",500,16.80),(\"Les Purs Matins bio\",500,18.60),(\"La Tierra bio\",500,18.60),(\"Congo Virunga bio\",500,19.60)]),\n(\"Belleville Brûlerie\",\"cafesbelleville.com\",[(\"La Pantoufle\",250,16.30),(\"Body Builder\",250,17.20),(\"Château Belleville\",250,17.60),(\"Le Mistral\",250,19.00),(\"Neptaly Bautista Honduras\",250,21.90),(\"Banko Gotiti Éthiopie\",250,22.00),(\"Frinsa Honey\",250,23.90),(\"Kii AB Kenya\",250,26.90)]),\n(\"Terres de Café\",\"terresdecafe.com\",[(\"Classic Expresso\",250,11.90),(\"Classic Expresso\",1000,42.70),(\"Organic Expresso Bio\",250,12.90),(\"Organic Expresso Bio\",1000,46.40),(\"The Forest Bio\",250,14.70),(\"The Forest Bio\",1000,52.90),(\"H3 Bio\",250,15.90),(\"H3 Bio\",1000,58.00),(\"\\\"10\\\" Blend\",250,16.90),(\"\\\"10\\\" Blend\",1000,59.90),(\"Barista\",1000,39.90),(\"Get Lucky Rose\",1000,36.00)]),\n(\"Café Joyeux\",\"cafejoyeux.com\",[(\"N°1 l'Original\",1000,33.75),(\"N°1 l'Original\",250,10.99),(\"N°2 l'Extra-Ordinaire\",1000,33.75),(\"N°2 l'Extra-Ordinaire\",250,10.99),(\"N°3 le Rayonnant\",1000,33.75),(\"N°3 le Rayonnant\",250,10.99),(\"N°4 le Fort\",1000,33.75),(\"N°5 le Naturel Bio\",1000,34.95),(\"N°5 le Naturel Bio\",250,11.65),(\"N°0 le Déca-lé\",250,11.65)])]\nrows=[]\nfor b,s,l in L:\n  for n,w,p in l: rows.append((b,n,w,p,round(p/w*1000,2),s))\ndef rem(r):\n  b,n,w=r[0],r[1],r[2]\n  x=[]\n  if w==450:x.append(\"450g, 흔치 않은 용량\")\n  if \"bio\" in n.lower() or \"Bio\" in n:x.append(\"유기농\")\n  if \"Déca\" in n:x.append(\"디카페인\")\n  if \"Get Lucky\" in n:x.append(\"이름에 'Rose': 원두가 맞는지 확인\")\n  return \"; \".join(x)\nwith open(\"comparatif.csv\",\"w\",newline=\"\",encoding=\"utf-8\") as f:\n  w=csv.writer(f);w.writerow(\"브랜드,제품,무게_g,가격_eur,kg당_가격,출처,비고\".split(\",\"))\n  for r in rows:w.writerow([r[0],r[1],r[2],f\"{r[3]:.2f}\",f\"{r[4]:.2f}\",\"https://www.\"+r[5],rem(r)])\ndef s(v):return min(v),st.median(v),max(v)\nfor b,*_ in L:\n  v=[r[4] for r in rows if r[0]==b];print(b,len(v),[round(x,2) for x in s(v)])\nfor f in(250,500,1000,450):\n  v=[r[4] for r in rows if r[2]==f];print(f,len(v),[round(x,2) for x in s(v)])\nprint(sorted(r[4] for r in rows))\nfor b,*_ in L:\n  for f in(250,1000):\n    v=[r[4] for r in rows if r[0]==b and r[2]==f]\n    if v:print(b,f,[round(x,2) for x in s(v)])\nE\ncd \".\" && python3 -I /tmp/scr/d.py",
+          "at": 1792002143538,
+          "ok": true
+        },
+        {
+          "id": "toolu_016bSSktjyFqNdSg2DgSiWDB",
+          "kind": "bash",
+          "label": "cd \"~/Documents/에이전트… 실행 중",
+          "detail": "cd \".\" && cat > comparatif.md <<'E'\n# 원두 커피 가격 비교, 프랑스 (2026/10/14 조사)\n\n제품 47개, 브랜드 5개. kg당 가격 = 가격 ÷ 무게 × 1000 (계산). 줄별 상세: `comparatif.csv`.\n한계: 브랜드 사이트에서 조사한 정가, 할인·구독·배송비 제외. 출처: lavazza.fr, malongo.com, cafesbelleville.com, terresdecafe.com, cafejoyeux.com.\n\n## 1. 브랜드별 kg당 가격 (€/kg)\n\n| 브랜드 | 제품 수 | 최소 | 중앙값 | 최대 |\n|---|---|---|---|---|\n| Lavazza | 9 | 20,49 | 26,95 | 29,19 |\n| Malongo | 8 | 27,60 | 33,60 | 39,20 |\n| Café Joyeux | 10 | 33,75 | 39,45 | 46,60 |\n| Terres de Café | 12 | 36,00 | 52,25 | 67,60 |\n| Belleville Brûlerie | 8 | 65,20 | 81,80 | 107,60 |\n\n브랜드·용량별 상세(용량이 여러 개인 경우):\n\n| 브랜드 | 용량 | 제품 수 | 최소 | 중앙값 | 최대 |\n|---|---|---|---|---|---|\n| Terres de Café | 250 g | 5 | 47,60 | 58,80 | 67,60 |\n| Terres de Café | 1 kg | 7 | 36,00 | 46,40 | 59,90 |\n| Café Joyeux | 250 g | 5 | 43,96 | 43,96 | 46,60 |\n| Café Joyeux | 1 kg | 5 | 33,75 | 33,75 | 34,95 |\n\n조사 배경(주어진 사실): Belleville Trustpilot 4,9/5 (리뷰 1 423개), 1 kg 찾지 못함; Terres de Café Trustpilot 2,6/5 (리뷰 47개), 고객센터 불만; Café Joyeux 리뷰 찾지 못함.\n\n## 2. 5개 브랜드 요약, 싼 순서대로 (중앙값 €/kg)\n\n| 순위 | 브랜드 | 중앙값 | 범위 | 포지셔닝 |\n|---|---|---|---|---|\n| 1 | Lavazza | 26,95 | 20,49 – 29,19 | 대형 유통 / 입문 |\n| 2 | Malongo | 33,60 | 27,60 – 39,20 | 중간 가격대, 500 g |\n| 3 | Café Joyeux | 39,45 | 33,75 – 46,60 | 중상 |\n| 4 | Terres de Café | 52,25 | 36,00 – 67,60 | 고가, 아주 넓은 범위 |\n| 5 | Belleville Brûlerie | 81,80 | 65,20 – 107,60 | 스페셜티, 250 g만 |\n\n중앙값 차이 Belleville / Lavazza: x3,0 (81,80 / 26,95).\n\n## 3. 용량별 범위\n\n| 용량 | 제품 수 | 최소 €/kg | 중앙값 €/kg | 최대 €/kg |\n|---|---|---|---|---|\n| 250 g | 18 | 43,96 | 64,40 | 107,60 |\n| 500 g | 10 | 25,58 | 33,20 | 39,20 |\n| 1 kg | 18 | 20,49 | 33,75 | 59,90 |\n\n용량 외: Lavazza Tales of Napoli/Roma 450 g = 12,89 €, 즉 28,64 €/kg (위 집계에서 제외).\n절대 가격: 250 g 10,99 €~26,90 €; 500 g 12,79 €~19,60 €; 1 kg 20,49 €~59,90 €.\n\n## 4. 가격 빈 구간 (€/kg)\n\n구간별 제품 수:\n\n| 구간 €/kg | 제품 수 | 누가 |\n|---|---|---|\n| < 30 | 10 | Lavazza, Malongo (저가), Malongo/Lavazza 500 g |\n| 30 – 40 | 14 | Malongo, Café Joyeux 1 kg, Terres 1 kg 저가 |\n| 40 – 50 | 8 | Café Joyeux 250 g, Terres 1 kg, Terres 250 g 저가 |\n| 50 – 65 | 6 | 거의 Terres de Café뿐 |\n| 65 – 110 | 9 | Belleville (8) + Terres \"10\" Blend 250 g (1); 76 위로는 아주 드묾 |\n\n발견한 점:\n- 시장 중간에서 가장 비어 있는 구간: 약 50 – 65 €/kg (47개 중 6개, 거의 다 Terres de Café, Trustpilot 2,6/5 브랜드). Café Joyeux(최대 46,60)와 Belleville(최소 65,20) 사이에는 믿을 만한 경쟁자가 적어요.\n- 76 €/kg 위: Belleville뿐 (76,00 이상 47개 중 8개, 조사상 76~107,60에 5개), 싱글 오리진 단품 구간.\n- 20 – 40 €/kg 구간: 포화 (24개).\n- 47 €/kg 넘는 1 kg은 Terres de Café에만 있어요.\n\n## 5. 출시 가격 제안 (확인해야 할 가설, 사실 아님)\n\n가설: 250 g은 50 – 65 €/kg 빈 구간에 두고, 1 kg은 수량 할인을 적용.\n\n| 용량 | 가격(부가세 포함) | €/kg | 경쟁사 기준 (위 데이터) |\n|---|---|---|---|\n| 250 g | 14,90 € | 59,60 | Belleville 최소(65,20 €/kg)보다 낮고, 250 g 중앙값(64,40)에 가까움; Café Joyeux 250 g(43,96)보다 높음 |\n| 1 kg | 47,90 € | 47,90 | 1 kg 중앙값(33,75)보다 높고, Terres 1 kg 중앙값(46,40)에 가까움; Terres 1 kg 고가 제품(52,90 – 59,90)보다 낮음 |\n\n수량 할인: 1 kg이 250 g보다 kg당 19,6 % 쌈 (47,90 vs 59,60).\n\n이 제안이 증명하지 못하는 것:\n- 원가 데이터 없음(생두, 로스팅, 포장, 물류): 마진을 모르고, 손해 보는 가격일 수도 있음.\n- 이 가격대의 판매량·수요 데이터 없음: 빈 구간은 시장이 없다는 뜻일 수도 있음.\n- 경쟁사 가격은 2026/10/14 정가, 할인·구독 제외 (Lavazza 최대 -20 %, Malongo -10 %).\n- 가격을 정하기 전에 테스트(사전 주문, 패널, 가격 A/B 테스트)로 확인할 것.\nE\nsed -n 1,3p comparatif.csv",
+          "at": 1792002169081,
+          "ok": true
+        },
+        {
+          "id": "toolu_014XG6nSUvHKjxB5rwv8Brtz",
+          "kind": "bash",
+          "label": "cd \"~/Documents/에이전트… 실행 중",
+          "detail": "cd \".\" && python3 -I - <<'E'\np=\"comparatif.md\";t=open(p,encoding=\"utf-8\").read()\nt=t.replace(\"- 76 €/kg 위: Belleville뿐 (76,00 이상 47개 중 8개, 조사상 76~107,60에 5개), 싱글 오리진 단품 구간.\",\"- 75 €/kg 위: 47개 중 5개, 모두 Belleville (76,00~107,60), 250 g 싱글 오리진.\")\nt=t.replace(\"| Lavazza, Malongo (저가), Malongo/Lavazza 500 g |\",\"| Lavazza (1 kg, 500 g, 450 g), Malongo Goût Italien 500 g |\")\nt=t.replace(\"| Belleville (8) + Terres \\\"10\\\" Blend 250 g (1); 76 위로는 아주 드묾 |\",\"| Belleville (8) + Terres \\\"10\\\" Blend 250 g (1) |\")\nopen(p,\"w\",encoding=\"utf-8\").write(t)\nE",
+          "at": 1792002173661,
+          "ok": true
+        }
+      ],
+      "say": "",
+      "sayAt": 0,
+      "report": "# 보고서: 원두 커피 가격 비교 (2026/10/14)\n\n미션 폴더에 만든 파일: **comparatif.csv**(47줄, 제품당 한 줄)와 **comparatif.md**(요약).\n- CSV 열은 요청한 그대로예요.\n- kg당 가격은 스크립트로 계산했어요(가격 ÷ 무게 × 1000).\n- 출처 열에는 브랜드별 사이트 URL이 들어 있어요.\n- 주신 데이터 말고 다른 숫자는 넣지 않았어요.\n\n## 결론 5줄\n1. 5개 브랜드의 €/kg 중앙값, 싼 순서대로: Lavazza 26,95; Malongo 33,60; Café Joyeux 39,45; Terres de Café 52,25; Belleville 81,80. 가장 비싼 곳과 가장 싼 곳의 차이는 약 3배예요.\n2. 용량별 범위(€/kg): 250 g 43,96~107,60(중앙값 64,40); 500 g 25,58~39,20(중앙값 33,20); 1 kg 20,49~59,90(중앙값 33,75).\n3. 20~40 €/kg 구간은 포화 상태예요(47개 중 24개). 빈 구간은 50~65 €/kg예요: 6개 제품, 거의 다 Terres de Café이고, 이 브랜드는 Trustpilot 2,6/5예요. 75 €/kg 위로는 Belleville(5개)뿐이에요.\n4. 제안하는 출시 가격: **250 g 14,90 € 부가세 포함(59,60 €/kg)**, **1 kg 47,90 € 부가세 포함(47,90 €/kg)**. 1 kg이 250 g보다 kg당 19,6 % 싸요.\n5. **확인해야 할 가설이지, 사실이 아니에요.** 원가, 마진, 판매량, 수요 데이터가 없어요. 경쟁사 가격은 할인·구독을 뺀 정가예요. 가격을 정하기 전에 테스트(사전 주문이나 가격 A/B 테스트)가 필요해요.\n\n## 알아 둘 점\n- Lavazza Tales of Napoli/Roma(450 g, 28,64 €/kg)는 세 용량 어디에도 안 맞아요. 브랜드 집계에는 넣었지만 용량별 범위에서는 뺐어요.\n- Terres de Café “Get Lucky Rose”: 이름이 애매해서, CSV 비고에 원두가 맞는지 확인하라고 적었어요.\n- Belleville은 1 kg을 찾지 못했어요. 범위가 250 g뿐이라 구조적으로 더 높게 나와요.\n- 65~110 €/kg 구간에는 Belleville 8개에 Terres de Café “10” Blend 250 g(67,60 €/kg)이 더해져요.\n- comparatif.md의 1장에는 브랜드별 표와, Terres de Café·Café Joyeux의 브랜드·용량별 상세가 있어요. Trustpilot 리뷰는 받은 그대로 옮겼어요.",
+      "hiredAt": 1792002123939,
+      "tokens": 19564,
+      "tools": 4,
+      "leftAt": 1792002182358
+    },
+    "toolu_01WGEUHyEQBVTSLipd7zunkG": {
+      "id": "toolu_01WGEUHyEQBVTSLipd7zunkG",
+      "role": "design",
+      "name": "프리다",
+      "task": "출시 사이트",
+      "prompt": "미션 폴더에 한 페이지짜리 출시 사이트를 만들어 주세요: index.html(HTML + CSS를 한 파일에, 프레임워크 없이, 외부 의존성은 Google Fonts 정도만; 그림은 인라인 SVG, 외부 이미지 없음). 모바일 먼저 반응형, 깔끔하고 따뜻하게, 스페셜티 커피 분위기(크림색, 에스프레소 갈색, 구리색/번트 오렌지 포인트). 한국어로. 브랜드: 임시 이름 “Maison Grain”(진짜 이름으로 바꿀 예정; 이름을 바꾸기 쉬운 변수에 넣고 맨 위 HTML 주석에 알려 주세요). 프랑스에서 로스팅한 원두를 직접 판매. 섹션: 1) 강한 한마디와 “출시 알림 받기” 버튼이 있는 히어로; 2) 우리를 고르는 이유(3~4가지: 신선함, 추적 가능성, 정직한 가격, 약정 없음); 3) 출시 라인: 가상의 커피 3종(Doux / Équilibré / Intense), 시음 노트, 250 g과 1 kg; 4) 정직한 가격 비교: 5개 브랜드의 kg당 가격을 CSS/SVG 작은 막대그래프로(2026/10/14 각 사이트에서 확인한 범위: Lavazza 20,49–29,19 €/kg; Malongo 27,60–39,20 €/kg; Café Joyeux 1 kg 33,75–34,95 €/kg; Terres de Café 36,00–67,60 €/kg; Belleville Brûlerie 65,20–115,80 €/kg), Maison Grain이 노리는 자리는 ~35~~60 €/kg 중간 구간, “목표 가격, 확인 필요”로 표시; 5) 약정 없는 유연한 구독; 6) 짧은 FAQ(질문 4개); 7) 이메일 등록 폼(입력칸 + 버튼, 백엔드 없음: action은 비우고 이메일 도구를 어디에 연결할지 주석으로); 8) “임시 사이트” 안내가 있는 바닥글. 위 범위 말고는 숫자를 지어내지 마세요; Maison Grain 커피 가격은 확인이 필요한 참고 가격이에요(예를 들어 250 g 11,90 €, 1 kg 39,90 €를 제안하고 “출시 참고 가격”으로 표시). 없는 고객 리뷰나 인증은 쓰지 마세요. 접근성: 충분한 명암 대비, 시맨틱 태…",
+      "status": "done",
+      "act": {
+        "id": "toolu_01Rhf7QTsuaxEchqZ3Y6HsfE",
+        "kind": "write",
+        "label": "index.html 작성 중",
+        "detail": "index.html",
+        "at": 1792002190271
+      },
+      "acts": [
+        {
+          "id": "toolu_01Rhf7QTsuaxEchqZ3Y6HsfE",
+          "kind": "write",
+          "label": "index.html 작성 중",
+          "detail": "index.html",
+          "at": 1792002190271,
+          "ok": true
+        }
+      ],
+      "say": "",
+      "sayAt": 0,
+      "report": "# 결과물: index.html\n\n**만든 것 (3줄)**\n- 한 페이지짜리 출시 사이트, `index.html`(HTML + CSS + 인라인 SVG, 이름용 작은 스크립트 하나). 휴대폰 먼저 생각해서 만들었고, 크림색·에스프레소 갈색·구리색에 Google Fonts의 Fraunces와 Inter를 썼어요(못 불러오면 대체 글꼴).\n- 요청한 8개 섹션: 히어로, 우리를 고르는 이유(4가지), Doux/Équilibré/Intense 라인(250 g과 1 kg), 가격 범위 막대 비교, 구독, FAQ(질문 4개), 이메일 폼, “임시 사이트” 바닥글.\n- 접근성: 건너뛰기 링크, 시맨틱 태그, 그래프와 SVG에 `aria-label`, 신경 쓴 명암 대비, 보이는 포커스, `prefers-reduced-motion`. 브라우저에서 테스트하거나 도구로 대비를 재 보진 않았어요.\n\n**가격 비교**\n- 막대는 주신 5개 범위를 0~120 €/kg 축에 그대로 옮겼어요. Maison Grain 막대(~35~~60 €/kg)는 빗금으로 칠하고 “목표 가격, 확인 필요”라고 표시했어요.\n- 제가 직접 계산한 숫자: 1 kg은 39,90 €/kg, 11,90 €짜리 250 g은 47,60 €/kg. 주신 참고 가격을 나눈 것뿐이고, 그렇게 표시했어요.\n\n**바꿔야 할 임시 요소**\n- **브랜드 이름:** 파일 아래쪽 `<script>`의 `BRAND_NAME` 상수. 위쪽 HTML 주석에 적어 뒀어요. “Maison Grain”은 HTML 본문(JavaScript가 없을 때), `<title>`, 로고에도 직접 쓰여 있어서 필요하면 손으로 바꿔야 해요.\n- **커피:** 이름(Le Matin, Le Zinc, Le Noir)과 시음 노트는 지어낸 거예요. 11,90 €와 39,90 €는 “출시 참고 가격”으로 표시했어요. 세 커피의 가격이 같은 건 제 선택이에요.\n- **폼:** `action=\"\"`, 연결 안 됨. 이메일 도구를 어디에 연결할지 HTML 주석에 적었고, 페이지에도 주소가 저장되지 않는다고 안내했어요.\n- **바닥글:** 법적 고지, 운영자 정보, 개인정보 처리방침은 아직 써야 해요. 고른 이메일 도구의 GDPR 안내도 넣어야 해요.\n- **출처:** 범위는 주신 브리프(2026/10/14 조사)에서 가져왔고, 제가 직접 확인하진 않았어요. 공개 전에 다시 확인하세요.\n\n폼 위에 “출시 때 한 번만 보내요, 스팸 없어요”라고도 썼어요. 지킬 약속이거나, 아니면 빼야 해요.\n\n페이지에 고객 리뷰나 인증은 없어요.",
+      "hiredAt": 1792002131351,
+      "tokens": 21252,
+      "tools": 2,
+      "leftAt": 1792002199377
+    }
+  },
+  "order": [
+    "toolu_01WxcgEW6heEKiSrKnQYEhbV",
+    "toolu_019sW2dSsmoNsyXdT8pNDRNP",
+    "toolu_017Mw9uGmBckac7UEF2jXpMc",
+    "toolu_011x3Kbtj32eEmnPnJxBYNy4",
+    "toolu_015Q2jA3pf6GZgvkuAMcgQtE",
+    "toolu_01GJUvfWwnQj51bW2EyuSdba",
+    "toolu_01WGEUHyEQBVTSLipd7zunkG"
+  ],
+  "plan": [],
+  "planHistory": [],
+  "files": [
+    {
+      "path": "comparatif.csv",
+      "name": "comparatif.csv",
+      "ext": "csv",
+      "size": 3773,
+      "at": 1792002144203.3928,
+      "by": "chef"
+    },
+    {
+      "path": "comparatif.md",
+      "name": "comparatif.md",
+      "ext": "md",
+      "size": 4385,
+      "at": 1792002174346.2126,
+      "by": "chef"
+    },
+    {
+      "path": "index.html",
+      "name": "index.html",
+      "ext": "html",
+      "size": 19898,
+      "at": 1792002208323.1443,
+      "by": "chef"
+    },
+    {
+      "path": "rapport.md",
+      "name": "rapport.md",
+      "ext": "md",
+      "size": 3452,
+      "at": 1792002221213.8574,
+      "by": "chef"
+    }
+  ],
+  "asks": {},
+  "stats": {
+    "agents": 7,
+    "searches": 18,
+    "pages": 41,
+    "reads": 2,
+    "writes": 4,
+    "commands": 3
+  },
+  "feed": [
+    {
+      "id": 1,
+      "at": 1792001937184,
+      "who": "나",
+      "text": "원두 커피 브랜드를 시작해요. 경쟁사 5곳을 분석하고(경쟁사마다 에이전트 한 명), 가격을 비교해서 출시 사이트를 만들어 주세요.",
+      "kind": "user"
+    },
+    {
+      "id": 2,
+      "at": 1792001942212,
+      "who": "맥스",
+      "text": "안녕하세요, 대표님! 경쟁사 이름이 없어서 프랑스에서 많이 팔리는 원두 커피 브랜드 5곳으로 정했어요: Lavazza, Malongo, Belleville Brûlerie, Terres de Café, Café Joyeux. 브랜드마다 리서처를 한 명씩 동시에 보내고, 그다음 분석가가 가격을 비교하고 팀이 사이트를 만들게요.",
+      "kind": "chef"
+    },
+    {
+      "id": 3,
+      "at": 1792001944678,
+      "who": "맥스",
+      "text": "아이리스 호출: Lavazza 가격",
+      "kind": "hire"
+    },
+    {
+      "id": 4,
+      "at": 1792001945984,
+      "who": "맥스",
+      "text": "위고 호출: Malongo 가격",
+      "kind": "hire"
+    },
+    {
+      "id": 5,
+      "at": 1792001947250,
+      "who": "맥스",
+      "text": "레아 호출: Belleville 가격",
+      "kind": "hire"
+    },
+    {
+      "id": 6,
+      "at": 1792001948517,
+      "who": "맥스",
+      "text": "말로 호출: Terres de Café 가격",
+      "kind": "hire"
+    },
+    {
+      "id": 7,
+      "at": 1792001949758,
+      "who": "맥스",
+      "text": "조에 호출: Café Joyeux 가격",
+      "kind": "hire"
+    },
+    {
+      "id": 8,
+      "at": 1792001951698,
+      "who": "아이리스",
+      "text": "“Lavazza café grains 1kg prix France” 검색 중",
+      "kind": "act"
+    },
+    {
+      "id": 9,
+      "at": 1792001952067,
+      "who": "말로",
+      "text": "terresdecafe.com 읽는 중",
+      "kind": "act"
+    },
+    {
+      "id": 10,
+      "at": 1792001952070,
+      "who": "조에",
+      "text": "cafejoyeux.com 읽는 중",
+      "kind": "act"
+    },
+    {
+      "id": 11,
+      "at": 1792001952112,
+      "who": "레아",
+      "text": "cafesbelleville.com 읽는 중",
+      "kind": "act"
+    },
+    {
+      "id": 12,
+      "at": 1792001952428,
+      "who": "위고",
+      "text": "malongo.com 읽는 중",
+      "kind": "act"
+    },
+    {
+      "id": 13,
+      "at": 1792001952611,
+      "who": "아이리스",
+      "text": "lavazza.fr 읽는 중",
+      "kind": "act"
+    },
+    {
+      "id": 14,
+      "at": 1792001952701,
+      "who": "조에",
+      "text": "“Café Joyeux café en grains 1kg prix” 검색 중",
+      "kind": "act"
+    },
+    {
+      "id": 15,
+      "at": 1792001952705,
+      "who": "말로",
+      "text": "“Terres de Café café en grains 1kg prix” 검색 중",
+      "kind": "act"
+    },
+    {
+      "id": 16,
+      "at": 1792001952744,
+      "who": "레아",
+      "text": "“Belleville Brûlerie café en grains prix 1kg” 검색 중",
+      "kind": "act"
+    },
+    {
+      "id": 17,
+      "at": 1792001953164,
+      "who": "위고",
+      "text": "“Malongo café grains 1kg prix” 검색 중",
+      "kind": "act"
+    },
+    {
+      "id": 18,
+      "at": 1792001960468,
+      "who": "레아",
+      "text": "belleville-brulerie.com 읽는 중",
+      "kind": "act"
+    },
+    {
+      "id": 19,
+      "at": 1792001960811,
+      "who": "레아",
+      "text": "“Belleville Brûlerie boutique en ligne café …” 검색 중",
+      "kind": "act"
+    },
+    {
+      "id": 20,
+      "at": 1792001961775,
+      "who": "말로",
+      "text": "terresdecafe.com 읽는 중",
+      "kind": "act"
+    },
+    {
+      "id": 21,
+      "at": 1792001962367,
+      "who": "말로",
+      "text": "maxicoffee.com 읽는 중",
+      "kind": "act"
+    },
+    {
+      "id": 22,
+      "at": 1792001962415,
+      "who": "위고",
+      "text": "malongo.com 읽는 중",
+      "kind": "act"
+    },
+    {
+      "id": 23,
+      "at": 1792001962712,
+      "who": "위고",
+      "text": "“malongo.com boutique café en grains 1kg Mal…” 검색 중",
+      "kind": "act"
+    },
+    {
+      "id": 24,
+      "at": 1792001964741,
+      "who": "조에",
+      "text": "cafejoyeux.com 읽는 중",
+      "kind": "act"
+    },
+    {
+      "id": 25,
+      "at": 1792001965151,
+      "who": "조에",
+      "text": "maxicoffee.com 읽는 중",
+      "kind": "act"
+    },
+    {
+      "id": 26,
+      "at": 1792001967119,
+      "who": "아이리스",
+      "text": "“Lavazza Qualità Oro grains 1kg avis clients…” 검색 중",
+      "kind": "act"
+    },
+    {
+      "id": 27,
+      "at": 1792001967477,
+      "who": "아이리스",
+      "text": "“Lavazza café en grains 1kg Carrefour Auchan…” 검색 중",
+      "kind": "act"
+    },
+    {
+      "id": 28,
+      "at": 1792001968118,
+      "who": "아이리스",
+      "text": "lavazza.fr 읽는 중",
+      "kind": "act"
+    },
+    {
+      "id": 29,
+      "at": 1792001970146,
+      "who": "말로",
+      "text": "terresdecafe.com 읽는 중",
+      "kind": "act"
+    },
+    {
+      "id": 30,
+      "at": 1792001970892,
+      "who": "말로",
+      "text": "terresdecafe.com 읽는 중",
+      "kind": "act"
+    },
+    {
+      "id": 31,
+      "at": 1792001971176,
+      "who": "레아",
+      "text": "cafesbelleville.com 읽는 중",
+      "kind": "act"
+    },
+    {
+      "id": 32,
+      "at": 1792001971191,
+      "who": "말로",
+      "text": "terresdecafe.com 읽는 중",
+      "kind": "act"
+    },
+    {
+      "id": 33,
+      "at": 1792001971759,
+      "who": "레아",
+      "text": "cafesbelleville.com 읽는 중",
+      "kind": "act"
+    },
+    {
+      "id": 34,
+      "at": 1792001971914,
+      "who": "위고",
+      "text": "malongo.com 읽는 중",
+      "kind": "act"
+    },
+    {
+      "id": 35,
+      "at": 1792001972618,
+      "who": "위고",
+      "text": "malongo.com 읽는 중",
+      "kind": "act"
+    },
+    {
+      "id": 36,
+      "at": 1792001972873,
+      "who": "위고",
+      "text": "malongo.com 읽는 중",
+      "kind": "act"
+    },
+    {
+      "id": 37,
+      "at": 1792001973143,
+      "who": "조에",
+      "text": "“cafejoyeux.com café en grains N°1 L'Ordinai…” 검색 중",
+      "kind": "act"
+    },
+    {
+      "id": 38,
+      "at": 1792001973698,
+      "who": "조에",
+      "text": "maxicoffee.com 읽는 중",
+      "kind": "act"
+    },
+    {
+      "id": 39,
+      "at": 1792001979487,
+      "who": "아이리스",
+      "text": "auchan.fr 읽는 중",
+      "kind": "act"
+    },
+    {
+      "id": 40,
+      "at": 1792001979939,
+      "who": "아이리스",
+      "text": "“Lavazza café en grains avis amertume acidit…” 검색 중",
+      "kind": "act"
+    },
+    {
+      "id": 41,
+      "at": 1792001980398,
+      "who": "아이리스",
+      "text": "“Lavazza marque positionnement \"depuis 1895\"…” 검색 중",
+      "kind": "act"
+    },
+    {
+      "id": 42,
+      "at": 1792001981865,
+      "who": "레아",
+      "text": "cafesbelleville.com 읽는 중",
+      "kind": "act"
+    },
+    {
+      "id": 43,
+      "at": 1792001982335,
+      "who": "레아",
+      "text": "cafesbelleville.com 읽는 중",
+      "kind": "act"
+    },
+    {
+      "id": 44,
+      "at": 1792001982973,
+      "who": "레아",
+      "text": "cafesbelleville.com 읽는 중",
+      "kind": "act"
+    },
+    {
+      "id": 45,
+      "at": 1792001983353,
+      "who": "레아",
+      "text": "trustpilot.com 읽는 중",
+      "kind": "act"
+    },
+    {
+      "id": 46,
+      "at": 1792001997527,
+      "who": "레아",
+      "text": "cafesbelleville.com 읽는 중",
+      "kind": "act"
+    },
+    {
+      "id": 47,
+      "at": 1792001998172,
+      "who": "레아",
+      "text": "cafesbelleville.com 읽는 중",
+      "kind": "act"
+    },
+    {
+      "id": 48,
+      "at": 1792001998560,
+      "who": "레아",
+      "text": "cafesbelleville.com 읽는 중",
+      "kind": "act"
+    },
+    {
+      "id": 49,
+      "at": 1792002006529,
+      "who": "위고",
+      "text": "auchan.fr 읽는 중",
+      "kind": "act"
+    },
+    {
+      "id": 50,
+      "at": 1792002007012,
+      "who": "위고",
+      "text": "“Malongo café en grains Amazon.fr 1kg Petits…” 검색 중",
+      "kind": "act"
+    },
+    {
+      "id": 51,
+      "at": 1792002007476,
+      "who": "위고",
+      "text": "fr.trustpilot.com 읽는 중",
+      "kind": "act"
+    },
+    {
+      "id": 52,
+      "at": 1792002007554,
+      "who": "아이리스",
+      "text": "맥스에게 보고서 제출",
+      "kind": "report"
+    },
+    {
+      "id": 53,
+      "at": 1792002007985,
+      "who": "레아",
+      "text": "cafesbelleville.com 읽는 중",
+      "kind": "act"
+    },
+    {
+      "id": 54,
+      "at": 1792002008390,
+      "who": "레아",
+      "text": "cafesbelleville.com 읽는 중",
+      "kind": "act"
+    },
+    {
+      "id": 55,
+      "at": 1792002016001,
+      "who": "위고",
+      "text": "“Carrefour Malongo café grains Petits Produc…” 검색 중",
+      "kind": "act"
+    },
+    {
+      "id": 56,
+      "at": 1792002016562,
+      "who": "위고",
+      "text": "quechoisir.org 읽는 중",
+      "kind": "act"
+    },
+    {
+      "id": 57,
+      "at": 1792002017183,
+      "who": "위고",
+      "text": "malongo.com 읽는 중",
+      "kind": "act"
+    },
+    {
+      "id": 58,
+      "at": 1792002028455,
+      "who": "레아",
+      "text": "맥스에게 보고서 제출",
+      "kind": "report"
+    },
+    {
+      "id": 59,
+      "at": 1792002030729,
+      "who": "말로",
+      "text": "“Terres de Café avis clients Trustpilot café…” 검색 중",
+      "kind": "act"
+    },
+    {
+      "id": 60,
+      "at": 1792002031028,
+      "who": "말로",
+      "text": "terresdecafe.com 읽는 중",
+      "kind": "act"
+    },
+    {
+      "id": 61,
+      "at": 1792002040887,
+      "who": "말로",
+      "text": "fr.trustpilot.com 읽는 중",
+      "kind": "act"
+    },
+    {
+      "id": 62,
+      "at": 1792002042535,
+      "who": "위고",
+      "text": "맥스에게 보고서 제출",
+      "kind": "report"
+    },
+    {
+      "id": 63,
+      "at": 1792002051298,
+      "who": "조에",
+      "text": "cafejoyeux.com 읽는 중",
+      "kind": "act"
+    },
+    {
+      "id": 64,
+      "at": 1792002051745,
+      "who": "조에",
+      "text": "cafejoyeux.com 읽는 중",
+      "kind": "act"
+    },
+    {
+      "id": 65,
+      "at": 1792002063825,
+      "who": "조에",
+      "text": "“Café Joyeux café en grains avis clients goû…” 검색 중",
+      "kind": "act"
+    },
+    {
+      "id": 66,
+      "at": 1792002064523,
+      "who": "조에",
+      "text": "“Café Joyeux café grains disponible Carrefou…” 검색 중",
+      "kind": "act"
+    },
+    {
+      "id": 67,
+      "at": 1792002064997,
+      "who": "조에",
+      "text": "cafejoyeux.com 읽는 중",
+      "kind": "act"
+    },
+    {
+      "id": 68,
+      "at": 1792002066500,
+      "who": "말로",
+      "text": "맥스에게 보고서 제출",
+      "kind": "report"
+    },
+    {
+      "id": 69,
+      "at": 1792002075179,
+      "who": "조에",
+      "text": "“cafejoyeux.com avis clients Trustpilot OR a…” 검색 중",
+      "kind": "act"
+    },
+    {
+      "id": 70,
+      "at": 1792002075533,
+      "who": "조에",
+      "text": "cafejoyeux.com 읽는 중",
+      "kind": "act"
+    },
+    {
+      "id": 71,
+      "at": 1792002098548,
+      "who": "조에",
+      "text": "맥스에게 보고서 제출",
+      "kind": "report"
+    },
+    {
+      "id": 72,
+      "at": 1792002123939,
+      "who": "맥스",
+      "text": "마리 호출: 가격 비교",
+      "kind": "hire"
+    },
+    {
+      "id": 73,
+      "at": 1792002131351,
+      "who": "맥스",
+      "text": "프리다 호출: 출시 사이트",
+      "kind": "hire"
+    },
+    {
+      "id": 74,
+      "at": 1792002143538,
+      "who": "마리",
+      "text": "mkdir -p /tmp/scr && cat > /tmp/scr/d.p… 실행 중",
+      "kind": "act"
+    },
+    {
+      "id": 75,
+      "at": 1792002144617,
+      "who": "맥스",
+      "text": "comparatif.csv 저장",
+      "kind": "file"
+    },
+    {
+      "id": 76,
+      "at": 1792002169081,
+      "who": "마리",
+      "text": "cd \"~/Documents/에이전트… 실행 중",
+      "kind": "act"
+    },
+    {
+      "id": 77,
+      "at": 1792002170039,
+      "who": "맥스",
+      "text": "comparatif.md 저장",
+      "kind": "file"
+    },
+    {
+      "id": 78,
+      "at": 1792002173661,
+      "who": "마리",
+      "text": "cd \"~/Documents/에이전트… 실행 중",
+      "kind": "act"
+    },
+    {
+      "id": 79,
+      "at": 1792002181964,
+      "who": "마리",
+      "text": "맥스에게 보고서 제출",
+      "kind": "report"
+    },
+    {
+      "id": 80,
+      "at": 1792002190271,
+      "who": "프리다",
+      "text": "index.html 작성 중",
+      "kind": "act"
+    },
+    {
+      "id": 81,
+      "at": 1792002190700,
+      "who": "프리다",
+      "text": "index.html 저장",
+      "kind": "file"
+    },
+    {
+      "id": 82,
+      "at": 1792002198745,
+      "who": "프리다",
+      "text": "맥스에게 보고서 제출",
+      "kind": "report"
+    },
+    {
+      "id": 83,
+      "at": 1792002202674,
+      "who": "맥스",
+      "text": "결과물 두 개가 다 나왔는데, 서로 안 맞아요. 분석가는 14,90 €와 47,90 €를 제안했는데, 사이트에는 11,90 €와 39,90 €가 나와 있어요. 고칠 곳을 찾아볼게요.",
+      "kind": "chef"
+    },
+    {
+      "id": 84,
+      "at": 1792002203466,
+      "who": "맥스",
+      "text": "“11,90|39,90|47,60|59,60|47,90…” 검색 중",
+      "kind": "act"
+    },
+    {
+      "id": 85,
+      "at": 1792002206903,
+      "who": "맥스",
+      "text": "index.html 수정 중",
+      "kind": "act"
+    },
+    {
+      "id": 86,
+      "at": 1792002207786,
+      "who": "맥스",
+      "text": "index.html 수정 중",
+      "kind": "act"
+    },
+    {
+      "id": 87,
+      "at": 1792002208251,
+      "who": "맥스",
+      "text": "comparatif.md 읽는 중",
+      "kind": "act"
+    },
+    {
+      "id": 88,
+      "at": 1792002221157,
+      "who": "맥스",
+      "text": "rapport.md 작성 중",
+      "kind": "act"
+    },
+    {
+      "id": 89,
+      "at": 1792002221576,
+      "who": "맥스",
+      "text": "rapport.md 저장",
+      "kind": "file"
+    },
+    {
+      "id": 90,
+      "at": 1792002225311,
+      "who": "맥스",
+      "text": "리서처 5명이 가격을 조사했고, 분석가가 비교표를 만들었고, 디자이너가 사이트를 만들었어요. `index.html`은 브라우저에서 테스트하지 않았어요.\n\n- **경쟁사:** 이름을 따로 주지 않아서 Lavazza, Malongo, Café Joyeux, Terres de Café, Belleville Brûlerie로 정했어요. 바꾸고 싶으면 말해 주세요.\n- **가격:** Lavazza의 20~29 €/kg부터 Belleville의 65~108 €/kg까지 있어요. 50~65 €/kg 구간이 가장 비어 있어요.\n- **제안하는 출시 가격:** 250 g 14,90 €, 1 kg 47,90 €, 사이트에도 맞춰 뒀어요. 원가도 수요도 모르니 어디까지나 가설이에요.\n- **사이트:** 임시 이름 “Maison Grain”, 가상의 커피 이름, 연결 안 된 이메일 폼, 법적 고지는 아직 써야 해요.\n- **파일:** `rapport.md`(요약), `comparatif.md`, `comparatif.csv`, `index.html`.\n\n다음 단계: 진짜 이름을 정하고 원가를 계산해서 두 가격을 확정해 주세요.",
+      "kind": "chef"
+    },
+    {
+      "id": 91,
+      "at": 1792002225321,
+      "who": "맥스",
+      "text": "미션 완료!",
+      "kind": "end"
+    }
+  ],
+  "final": {
+    "ok": true,
+    "text": "리서처 5명이 가격을 조사했고, 분석가가 비교표를 만들었고, 디자이너가 사이트를 만들었어요. `index.html`은 브라우저에서 테스트하지 않았어요.\n\n- **경쟁사:** 이름을 따로 주지 않아서 Lavazza, Malongo, Café Joyeux, Terres de Café, Belleville Brûlerie로 정했어요. 바꾸고 싶으면 말해 주세요.\n- **가격:** Lavazza의 20~29 €/kg부터 Belleville의 65~108 €/kg까지 있어요. 50~65 €/kg 구간이 가장 비어 있어요.\n- **제안하는 출시 가격:** 250 g 14,90 €, 1 kg 47,90 €, 사이트에도 맞춰 뒀어요. 원가도 수요도 모르니 어디까지나 가설이에요.\n- **사이트:** 임시 이름 “Maison Grain”, 가상의 커피 이름, 연결 안 된 이메일 폼, 법적 고지는 아직 써야 해요.\n- **파일:** `rapport.md`(요약), `comparatif.md`, `comparatif.csv`, `index.html`.\n\n다음 단계: 진짜 이름을 정하고 원가를 계산해서 두 가격을 확정해 주세요.",
+    "ms": 287521,
+    "stopped": false,
+    "at": 1792002225321
+  },
+  "busySince": null,
+  "workMs": 288137,
+  "showFinal": false,
+  "toasts": []
+}
