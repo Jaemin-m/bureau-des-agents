@@ -17,7 +17,7 @@ import { mdToHtml } from './md.ts';
 import { Avatar } from './Panel.tsx';
 import { tidy } from './tidy.ts';
 import { AskCard } from './Asks.tsx';
-import { BranchCard, hasPhase, KindChip, phaseText, TaskRows, Thread } from './workers.tsx';
+import { BranchCard, hasPhase, KindChip, phaseText, TaskRows, Thread, tone } from './workers.tsx';
 
 const ICON: Record<string, string> = {
   search: '🔎', web: '🌐', read: '📖', write: '✍️', edit: '✏️', bash: '💻', plan: '📋', skill: '🎓', mcp: '🔌', other: '⚙️',
@@ -69,7 +69,7 @@ function AgentRoom({ id }: { id: string }) {
       <div className="agent-hero" style={{ ['--c' as string]: role.color }}>
         <Avatar role={a.role} size={72} />
         <div>
-          <span className={`pill-status ${a.status}`}>{hasPhase(a) ? phaseText(a.phase!, a.block, a.parked) : working ? (live?.seated ? '일하는 중' : '가는 중') : a.status === 'done' ? '일을 마쳤어요' : '끝내지 못했어요'}</span>
+          <span className={`pill-status ${tone(a)}`}>{hasPhase(a) ? phaseText(a.phase!, a.block, a.parked) : working ? (live?.seated ? '일하는 중' : '가는 중') : a.status === 'done' ? '일을 마쳤어요' : '끝내지 못했어요'}</span>
           <p className="now">{working && a.act ? <><i>{ICON[a.act.kind]}</i>{a.act.label}</> : a.status === 'done' ? '보고서가 맥스의 책상 위에 있어요.' : working ? '자리에 앉는 중…' : ''}</p>
           {current && <p className="small">맡은 할 일: <b>{current.title}</b></p>}
           {a.agent

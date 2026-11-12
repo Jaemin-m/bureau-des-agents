@@ -14,7 +14,7 @@ import { mdToHtml } from './md.ts';
 import { openAgent } from './interact.ts';
 import { FileActions } from './Rooms.tsx';
 import { tidy } from './tidy.ts';
-import { hasPhase, KindChip, phaseText, TaskRows } from './workers.tsx';
+import { hasPhase, KindChip, phaseText, TaskRows, tone } from './workers.tsx';
 
 export function Avatar({ role, size = 32 }: { role: Role; size?: number }) {
   const ref = useRef<HTMLCanvasElement>(null);
@@ -165,7 +165,7 @@ function AgentCard({ a, open, onToggle }: { a: AgentView; open: boolean; onToggl
   const working = a.status === 'working' || a.status === 'reporting';
   const report = useMemo(() => (open && a.report ? mdToHtml(a.report) : ''), [open, a.report]);
   return (
-    <div className={`agent ${a.status} ${open ? 'open' : ''}`} style={{ ['--c' as string]: role.color }}>
+    <div className={`agent ${tone(a)} ${open ? 'open' : ''}`} style={{ ['--c' as string]: role.color }}>
       <button className="agent-head" onClick={onToggle}>
         <Avatar role={a.role} size={30} />
         <div className="agent-id">
@@ -173,7 +173,7 @@ function AgentCard({ a, open, onToggle }: { a: AgentView; open: boolean; onToggl
           <span className="agent-task">{a.task}</span>
           <span className="agent-now">{nowText(a, working)}</span>
         </div>
-        <span className={`agent-status ${a.status}`} />
+        <span className={`agent-status ${tone(a)}`} />
       </button>
       {open && (
         <div className="agent-more">
