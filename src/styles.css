@@ -194,6 +194,12 @@ button:disabled { cursor: default; opacity: 0.45; }
 .ask-actions button { font: 700 0.9em var(--pixel); padding: 0.15em 0.7em; border: 2px solid #15121d; border-radius: 3px; background: #fff; }
 .ask-actions .yes { background: var(--orange); color: #15121d; }
 .ask-more { font-size: 0.78em; color: #8a5a3e; }
+.bubble.ask.question { background: #eaf4ff; border-color: #4a9dff; }
+.bubble.ask.question::after { background: #eaf4ff; border-color: #4a9dff; }
+.bubble.ask.question .ask-actions { flex-direction: column; align-items: stretch; }
+.bubble.ask.question .ask-actions button { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; }
+.bubble.ask.question .ask-actions .yes { background: #4a9dff; color: #08121f; }
+.bubble.ask.question .ask-more { color: #3a6a9e; }
 .tag {
   font: 500 0.86em/1 var(--pixel);
   color: #f5f5f7;
@@ -423,7 +429,15 @@ button:disabled { cursor: default; opacity: 0.45; }
   bottom: 14px;
   transform: translateX(-50%);
   width: min(560px, calc(100% - 28px));
+  max-height: calc(100% - 28px);
   z-index: 6;
+  display: grid;
+  gap: 6px;
+  animation: rise 0.25s ease-out;
+}
+.askbar-count { justify-self: center; font-size: 12px; color: var(--muted); padding: 2px 10px; border-radius: 999px; background: rgba(8, 8, 11, 0.85); border: 1px solid var(--line2); }
+.askbar-stack { display: grid; gap: 8px; overflow-y: auto; min-height: 0; }
+.ask-card {
   border: 1px solid rgba(255, 138, 61, 0.55);
   background: rgba(22, 15, 11, 0.95);
   backdrop-filter: blur(12px);
@@ -432,18 +446,38 @@ button:disabled { cursor: default; opacity: 0.45; }
   padding: 12px 14px;
   display: grid;
   gap: 6px;
-  animation: rise 0.25s ease-out;
 }
+.ask-card.question { border-color: rgba(74, 157, 255, 0.6); background: rgba(10, 17, 28, 0.95); box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55), 0 0 40px rgba(74, 157, 255, 0.14); }
 .askbar-head { font-size: 12.5px; color: var(--muted); }
 .askbar-label { font-weight: 700; }
+.askbar-note { margin: 0; font-size: 12.5px; color: var(--muted); }
 .askbar-detail { margin: 0; max-height: 120px; overflow: auto; background: #08080b; border: 1px solid var(--line); border-radius: 8px; padding: 8px; font: 12px/1.4 ui-monospace, monospace; white-space: pre-wrap; word-break: break-all; }
 .askbar-actions { display: flex; gap: 6px; }
+.ask-options { display: flex; flex-wrap: wrap; gap: 6px; }
+.ask-options .btn { border-color: rgba(74, 157, 255, 0.5); }
+.ask-reply { display: flex; gap: 6px; }
+.ask-reply input { flex: 1; min-width: 0; border-radius: 8px; border: 1px solid var(--line2); background: var(--surface); color: var(--ink); padding: 6px 10px; font: 500 13px var(--font); outline: none; }
+.ask-reply input:focus { border-color: rgba(74, 157, 255, 0.7); }
+.room .ask-card { margin-bottom: 8px; }
+.recipient { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 12.5px; }
+.recipient-label { color: var(--muted); }
+.recipient-chip { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--line2); background: var(--surface2); font-weight: 700; }
+.recipient-chip.worker { border-color: var(--c); }
+.recipient-chip i { width: 8px; height: 8px; border-radius: 2px; background: var(--c); }
+.recipient-clear { border: 0; background: none; color: var(--muted); padding: 0 2px; font-size: 15px; line-height: 1; }
+.recipient-clear:hover { color: var(--ink); }
+.recipient-back { border: 0; background: none; color: var(--orange2); font-size: 12px; padding: 0; text-decoration: underline; }
+.worker-talk { display: grid; gap: 6px; margin-top: 8px; }
+.worker-talk textarea { resize: none; border-radius: 10px; border: 1px solid var(--line2); background: var(--surface); color: var(--ink); padding: 8px 10px; font: 500 13.5px/1.4 var(--font); outline: none; }
+.worker-talk textarea:focus { border-color: rgba(255, 138, 61, 0.6); }
+.worker-talk-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 @keyframes rise { from { opacity: 0; transform: translateY(6px); } }
 
 .app.vertical .dialog { padding: 8px 10px 12px; }
 .app.vertical .dialog-text { font-size: 17px; max-height: 5.7em; min-height: 4.26em; }
 .app.vertical .chips { display: none; }
 .app.vertical .composer-row .ghost { display: none; }
+.resume { flex: none; }
 .app.filming .composer { display: none; }
 
 

@@ -10,6 +10,7 @@ import { teamList, useOffice, type AgentView } from '../state/store.ts';
 import { EXAMPLES } from './Dialog.tsx';
 import { fmtDate, fmtDuration, tilde } from './format.ts';
 import { mdToHtml } from './md.ts';
+import { openAgent } from './interact.ts';
 import { FileActions } from './Rooms.tsx';
 import { tidy } from './tidy.ts';
 import { hasPhase, KindChip, phaseText, TaskRows } from './workers.tsx';
@@ -140,7 +141,7 @@ function TeamSection() {
     <section className="card">
       <h3>팀 <span className="count">{active ? `${active}명 일하는 중` : `${team.length}명 다녀감`}</span></h3>
       <div className="team">
-        {team.map((a) => <AgentCard key={a.id} a={a} open={open === a.id} onToggle={() => { sfx('open'); setOpen(null); useOffice.setState({ modal: { kind: 'agent', id: a.id } }); }} />)}
+        {team.map((a) => <AgentCard key={a.id} a={a} open={open === a.id} onToggle={() => { setOpen(null); openAgent(a.id); }} />)}
       </div>
     </section>
   );

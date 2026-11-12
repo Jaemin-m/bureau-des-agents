@@ -1,12 +1,11 @@
 // 화면 아래, RPG처럼: 맥스가 말을 걸고(글자가 한 자씩 써진다), 사용자는 키보드나 목소리로 답한다.
 // 글을 입력하는 곳은 여기뿐이다. 요청 하나면 팀이 일을 시작한다.
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useShallow } from 'zustand/react/shallow';
 import { ROLES } from '../../shared/activity.ts';
 import { sfx } from '../audio/sfx.ts';
 import { world } from '../engine/instance.ts';
 import { robotSprite } from '../engine/robots.ts';
-import { useOffice } from '../state/store.ts';
+import { canResume, phaseOf, recipientOf, useOffice } from '../state/store.ts';
 import { tidy } from './tidy.ts';
 import { dictationHelp, useDictation } from './voice.ts';
 
@@ -115,28 +114,6 @@ export function Dialog() {
   );
 }
 
-export function AskBar() {
-  const asks = useOffice(useShallow((s) => Object.values(s.asks)));
-  const agents = useOffice((s) => s.agents);
-  const send = useOffice((s) => s.send);
-  const a = asks[0];
-  if (!a) return null;
-  const who = a.who === 'chef' ? '맥스' : agents[a.who]?.name ?? '에이전트';
-  const role = a.who === 'chef' ? 'chef' : agents[a.who]?.role ?? 'renfort';
-  const answer = (allow: boolean) => { sfx(allow ? 'yes' : 'no'); send({ t: 'answer', requestId: a.requestId, allow }); };
-  return (
-    <div className="askbar">
-      <div className="askbar-head">🙋 <b style={{ color: ROLES[role].color }}>{who}</b>의 허락 요청{asks.length > 1 ? ` (외 ${asks.length - 1}건)` : ''}</div>
-      <div className="askbar-label">{a.label}</div>
-      {!a.full && a.detail && <pre className="askbar-detail">{a.detail}</pre>}
-      <div className="askbar-actions">
-        <button className="btn primary" onClick={() => answer(true)}>허락</button>
-        <button className="btn" onClick={() => answer(false)}>거절</button>
-      </div>
-    </div>
-  );
-}
-
 function Composer() {
   const mission = useOffice((s) => s.mission);
   const busy = useOffice((s) => s.busySince !== null);
@@ -144,6 +121,8 @@ function Composer() {
   const send = useOffice((s) => s.send);
   const draft = useOffice((s) => s.draft);
   const demo = useOffice((s) => s.connection === 'demo');
+  const resumable = useOffice(canResume);
+  const worker = useOffice((s) => { const id = recipientOf(s); return id === 'chef' ? undefined : s.agents[id]; });
   const [text, setText] = useState('');
   const area = useRef<HTMLTextAreaElement>(null);
   const textRef = useRef(text);
@@ -161,22 +140,28 @@ function Composer() {
   const dict = useDictation(getBase, setText);
 
   const mode: 'new' | 'steer' | 'retouch' = !mission ? 'new' : busy ? 'steer' : 'retouch';
-  const placeholder = mode === 'new'
-    ? '맥스에게 원하는 걸 말해 주세요… (예: 경쟁사 5곳 분석해 줘)'
-    : mode === 'steer' ? '맥스에게 덧붙일 말이 있나요? 단계 사이에 읽어요.' : '맥스에게 수정을 요청하거나… 새 미션을 시작하세요.';
+  const resting = worker ? ['idle', 'stopped', 'failed', 'retired'].includes(phaseOf(worker)) : false;
+  const placeholder = worker
+    ? (resting ? `${worker.name}에게 이어서 시킬 일을 적어 주세요.` : `${worker.name}에게 할 말을 적어 주세요.`)
+    : mode === 'new'
+      ? '맥스에게 원하는 걸 말해 주세요… (예: 경쟁사 5곳 분석해 줘)'
+      : mode === 'steer' ? '맥스에게 덧붙일 말이 있나요? 단계 사이에 읽어요.' : '맥스에게 수정을 요청하거나… 새 미션을 시작하세요.';
+  const sendLabel = worker ? `${worker.name}에게 보내기` : mode === 'new' ? '시작' : '보내기';
 
   const submit = () => {
     const t = text.trim();
     if (!t || replaying) return;
     if (dict.listening) dict.stop();
     sfx('send');
-    if (mode === 'new') send({ t: 'start', prompt: t });
+    if (worker) send({ t: 'say', text: t, to: worker.id });
+    else if (mode === 'new') send({ t: 'start', prompt: t });
     else send({ t: 'say', text: t });
     setText('');
   };
 
   return (
     <div className="composer">
+      {mission && !replaying && <RecipientChip />}
       <div className={`composer-row ${dict.listening ? 'listening' : ''}`}>
         <textarea
           ref={area}
@@ -200,13 +185,16 @@ function Composer() {
         </button>
         {busy && !replaying ? (
           <>
-            {text.trim() && <button className="btn primary send" onClick={submit}>보내기</button>}
+            {text.trim() && <button className="btn primary send" onClick={submit}>{sendLabel}</button>}
             <button className="btn stop" onClick={() => { sfx('click'); send({ t: 'stop' }); }}>■ 멈추기</button>
           </>
         ) : (
           <button className="btn primary send" disabled={!text.trim() || replaying} onClick={submit}>
-            {mode === 'new' ? '시작' : '보내기'} <span aria-hidden="true">➜</span>
+            {sendLabel} <span aria-hidden="true">➜</span>
           </button>
+        )}
+        {resumable && (
+          <button className="btn primary resume" title="멈춘 자리에서 팀이 다시 일해요" onClick={() => { sfx('click'); send({ t: 'resume' }); }}>▶ 이어서 하기</button>
         )}
         {mode === 'retouch' && !replaying && (
           <button className="btn ghost" title="이 미션을 정리하고 처음부터 시작해요" onClick={() => { sfx('click'); send({ t: 'new' }); }}>＋ 새 미션</button>
@@ -215,6 +203,23 @@ function Composer() {
       {dict.problem && (
         <div className="hint" onClick={dict.clearProblem}>🎙️ {dictationHelp(dict.problem)}</div>
       )}
+    </div>
+  );
+}
+
+/** 입력창이 말을 보낼 곳. 기본은 맥스이고, 일꾼을 고르면 그 일꾼에게 간다. */
+function RecipientChip() {
+  const worker = useOffice((s) => { const id = recipientOf(s); return id === 'chef' ? undefined : s.agents[id]; });
+  const color = ROLES[worker?.role ?? 'chef'].color;
+  const clear = () => { sfx('click'); useOffice.setState({ recipient: null }); };
+  return (
+    <div className="recipient">
+      <span className="recipient-label">받는 사람</span>
+      <span className={`recipient-chip ${worker ? 'worker' : ''}`} style={{ ['--c' as string]: color }} data-to={worker?.id ?? 'chef'}>
+        <i />{worker ? worker.name : '맥스'}
+        {worker && <button className="recipient-clear" aria-label="맥스에게 보내기로 되돌리기" title="맥스에게 보내기로 되돌리기" onClick={clear}>×</button>}
+      </span>
+      {worker && <button className="recipient-back" onClick={clear}>맥스에게</button>}
     </div>
   );
 }

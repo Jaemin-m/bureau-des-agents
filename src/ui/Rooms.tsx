@@ -9,13 +9,14 @@ import { KIND } from '../engine/kinds.ts';
 import { jukebox, TRACKS } from '../audio/music.ts';
 import { sfx } from '../audio/sfx.ts';
 import { world } from '../engine/instance.ts';
-import { savePref, teamList, useOffice, type ActView, type Tod } from '../state/store.ts';
+import { canStopWorker, openAsks, savePref, teamList, useOffice, type ActView, type AgentView, type Tod } from '../state/store.ts';
 import { useShallow } from 'zustand/react/shallow';
 import { fileIcon, fmtClock, fmtDate, fmtDuration, fmtSize, plural, readable, tilde } from './format.ts';
-import { party } from './interact.ts';
+import { openAgent, party } from './interact.ts';
 import { mdToHtml } from './md.ts';
 import { Avatar } from './Panel.tsx';
 import { tidy } from './tidy.ts';
+import { AskCard } from './Asks.tsx';
 import { hasPhase, KindChip, phaseText, TaskRows, Thread } from './workers.tsx';
 
 const ICON: Record<string, string> = {
@@ -79,12 +80,7 @@ function AgentRoom({ id }: { id: string }) {
         <h4>맥스가 맡긴 일</h4>
         <p className="brief">{tidy(a.prompt)}</p>
       </section>
-      {a.thread && a.thread.length > 0 && (
-        <section className="room-sec">
-          <h4>대화 <span className="count">{plural(a.thread.length, '건')}</span></h4>
-          <Thread a={a} />
-        </section>
-      )}
+      <WorkerTalk a={a} />
       {a.acts.length > 0 && (
         <section className="room-sec">
           <h4>한 일 <span className="count">작업 {plural(a.acts.length, '개')}</span></h4>
@@ -101,6 +97,45 @@ function AgentRoom({ id }: { id: string }) {
         <p className="small muted">{fmtDuration(a.leftAt - a.hiredAt)} 동안 일함{a.tools ? ` · 도구 ${plural(a.tools, '번')} 사용` : ''}{a.tokens ? ` · 토큰 ${a.tokens.toLocaleString('ko-KR')}개` : ''}</p>
       )}
     </Shell>
+  );
+}
+
+/** 일꾼과 주고받은 말, 열린 질문, 이 일꾼에게만 하는 말과 멈추기. */
+function WorkerTalk({ a }: { a: AgentView }) {
+  const asks = useOffice(useShallow((s) => openAsks(s.asks).filter((k) => k.who === a.id)));
+  const replaying = useOffice((s) => s.replaying);
+  const send = useOffice((s) => s.send);
+  const [text, setText] = useState('');
+  const resting = !canStopWorker(a);
+  const submit = () => {
+    const t = text.trim();
+    if (!t || replaying) return;
+    sfx('send');
+    send({ t: 'say', text: t, to: a.id });
+    setText('');
+  };
+  return (
+    <section className="room-sec">
+      <h4>대화 {a.thread?.length ? <span className="count">{plural(a.thread.length, '건')}</span> : null}</h4>
+      {asks.map((k) => <AskCard key={k.requestId} ask={k} />)}
+      <Thread a={a} />
+      {!a.thread?.length && !asks.length && <p className="muted small">아직 주고받은 말이 없어요.</p>}
+      {!replaying && (
+        <div className="worker-talk">
+          <textarea
+            value={text}
+            rows={2}
+            placeholder={resting ? `${a.name}에게 이어서 시킬 일을 적어 주세요.` : `${a.name}에게 할 말을 적어 주세요.`}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); submit(); } }}
+          />
+          <div className="worker-talk-actions">
+            <button className="btn primary small" disabled={!text.trim()} onClick={submit}>{a.name}에게 보내기</button>
+            {!resting && <button className="btn stop small" onClick={() => { sfx('click'); send({ t: 'stop', who: a.id }); }}>■ {a.name}만 멈추기</button>}
+          </div>
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -160,7 +195,7 @@ function BoardRoom() {
         {team.length ? (
           <div className="who">
             {team.map((a) => (
-              <button key={a.id} className={`who-row ${a.status}`} style={{ ['--c' as string]: ROLES[a.role].color }} onClick={() => { sfx('open'); useOffice.setState({ modal: { kind: 'agent', id: a.id } }); }}>
+              <button key={a.id} className={`who-row ${a.status}`} style={{ ['--c' as string]: ROLES[a.role].color }} onClick={() => openAgent(a.id)}>
                 <Avatar role={a.role} size={26} />
                 <b>{a.name}{a.agent && <> <KindChip kind={a.agent} /></>}</b>
                 <span className="who-task">{a.task}</span>

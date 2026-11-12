@@ -4,8 +4,8 @@ import type { AgentKind, BlockReason, MsgKind, WorkerPhase } from '../../shared/
 import type { TaskStatus } from '../../shared/tasks.ts';
 import { dagRows } from '../engine/dag.ts';
 import { KIND } from '../engine/kinds.ts';
-import { sfx } from '../audio/sfx.ts';
 import { useOffice, type AgentView } from '../state/store.ts';
+import { openAgent } from './interact.ts';
 import { tidy } from './tidy.ts';
 
 const PHASE_TEXT: Record<WorkerPhase, string> = {
@@ -48,7 +48,7 @@ export function TaskRows() {
             <i />
             <span className="task-title">{r.title}</span>
             <span className="task-meta">{TASK_TEXT[r.status]}{who ? ` · ${who}` : ''}</span>
-            {worker && <button className="task-open" onClick={() => { sfx('open'); useOffice.setState({ modal: { kind: 'agent', id: worker.id } }); }}>보기</button>}
+            {worker && <button className="task-open" onClick={() => openAgent(worker.id)}>보기</button>}
           </li>
         );
       })}
