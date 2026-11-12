@@ -486,7 +486,7 @@ function turnEnded(d: Draft, w: Worker, outcome: 'ok' | 'error' | 'interrupted',
     const why = cut(text, 300) || '턴이 오류로 끝났어요.';
     setRun(d, t, { k: 'failed', why, attempts: 1 });
     setPhase(d, w, { k: 'idle' }, why);
-    news(d, `${label(w)}가 할 일 '${t.key}'에서 실패했어요.${blockedNote(s, t.key)}`, why);
+    news(d, `${label(w)}가 ${taskPhrase(t)}에서 실패했어요.${blockedNote(s, t.key)}`, why);
     return { ok: true };
   }
   const { handback: hb, text: shown } = parseHandback(text);
@@ -494,7 +494,7 @@ function turnEnded(d: Draft, w: Worker, outcome: 'ok' | 'error' | 'interrupted',
     setRun(d, t, { k: 'done', result: { summary: hb.summary } });
     d.ev.push({ k: 'report', who: w.id, text: shown || hb.summary });
     setPhase(d, w, { k: 'idle' });
-    news(d, `${label(w)}가 할 일 '${t.key}'를 마쳤어요.`, hb.summary);
+    news(d, `${label(w)}가 ${taskPhrase(t)}를 마쳤어요.`, hb.summary);
     return { ok: true };
   }
   const asked = hb.status === 'question' ? hb.question : hb.why;
@@ -801,6 +801,11 @@ const label = (m: Member) => `${m.name}(${m.id})`;
 function blockedNote(s: MissionState, key: TaskKey): string {
   const stuck = Object.values(s.tasks).filter((t) => t.after.includes(key) && t.run.k === 'pending').map((t) => t.key);
   return stuck.length ? ` 그래서 ${stuck.join(', ')}는 막혔어요.` : '';
+}
+
+/** 맥스가 만든 계획에 없는 일(사용자가 일꾼에게 이어서 시킨 일)은 그렇게 밝힌다. 아니면 맥스가 자기가 만들지 않았다고 헷갈린다. */
+function taskPhrase(t: Task): string {
+  return t.origin === 'followup' ? `사용자가 이어서 시킨 일 '${t.key}'` : `할 일 '${t.key}'`;
 }
 
 function news(d: Draft, line: string, data?: string) {

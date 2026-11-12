@@ -688,6 +688,184 @@ async function officeReal(ctx: Ctx, agent: 'claude' | 'codex') {
   rmSync(tmp, { recursive: true, force: true });
 }
 
+// ── 진짜 사무실, 저장소 미션: claude 일꾼 → (의존) codex 일꾼, 이어서 시키기, 합치기(최종 스모크) ──
+const REPO_PROMPT =
+  '할 일을 정확히 둘만 만들어 주세요. 첫째는 키 readme(agent: claude, role: code)로, 저장소의 README.md 맨 끝에 "claude was here" 한 줄을 덧붙이는 일이에요. ' +
+  '둘째는 키 notes(agent: codex, role: code, after: ["readme"])로, 저장소의 NOTES.md 맨 끝에 "codex was here" 한 줄을 덧붙이는 일이에요. ' +
+  '둘째는 첫째가 끝난 뒤에 해야 해요. 다른 할 일은 만들지 마세요. 끝나면 한 문장으로 알려 주세요.';
+const FOLLOWUP = 'NOTES.md 맨 끝에 "codex again" 한 줄을 더 덧붙여 주세요. 다른 것은 바꾸지 마세요.';
+
+async function officeRepo(ctx: Ctx) {
+  const started = Date.now();
+  const tmp = realpathSync(mkdtempSync(path.join(ctx.scratch, 'office-repo-')));
+  const repo = path.join(tmp, 'repo');
+  const rec = path.join(tmp, 'rec');
+  const worktrees = path.join(tmp, 'worktrees');
+  const calls = path.join(tmp, 'codex-calls.jsonl');
+  // 사용자의 git 설정이 커밋에 새지 않도록 빈 전역 설정을 쓴다. 그러면 사무실은 자기 신원으로 커밋한다
+  const gitEnv = { ...cleanEnv(), GIT_CONFIG_GLOBAL: path.join(tmp, 'empty-gitconfig'), GIT_CONFIG_NOSYSTEM: '1' };
+  writeFileSync(path.join(tmp, 'empty-gitconfig'), '');
+  mkdirSync(repo);
+  const git = (...a: string[]) => execFileSync('git', a, { cwd: repo, env: gitEnv, encoding: 'utf8' }).trim();
+  git('init', '-q', '-b', 'main');
+  writeFileSync(path.join(repo, 'README.md'), 'hello\n');
+  writeFileSync(path.join(repo, 'NOTES.md'), 'notes\n');
+  git('add', '-A');
+  git('-c', 'user.name=Fixture', '-c', 'user.email=fixture@localhost', 'commit', '-q', '-m', 'init');
+
+  // 진짜 codex를 그대로 부르되, 인자와 cwd를 남기는 얇은 감싸개. 어댑터가 resume에 무엇을 넘기는지 보려고 쓴다
+  const realCodex = execFileSync('which', ['codex'], { encoding: 'utf8' }).trim();
+  const bin = path.join(tmp, 'bin');
+  mkdirSync(bin);
+  const wrapper = path.join(bin, 'codex');
+  const logLine = 'require("fs").appendFileSync(process.argv[1], JSON.stringify({cwd: process.cwd(), argv: process.argv.slice(2)}) + "\\n")';
+  writeFileSync(wrapper, `#!/bin/sh\n${JSON.stringify(process.execPath)} -e '${logLine}' ${JSON.stringify(calls)} "$@"\nexec ${JSON.stringify(realCodex)} "$@"\n`, { mode: 0o755 });
+
+  const headBefore = git('rev-parse', 'HEAD');
+  const statusBefore = git('status', '--porcelain');
+  const office = await spawnOffice({ env: { ...gitEnv, BUREAU_DIR: path.join(tmp, 'office'), BUREAU_RECORD: rec, BUREAU_WORKTREES: worktrees, CODEX_BIN: wrapper }, readyMs: 20_000 });
+  const answered = new Set<string>();
+  const evs = () => office.events();
+  const settles = () => evs().filter((e) => e.k === 'settle').length;
+  const openAsks = () => {
+    const done = new Set(evs().flatMap((e) => (e.k === 'ask_done' ? [e.requestId] : [])));
+    return evs().flatMap((e) => (e.k === 'ask' && !done.has(e.requestId) && !answered.has(e.requestId) ? [e] : []));
+  };
+  const answerAsks = () => {
+    for (const a of openAsks()) {
+      answered.add(a.requestId);
+      office.send(a.kind === 'question' ? { t: 'reply', requestId: a.requestId, text: '알아서 정해 주세요.' } : { t: 'answer', requestId: a.requestId, allow: true });
+    }
+  };
+  const waitFor = async (pred: () => boolean, ms: number, label: string) => {
+    const deadline = Date.now() + ms;
+    while (!pred()) {
+      if (Date.now() > deadline) throw new Error(`${label}: ${ms}ms 안에 안 됐다. 이벤트: ${evs().map((e) => e.k).join(' ')}`);
+      await office.until(() => pred() || openAsks().length > 0, Math.max(1, deadline - Date.now()));
+      answerAsks();
+    }
+  };
+  const observed: Json = {
+    versions: { claude: ctx.versions.claude, codex: ctx.versions.codex },
+    settings: { chefModel: 'haiku', teamModel: 'haiku', permission: 'auto', codexModel: CODEX_MODEL }, prompt: REPO_PROMPT, followupPrompt: FOLLOWUP,
+  };
+  const tasks = () => {
+    const t: Record<string, Json> = {};
+    for (const e of evs()) if (e.k === 'task') t[e.key] = e as unknown as Json;
+    return t;
+  };
+  let mission: MissionInfo | undefined;
+  let ok = false;
+  try {
+    await office.until((m) => m.some((x) => x.t === 'hello'), 10_000);
+    office.send({ t: 'settings', settings: { chefModel: 'haiku', teamModel: 'haiku', permission: 'auto', codexModel: CODEX_MODEL } });
+    await office.until((m) => m.some((x) => x.t === 'settings'), 10_000);
+
+    // 1. repo_check
+    office.send({ t: 'repo_check', path: repo });
+    await office.until((m) => m.some((x) => x.t === 'repo_info'), 15_000);
+    const info = office.msgs.find((x) => x.t === 'repo_info') as Json;
+    observed.repoInfo = { ok: info.ok, label: info.label, branch: info.branch, dirty: info.dirty, why: info.why };
+
+    // 2, 3. 미션
+    office.send({ t: 'start', prompt: REPO_PROMPT, target: { repo } });
+    await waitFor(() => settles() >= 1, 420_000, '첫 settle');
+    mission = office.msgs.flatMap((m) => (m.t === 'mission' ? [m.mission] : [])).at(-1);
+    const t1 = tasks();
+    observed.tasks = Object.fromEntries(Object.entries(t1).map(([k, v]) => [k, { agent: v.agent, after: v.after, run: v.run.k, result: v.run.result ? { ...v.run.result, summary: undefined } : undefined }]));
+    observed.planCalls = evs().filter((e) => e.k === 'act' && e.who === 'chef' && e.tool === 'mcp__office__office_plan').length;
+    const claudeBranch: string = t1.readme?.run?.result?.branch;
+    const codexBranch: string = t1.notes?.run?.result?.branch;
+    const codexWorker: string = t1.notes?.run?.result?.by;
+    const isAncestor = () => { try { git('merge-base', '--is-ancestor', claudeBranch, codexBranch); return true; } catch { return false; } };
+    const wts = () => git('worktree', 'list', '--porcelain').split('\n').filter((l) => l.startsWith('worktree ')).map((l) => l.slice(9));
+    observed.afterSettle = {
+      headSame: git('rev-parse', 'HEAD') === headBefore, statusSame: git('status', '--porcelain') === statusBefore,
+      readmeInRoot: readFileSync(path.join(repo, 'README.md'), 'utf8'), notesInRoot: readFileSync(path.join(repo, 'NOTES.md'), 'utf8'),
+      branches: git('branch', '--list', 'bureau/*', '--format=%(refname:short)').split('\n').filter(Boolean),
+      worktrees: wts(),
+    };
+    if (claudeBranch && codexBranch) {
+      Object.assign(observed.afterSettle, {
+        codexDescendsFromClaude: isAncestor(),
+        claudeLog: git('log', '--format=%h %an <%ae> %s', `main..${claudeBranch}`).split('\n'),
+        codexLog: git('log', '--format=%h %an <%ae> %s', `main..${codexBranch}`).split('\n'),
+        claudeBranchReadme: git('show', `${claudeBranch}:README.md`), codexBranchNotes: git('show', `${codexBranch}:NOTES.md`), codexBranchReadme: git('show', `${codexBranch}:README.md`),
+      });
+    }
+
+    // 4. 이어서 시키기
+    const callsOf = () => (existsSync(calls) ? readFileSync(calls, 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l) as Json) : []);
+    const callsBefore = callsOf().length;
+    const at = evs().length;
+    const codexWt = wts().find((p) => p.includes('notes')) ?? '';
+    office.send({ t: 'say', text: FOLLOWUP, to: codexWorker });
+    const phase = (p: string[]) => () => evs().slice(at).some((e) => e.k === 'worker' && e.id === codexWorker && p.includes(e.phase));
+    await waitFor(phase(['working', 'starting']), 60_000, '이어서 시키기: 일 시작');
+    await waitFor(phase(['idle', 'retired', 'failed']), 240_000, '이어서 시키기: 끝');
+    await new Promise((r) => setTimeout(r, 4000)); // 보관(checkpoint) 한 줄이 끝나도록
+    observed.codexExecCalls = callsOf().filter((c) => c.argv[0] === 'exec');
+    observed.codexExecCallsAfterFollowup = callsOf().slice(callsBefore).filter((c) => c.argv[0] === 'exec');
+    observed.followup = {
+      worktree: codexWt,
+      notesInWorktree: existsSync(path.join(codexWt, 'NOTES.md')) ? readFileSync(path.join(codexWt, 'NOTES.md'), 'utf8') : null,
+      notesInRoot: readFileSync(path.join(repo, 'NOTES.md'), 'utf8'),
+      notesInMissionFolder: existsSync(path.join(mission!.folder, 'NOTES.md')) ? readFileSync(path.join(mission!.folder, 'NOTES.md'), 'utf8') : null,
+      codexLogAfter: git('log', '--format=%h %an <%ae> %s', `main..${codexBranch}`).split('\n'),
+      notesOnBranch: git('show', `${codexBranch}:NOTES.md`),
+      statusInWorktree: execFileSync('git', ['status', '--porcelain'], { cwd: codexWt, env: gitEnv, encoding: 'utf8' }).trim(),
+      rootHeadSame: git('rev-parse', 'HEAD') === headBefore, rootStatusSame: git('status', '--porcelain') === statusBefore,
+      tasksAfter: Object.fromEntries(Object.entries(tasks()).map(([k, v]) => [k, { run: v.run.k, head: v.run.result?.head, files: v.run.result?.files, ins: v.run.result?.ins }])),
+      eventsAfter: evs().slice(at).map((e) => e.k).join(' '),
+    };
+    // 맥스가 소식으로 깨어 한 번 더 마무리하는지(둘째 settle)를 잠깐 기다린다
+    try { await waitFor(() => settles() >= 2, 45_000, '둘째 settle'); observed.secondSettle = true; } catch { observed.secondSettle = false; }
+
+    // 5. 합치기
+    const baseBefore = git('rev-parse', 'main');
+    const nMsgs = office.msgs.length;
+    office.send({ t: 'merge', taskKey: 'notes' });
+    await office.until((m) => m.slice(nMsgs).some((x) => x.t === 'toast'), 30_000);
+    await new Promise((r) => setTimeout(r, 1500));
+    observed.merge = {
+      toast: office.msgs.slice(nMsgs).flatMap((m) => (m.t === 'toast' ? [m.text] : [])),
+      baseBefore, baseAfter: git('rev-parse', 'main'), checkedOut: git('symbolic-ref', '--short', 'HEAD'),
+      parents: git('log', '-1', '--format=%P', 'main').split(' ').length, mergeCommit: git('log', '-1', '--format=%h %an <%ae> %s', 'main'),
+      statusAfter: git('status', '--porcelain'), readme: readFileSync(path.join(repo, 'README.md'), 'utf8'), notes: readFileSync(path.join(repo, 'NOTES.md'), 'utf8'),
+      taskMerged: tasks().notes?.run?.result?.merged,
+    };
+
+    office.send({ t: 'new' });
+    await office.until((m) => m.some((x) => x.t === 'closed'), 30_000);
+    ok = true;
+  } finally {
+    await office.stop();
+    if (!ok) {
+      writeFileSync(path.join(tmp, 'observed.partial.json'), JSON.stringify(observed, null, 2));
+      console.log(`  실패. 임시 폴더를 남겼다: ${tmp}\n${JSON.stringify(observed, null, 2).slice(0, 6000)}`);
+    }
+  }
+  if (!mission) throw new Error('미션 정보가 오지 않았다');
+
+  const logged = readFileSync(path.join(rec, `${mission.id}.logged.jsonl`), 'utf8');
+  const raws = readdirSync(rec).filter((f) => f.endsWith('.raw.jsonl')).sort();
+  const rawParsed = (f: string) => readFileSync(path.join(rec, f), 'utf8').split('\n').filter(Boolean).map((l) => { try { return JSON.parse(JSON.parse(l).line) as Json; } catch { return {} as Json; } });
+  observed.sessions = raws.map((f) => f.replace(mission!.id, '<MISSION>'));
+  observed.codexThreadIds = raws.filter((f) => f.endsWith('-codex.raw.jsonl')).map((f) => rawParsed(f).filter((o) => o.type === 'thread.started').map((o) => o.thread_id));
+  observed.turnsPerSession = Object.fromEntries(raws.map((f) => [f.replace(mission!.id, '<MISSION>'), rawParsed(f).filter((o) => o.type === 'result' || o.type === 'turn.completed').length]));
+  observed.ms = Date.now() - started;
+  observed.pathsInLog = [tmp, os.homedir()].filter((p) => logged.includes(p)).length;
+
+  const scrub = makeScrub([[mission.folder, '/work/mission'], [worktrees, '<WORKTREES>'], [repo, '<REPO>'], [path.join(tmp, 'office'), '<TMP>/office'], [tmp, '<TMP>/office-run']]);
+  const out = path.join(FIXTURES, 'scenarios');
+  mkdirSync(out, { recursive: true });
+  writeFileSync(path.join(out, 'real-final-repo.logged.jsonl'), logged.split('\n').filter(Boolean).map(scrub).join('\n') + '\n');
+  writeFileSync(path.join(out, 'real-final-repo.meta.json'), scrub(JSON.stringify(observed, null, 2)) + '\n');
+  console.log(`  [office-repo] ${Math.round(observed.ms / 1000)}초\n${scrub(JSON.stringify(observed, null, 2)).slice(0, 9000)}`);
+  await new Promise((r) => setTimeout(r, 1500)); // 서버의 늦은 저장이 지워진 폴더를 건드리지 않도록
+  rmSync(tmp, { recursive: true, force: true });
+}
+
 // ── 실행 ──
 interface Step { id: string; cli: string; what: string; calls: string; run: (ctx: Ctx) => Promise<unknown> }
 
@@ -702,6 +880,7 @@ function steps(only: string[]): Step[] {
     { id: 'claude:mcp-http-noturn', cli: 'claude', what: '모델 호출 없이 MCP 서버 상태가 init에 나오는지(메시지를 보내지 않고 12초 기다린다)', calls: '0', run: (c) => claudeMcp(c, 'mcp-http-noturn', { allow: true, transport: 'http', noTurn: true }) },
     { id: 'claude:office-u7', cli: 'claude', what: '진짜 서버로 미션 하나(맥스가 office_plan으로 claude 일꾼 한 명). Logged[]를 tests/fixtures/scenarios/에', calls: '약 3-5', run: (c) => officeReal(c, 'claude') },
     { id: 'codex:office-u7', cli: 'codex', what: `진짜 서버로 미션 하나(맥스는 claude, 일꾼은 codex ${CODEX_MODEL})`, calls: '약 3-5', run: (c) => officeReal(c, 'codex') },
+    { id: 'claude:office-repo', cli: 'claude', what: `진짜 서버로 저장소 미션(claude 일꾼, 그다음 codex ${CODEX_MODEL} 일꾼, 이어서 시키기, 합치기). 임시 저장소만 쓴다`, calls: '약 8-12', run: officeRepo },
     { id: 'codex:first-turn', cli: 'codex', what: `codex exec --json (${CODEX_MODEL}, workspace-write)`, calls: '1', run: (c) => codexScenarios(c, (s) => s === 'first-turn') },
     { id: 'codex:resume', cli: 'codex', what: 'codex exec resume <thread_id> --json (첫 턴을 함께 돌린다)', calls: '1', run: (c) => codexScenarios(c, (s) => s === 'resume') },
     { id: 'codex:sigterm', cli: 'codex', what: '턴 도중 SIGTERM', calls: '1(일부)', run: (c) => codexScenarios(c, (s) => s === 'sigterm') },
