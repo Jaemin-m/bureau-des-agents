@@ -310,7 +310,8 @@ export class Conductor {
         if (!repo) { this.post({ k: 'effect_ok', effect: e, out: { kind: 'folder' } }); return; }
         void this.git(() => provision({ mission: repo.mission, task: e.task, access: e.access, upstream: e.upstream })).then((r) => {
           if (r.kind === 'ready') this.post({ k: 'effect_ok', effect: e, out: r.ref as unknown as Opaque });
-          else this.post({ k: 'effect_failed', effect: e, why: r.kind === 'conflict' ? `앞 할 일의 브랜치끼리 충돌해요: ${r.branches.join(', ')}` : r.why });
+          else if (r.kind === 'conflict') this.post({ k: 'effect_failed', effect: e, why: `앞 할 일의 브랜치끼리 충돌해요: ${r.branches.join(', ')}`, conflict: r.branches });
+          else this.post({ k: 'effect_failed', effect: e, why: r.why });
         });
         return;
       }

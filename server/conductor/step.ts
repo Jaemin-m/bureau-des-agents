@@ -216,7 +216,7 @@ function apply(d: Draft, input: Input): Reply | Same {
       return signal(d, w, input.sig);
     }
     case 'effect_ok': return effectOk(d, input.effect, input.out);
-    case 'effect_failed': return effectFailed(d, input.effect, input.why);
+    case 'effect_failed': return effectFailed(d, input.effect, input.why, input.conflict);
     case 'timer_fired': {
       const { then } = input.timer;
       if (then.k === 'wake') {
@@ -543,6 +543,16 @@ function startFailed(d: Draft, w: Worker, why: string) {
   news(d, `${label(w)}가 ${w.startFailures}번 연달아 시작하지 못해서 할 일 '${t?.key}'를 실패로 표시했어요.${t ? blockedNote(d.s, t.key) : ''}`, note);
 }
 
+/** 앞 할 일의 브랜치끼리 합쳐지지 않는다: 다시 해 봐야 같으므로 재시도 없이 바로 서고, 맥스가 계획을 고치도록 소식 한 번을 남긴다. */
+function startBlocked(d: Draft, w: Member, branches: readonly string[]) {
+  w.residency = 'parked';
+  const why = cut(`앞 할 일의 브랜치끼리 충돌해요: ${branches.join(', ')}`, 300);
+  const t = taskOf(d.s, w.id);
+  if (t) setRun(d, t, { k: 'failed', why, attempts: 1 });
+  setPhase(d, w, { k: 'failed' }, why);
+  news(d, `${label(w)}가 할 일 '${t?.key}'를 시작하지 못했어요. ${why} 다시 해 봐도 같아서 멈췄어요.${t ? blockedNote(d.s, t.key) : ''}`, why);
+}
+
 function effectOk(d: Draft, e: Effect, out?: Opaque): Reply | Same {
   if (e.k === 'provision') {
     const m = d.s.workers[e.worker];
@@ -560,11 +570,12 @@ function effectOk(d: Draft, e: Effect, out?: Opaque): Reply | Same {
   return { same: { ok: true } };
 }
 
-function effectFailed(d: Draft, e: Effect, why: string): Reply | Same {
+function effectFailed(d: Draft, e: Effect, why: string, conflict?: readonly string[]): Reply | Same {
   if (e.k === 'provision') {
     const m = d.s.workers[e.worker];
     if (!m || m.phase.k !== 'provisioning' || !m.phase.sent) return { same: { ok: true } };
-    startFailed(d, m, why);
+    if (conflict?.length) startBlocked(d, m, conflict);
+    else startFailed(d, m, why);
     return { ok: true };
   }
   if (e.k === 'open_session' || e.k === 'send_turn') {
