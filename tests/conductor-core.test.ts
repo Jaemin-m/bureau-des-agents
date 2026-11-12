@@ -52,6 +52,7 @@ const planCases: { name: string; tasks?: Task[]; specs: PlanSpec[]; installed?: 
   { name: '평범한 계획', specs: [p('a'), p('b', { after: ['a'] })], accepted: ['a', 'b'] },
   { name: '빈 계획', specs: [], error: /하나도 없어요/ },
   { name: '키 모양', specs: [p('Bad_Key')], error: /Bad_Key.*소문자/ },
+  { name: '맥스의 렌즈 자리', specs: [p('lead')], error: /'lead'는 사무실이/ },
   { name: '한 번에 같은 키 두 번', specs: [p('a'), p('a')], error: /'a'가 두 번/ },
   { name: '없는 의존', specs: [p('a', { after: ['ghost'] })], error: /'a'.*'ghost'/ },
   { name: '서로 기다리는 고리', specs: [p('a', { after: ['b'] }), p('b', { after: ['a'] })], error: /서로를 기다려.*a, b/ },

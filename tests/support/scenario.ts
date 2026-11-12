@@ -133,10 +133,10 @@ export interface Rig {
 
 /** 진행자 하나를 만드는 데 필요한 것. 다른 프로세스(conductor-host.ts)도 같은 것을 쓴다 */
 export function conductorDeps(o: {
-  missionId: string; folder: string; stateFile: string; mcp: LeadMcp; base: string; emit: (ev: OfficeEvent) => void; limits?: Partial<Limits>;
+  missionId: string; folder: string; stateFile: string; mcp: LeadMcp; base: string; emit: (ev: OfficeEvent) => void; limits?: Partial<Limits>; repo?: ConductorDeps['repo'];
 }): ConductorDeps {
   return {
-    missionId: o.missionId, folder: o.folder, stateFile: o.stateFile, emit: o.emit, installed: ['claude'],
+    missionId: o.missionId, folder: o.folder, stateFile: o.stateFile, ...(o.repo ? { repo: o.repo } : {}), emit: o.emit, installed: ['claude'],
     settings: () => ({ autonomy: 'auto', chefModel: '', teamModel: 'sonnet', codexModel: '' }),
     leadPrompt: () => `너는 맥스다.\n\n${leadOfficeText(['claude'])}`,
     leadMcp: o.mcp, mcpBase: o.base, limits: o.limits ?? CONDUCTOR_LIMITS,

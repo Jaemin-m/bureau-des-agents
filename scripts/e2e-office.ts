@@ -2,6 +2,7 @@
 //   node scripts/e2e-office.ts                 클라이언트를 빌드하고 돌린다
 //   node scripts/e2e-office.ts --no-build      dist/가 이미 최신이면 빌드를 건너뛴다
 //   node scripts/e2e-office.ts --shots <폴더>  스크린샷을 둘 곳(기본: 임시 폴더)
+//   node scripts/e2e-office.ts --only repo     한 부분만(office, lead, repo)
 // 한 걸음마다 무엇을 하는지 출력하고, 어긋나면 이유를 출력하고 0이 아닌 코드로 끝난다. CI 테스트가 아니다(Chrome이 필요하다).
 // Chrome 위치는 CHROME_BIN으로 바꿀 수 있다.
 import assert from 'node:assert/strict';
@@ -198,13 +199,13 @@ async function until(what: string, pred: () => boolean, ms = 20_000) {
 interface Office { fakes: FakeAgents; page: Page; serverOut(): string; stop(): void }
 
 /** 가짜 에이전트, 진짜 서버, 헤드리스 Chrome을 띄우고 사무실을 연다. 스크린샷 이름 앞에 prefix가 붙는다. */
-async function openOffice(scriptSet: Scripts, prefix: string): Promise<Office> {
+async function openOffice(scriptSet: Scripts, prefix: string, extraEnv: NodeJS.ProcessEnv = {}): Promise<Office> {
   step('가짜 claude와 codex를 깔고, 진짜 서버를 빈 포트에 띄워요');
   const tmp = realpathSync(mkdtempSync(path.join(os.tmpdir(), 'bureau-e2e-')));
   cleanups.push(() => rmSync(tmp, { recursive: true, force: true }));
   const fakes = fakeAgents(scriptSet);
   const port = await freePort();
-  const env: NodeJS.ProcessEnv = { ...process.env, PORT: String(port), BUREAU_DIR: path.join(tmp, 'office'), CLAUDE_BIN: fakes.bin.claude, CODEX_BIN: fakes.bin.codex };
+  const env: NodeJS.ProcessEnv = { ...process.env, PORT: String(port), BUREAU_DIR: path.join(tmp, 'office'), CLAUDE_BIN: fakes.bin.claude, CODEX_BIN: fakes.bin.codex, ...extraEnv };
   delete env.BUREAU_RECORD;
   const server = spawn(process.execPath, ['--disable-warning=ExperimentalWarning', path.join(ROOT, 'server', 'index.ts')], { cwd: ROOT, env, stdio: ['ignore', 'pipe', 'pipe'] });
   children.push(server);
@@ -249,16 +250,17 @@ async function openOffice(scriptSet: Scripts, prefix: string): Promise<Office> {
   return { fakes, page, serverOut: () => serverOut, stop: () => { cdp.close(); for (const c of [chrome, server]) if (c.exitCode === null) c.kill('SIGKILL'); } };
 }
 
-async function main() {
+function prepare() {
   assert.ok(CHROME, 'Chrome을 찾을 수 없어요. CHROME_BIN에 실행 파일 경로를 알려 주세요.');
   mkdirSync(SHOTS, { recursive: true });
   console.log(`스크린샷 폴더: ${SHOTS}`);
-
   if (!argv.includes('--no-build')) {
     step('클라이언트를 빌드해요(vite build)');
     execFileSync('npx', ['vite', 'build', '--logLevel', 'warn'], { cwd: ROOT, stdio: 'inherit' });
   }
+}
 
+async function main() {
   const { fakes, page, serverOut, stop } = await openOffice(scripts(), 'a');
 
   step('설정 창에서 Codex 모델을 적어요(codex가 깔려 있을 때만 보이는 칸)');
@@ -436,9 +438,93 @@ async function leadFailure() {
   stop();
 }
 
+/** 저장소 미션: 입력창에서 저장소를 고르고, 가짜 일꾼이 자기 브랜치에서 일하고, 일꾼 카드의 “합치기”로 기준 브랜치가 나아간다 */
+async function repoMission() {
+  const tmp = realpathSync(mkdtempSync(path.join(os.tmpdir(), 'bureau-e2e-repo-')));
+  cleanups.push(() => rmSync(tmp, { recursive: true, force: true }));
+  const repo = path.join(tmp, 'user-repo');
+  mkdirSync(repo);
+  const git = (...args: string[]) => execFileSync('git', ['-c', 'user.name=Tester', '-c', 'user.email=t@test', ...args], { cwd: repo, encoding: 'utf8' }).trim();
+  git('init', '-q', '-b', 'main');
+  writeFileSync(path.join(repo, 'README.md'), '내 앱\n');
+  git('add', '-A');
+  git('commit', '-q', '-m', '처음');
+  const base = git('rev-parse', 'HEAD');
+  const plan = { tasks: [{ key: 'api', title: 'API 만들기', brief: 'BRIEF-API src/api.ts를 만들어 주세요.', role: 'code', agent: 'claude' }] };
+  const { fakes, page, serverOut, stop } = await openOffice({
+    claude: {
+      launches: [
+        { match: '^(?![\\s\\S]*--resume)(?=[\\s\\S]*--mcp-config )', steps: [...turn({ mcp: { tool: 'office_plan', args: plan, expectResult: '1개를 받았어요' } }, { say: { text: '에이다에게 맡겼어요.' } }), ...anyTurn(4)] },
+        { match: 'BRIEF-API', steps: turn({ writeFile: { path: 'src/api.ts', content: 'export const api = 1;\n' } }, { tool: { name: 'Write', input: { file_path: '{{cwd}}/src/api.ts' } } }, { wait: 300 }, done('SUMMARY-API src/api.ts')) },
+      ],
+    },
+    codex: { launches: [] },
+  }, 'c', { BUREAU_WORKTREES: path.join(tmp, 'worktrees') });
+
+  step('입력창에서 “코드 저장소”를 고르고 경로를 확인해요');
+  await page.click('.where .seg button', '코드 저장소');
+  await page.type('.where .repo-path', repo);
+  await page.click('.where .btn', '확인');
+  await page.waitFor('저장소 이름과 기준 브랜치', `(document.querySelector('.where .repo-chip')?.textContent ?? '').includes('user-repo')`);
+  const chip = await page.eval<string>(`document.querySelector('.where .repo-chip').textContent`);
+  assert.match(chip, /user-repo.*기준 브랜치 main/);
+  assert.ok(!chip.includes(tmp), '확인한 뒤에는 전체 경로 대신 저장소 이름만 보인다');
+  ok(`입력창: “${chip.replace('바꾸기', '').trim()}”`);
+  await page.shot('저장소-확인');
+
+  step('미션을 시작하면 일꾼이 자기 브랜치에서 일하고 끝내요');
+  await page.type('.composer textarea', '내 앱에 API를 만들어 주세요.');
+  await page.click('.composer .btn.send', '시작');
+  await page.waitFor('API 할 일 끝과 브랜치', `window.__bureau.useOffice.getState().tasks.api?.run.result?.branch !== undefined`, 30_000);
+  await page.waitFor('미션이 쉼', `window.__bureau.useOffice.getState().settled !== null`, 30_000);
+  const branch = await page.store<string>(`(s) => s.tasks.api.run.result.branch`);
+  assert.equal(git('rev-parse', 'HEAD'), base, '미션 동안 사용자의 체크아웃은 그대로다');
+  assert.equal(git('show', `${branch}:src/api.ts`), 'export const api = 1;');
+  await page.waitFor('패널의 브랜치 줄', `(document.querySelector('.panel .branch-line')?.textContent ?? '').includes(${JSON.stringify(branch)})`);
+  ok(`할 일 목록에 브랜치 ${branch}, 사무실이 커밋했어요`);
+  await page.shot('브랜치-할일목록');
+
+  const coder = await page.store<string>(`(s) => Object.values(s.agents).find((a) => a.task === 'API 만들기').name`);
+  const openCard = async () => {
+    await page.click('.icon-btn[title^="팀 전체"]');
+    await page.click('.modal .who-row', coder);
+    await page.waitFor('브랜치 카드', `!!document.querySelector('.branch-card')`);
+  };
+
+  step('체크아웃에 저장하지 않은 변경이 있으면 “합치기”가 꺼지고 이유가 보여요');
+  writeFileSync(path.join(repo, 'scratch.txt'), '하던 일\n');
+  await openCard();
+  await page.waitFor('이유', `(document.querySelector('.branch-card .branch-why')?.textContent ?? '').includes('저장하지 않은 변경')`);
+  assert.equal(await page.eval<boolean>(`document.querySelector('.branch-card .merge').disabled`), true);
+  ok(`이유: ${await page.eval<string>(`document.querySelector('.branch-card .branch-why').textContent`)}`);
+  await page.shot('합치기-막힘');
+  await page.click('.modal .close');
+  rmSync(path.join(repo, 'scratch.txt'));
+
+  step('깨끗해지면 카드의 “합치기”를 눌러 기준 브랜치를 나아가게 해요');
+  await openCard();
+  await page.waitFor('합치기 켜짐', `document.querySelector('.branch-card .merge')?.disabled === false`);
+  await page.shot('브랜치카드-합치기전');
+  await page.click('.branch-card .merge', '합치기');
+  await page.waitFor('합쳤어요', `window.__bureau.useOffice.getState().tasks.api.run.result.merged === true`);
+  await page.waitFor('카드 표시', `(document.querySelector('.branch-card .branch-badge')?.textContent ?? '').includes('합쳤어요')`);
+  assert.notEqual(git('rev-parse', 'HEAD'), base, '기준 브랜치가 나아갔다');
+  assert.equal(git('rev-parse', 'HEAD^2'), git('rev-parse', branch));
+  assert.equal(git('show', 'HEAD:src/api.ts'), 'export const api = 1;');
+  ok(`main: ${base.slice(0, 7)} → ${git('rev-parse', '--short', 'HEAD')}`);
+  await page.shot('합친뒤');
+
+  fakes.assertClean();
+  assert.ok(!serverOut().includes('Error'), `서버 출력에 오류가 있어요:\n${serverOut()}`);
+  stop();
+}
+
+const only = flag('--only');
 try {
-  await main();
-  await leadFailure();
+  prepare();
+  if (!only || only === 'office') await main();
+  if (!only || only === 'lead') await leadFailure();
+  if (!only || only === 'repo') await repoMission();
   console.log(`\n통과했어요. 스크린샷: ${SHOTS}`);
 } catch (e) {
   console.error(`\n실패했어요: ${e instanceof Error ? e.stack ?? e.message : String(e)}`);

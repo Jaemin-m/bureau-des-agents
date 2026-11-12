@@ -357,10 +357,40 @@ test('타이머가 1ms 일찍 깨어도 소식을 전한다: 타이머는 한 �
   assert.match(sim.take('send_turn', LEAD).turn, /끝 a/);
 });
 
+test('저장소의 결과: task_result는 끝난 할 일에만 붙고 두 번 받아도 같으며, user_retire는 쉬는 일꾼만 내보낸다', () => {
+  const sim = planned([spec('a')]);
+  const w = sim.workerFor('a');
+  sim.beginTurn(w);
+  assert.equal(sim.do({ k: 'user_retire', who: w }).reply.ok, false, '일하는 일꾼은 내보내지 않는다');
+  sim.do({ k: 'task_result', task: 'a', patch: { branch: 'bureau/m/a' } });
+  assert.equal(sim.s.tasks.a.run.k, 'running', '돌고 있는 할 일에는 붙이지 않는다');
+  sim.endTurn(w, handback({ status: 'done', summary: '했어요' }));
+  assert.equal(sim.take('checkpoint', w).task, 'a', '턴 끝의 보관은 그 할 일을 안다');
+  const patch = { branch: 'bureau/m/a', files: 2, mergeable: 'clean' as const, by: w };
+  sim.do({ k: 'task_result', task: 'a', patch, note: '보관하지 않은 파일: .env(비밀일 수 있어요)' });
+  assert.deepEqual(sim.s.tasks.a.run, { k: 'done', result: { summary: '했어요', ...patch } });
+  assert.ok(sim.events.some((e) => e.k === 'worker' && e.id === w && e.note?.includes('.env')), '메모는 그 일꾼의 카드로 간다');
+  assert.deepEqual(sim.do({ k: 'task_result', task: 'a', patch }).events, [], '같은 결과를 두 번 받아도 한 번과 같다');
+  assert.equal(sim.do({ k: 'user_retire', who: w }).reply.ok, true);
+  assert.equal(sim.s.workers[w].phase.k, 'retired');
+  assert.ok(sim.has('retire', w), '내보내면 작업 폴더를 정리한다');
+});
+
+test('boot의 lost: 작업 폴더가 사라진 일꾼은 다음 일 때 다시 준비한다', () => {
+  const sim = planned([spec('a')]);
+  const w = sim.workerFor('a');
+  sim.beginTurn(w);
+  assert.ok(sim.s.workers[w].workspace);
+  sim.do({ k: 'boot', lost: [w] });
+  assert.equal(sim.s.workers[w].workspace, undefined);
+  sim.do({ k: 'user_resume' });
+  assert.ok(sim.has('provision', w), '같은 일꾼이 작업 폴더부터 다시 준비한다');
+});
+
 /** 무작위 입력 수천 개: 불법 단계 이동(던짐)이 없고, 매 걸음 불변식과 멱등성이 지켜진다. */
 test('무작위 걸음: 어떤 순서로 와도 던지지 않고, converge는 늘 고정점에 있다', () => {
   const seen = new Set<string>();
-  for (let seed = 1; seed <= 40; seed++) {
+  for (let seed = 1; seed <= 60; seed++) {
     const rnd = random(seed);
     const pick = <T>(xs: readonly T[]): T => xs[rnd(xs.length)];
     const sim = new Sim({ maxLive: 2, maxWorkers: 3, newsDebounceMs: rnd(2) * 500 });
@@ -386,9 +416,13 @@ test('무작위 걸음: 어떤 순서로 와도 던지지 않고, converge는 �
         () => ({ k: 'signal', who, gen: sim.gen(who), sig: { k: 'turn_ended', outcome: pick(['ok', 'ok', 'error', 'interrupted'] as const), text: pick(texts) } }),
         () => ({ k: 'signal', who, gen: sim.gen(who), sig: { k: 'approval', id: `req-${i}`, tool: 'Bash', label: 'x', detail: 'y', full: true } }),
         () => ({ k: 'signal', who, gen: sim.gen(who) - rnd(2), sig: { k: 'exited' } }),
-        () => ({ k: 'boot' }),
+        () => ({ k: 'boot', ...(rnd(2) ? { lost: [who] } : {}) }),
         () => ({ k: 'tick' }),
         () => ({ k: 'release' }),
+        // 내보내기는 드물게: 자주 오면 일꾼이 질문과 이어서 시킨 일까지 가기 전에 떠난다
+        () => (rnd(4)
+          ? { k: 'task_result', task: pick(keys.length ? keys : ['a']), patch: { branch: 'bureau/m/x', files: rnd(3) }, ...(rnd(2) ? { note: '보관 메모' } : {}) }
+          : { k: 'user_retire', who }),
       ];
       if (sim.open.length) {
         const settleOne = (): Input => {

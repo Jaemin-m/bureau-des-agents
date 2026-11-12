@@ -17,7 +17,7 @@ import { mdToHtml } from './md.ts';
 import { Avatar } from './Panel.tsx';
 import { tidy } from './tidy.ts';
 import { AskCard } from './Asks.tsx';
-import { hasPhase, KindChip, phaseText, TaskRows, Thread } from './workers.tsx';
+import { BranchCard, hasPhase, KindChip, phaseText, TaskRows, Thread } from './workers.tsx';
 
 const ICON: Record<string, string> = {
   search: '🔎', web: '🌐', read: '📖', write: '✍️', edit: '✏️', bash: '💻', plan: '📋', skill: '🎓', mcp: '🔌', other: '⚙️',
@@ -58,6 +58,7 @@ export function Rooms() {
 function AgentRoom({ id }: { id: string }) {
   const a = useOffice((s) => s.agents[id]);
   const current = useOffice((s) => taskOf(s.tasks, id));
+  const branches = useOffice(useShallow((s) => Object.values(s.tasks).flatMap((t) => (t.run.k === 'done' && t.run.result.by === id && t.run.result.branch ? [t.key] : []))));
   const live = world.actors.get(id);
   const html = useMemo(() => (a?.report ? mdToHtml(tidy(a.report)) : ''), [a?.report]);
   if (!a) return <Shell title="이 에이전트는 이제 없어요">사무실을 떠났어요.</Shell>;
@@ -80,6 +81,12 @@ function AgentRoom({ id }: { id: string }) {
         <h4>맥스가 맡긴 일</h4>
         <p className="brief">{tidy(a.prompt)}</p>
       </section>
+      {branches.length > 0 && (
+        <section className="room-sec">
+          <h4>브랜치 <span className="count">{plural(branches.length, '개')}</span></h4>
+          {branches.map((k) => <BranchCard key={k} taskKey={k} />)}
+        </section>
+      )}
       <WorkerTalk a={a} />
       {a.acts.length > 0 && (
         <section className="room-sec">

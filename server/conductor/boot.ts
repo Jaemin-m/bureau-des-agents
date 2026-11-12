@@ -3,6 +3,7 @@
 import { execFile } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import type { Repo } from '../workspaces.ts';
 import type { MissionState } from './model.ts';
 
 /** 띄운 프로세스. 프로세스 그룹의 우두머리로 띄우므로 pid가 곧 그룹 id다 */
@@ -17,6 +18,8 @@ export interface Saved {
   procs: Record<string, ProcRecord>;
   /** 일꾼이 떠날 때 leave에 싣는 누적 사용량 */
   usage: Record<string, Usage>;
+  /** 저장소 미션만: 다시 켜질 때 작업 폴더를 맞춰 보려고(reconcile) 남긴다 */
+  repo?: Repo;
 }
 
 export function loadSaved(file: string): Saved | null {
@@ -24,7 +27,7 @@ export function loadSaved(file: string): Saved | null {
   try { raw = JSON.parse(readFileSync(file, 'utf8')); } catch { return null; }
   const s = raw as Partial<Saved> | null;
   if (!s || s.v !== 1 || !s.mission || typeof s.mission !== 'object') return null;
-  return { v: 1, mission: s.mission, procs: s.procs ?? {}, usage: s.usage ?? {} };
+  return { v: 1, mission: s.mission, procs: s.procs ?? {}, usage: s.usage ?? {}, ...(s.repo ? { repo: s.repo } : {}) };
 }
 
 function psLine(pid: number): Promise<{ pgid: number; command: string } | null> {

@@ -95,7 +95,7 @@ async function preview(url: URL, res: http.ServerResponse) {
     const missionId = parts.shift() ?? '';
     let rel = parts.join('/');
     if (!rel || rel.endsWith('/')) rel += 'index.html';
-    const file = bureau.previewPath(missionId, rel);
+    const file = await bureau.resolve(missionId, rel);
     if (!file) { res.writeHead(404, { 'Content-Security-Policy': PREVIEW_CSP }).end('미션 폴더에서 찾을 수 없어요.'); return; }
     const body = await readFile(file);
     res.writeHead(200, {
@@ -146,8 +146,27 @@ const str = (v: unknown, max = 20000) => (typeof v === 'string' ? v.slice(0, max
 async function handle(m: ClientMsg, send: (m: ServerMsg) => void) {
   switch (m.t) {
     case 'start':
-      if (m.target) throw new Error('저장소 미션은 아직 준비 중이에요. 지금은 미션 폴더에서 일해요.');
-      await bureau.start(str(m.prompt));
+      await bureau.start(str(m.prompt), m.target ? { repo: str(m.target.repo, 4096) } : undefined);
+      break;
+    case 'repo_check': {
+      const path = str(m.path, 4096);
+      const r = await bureau.repoCheck(path);
+      send(r.ok
+        ? { t: 'repo_info', path, ok: true, label: r.repo.label, branch: r.repo.baseBranch, dirty: r.dirty }
+        : { t: 'repo_info', path, ok: false, why: r.why });
+      break;
+    }
+    case 'merge_check': {
+      const taskKey = str(m.taskKey, 100);
+      const why = await bureau.mergeCheck(taskKey);
+      send({ t: 'merge_info', taskKey, ok: !why, ...(why ? { why } : {}) });
+      break;
+    }
+    case 'merge':
+      send({ t: 'toast', kind: 'info', text: await bureau.merge(str(m.taskKey, 100)) });
+      break;
+    case 'discard_branch':
+      send({ t: 'toast', kind: 'info', text: await bureau.discard(str(m.taskKey, 100)) });
       break;
     case 'say':
       bureau.say(str(m.text), m.to ? str(m.to, 100) : undefined);
@@ -168,7 +187,7 @@ async function handle(m: ClientMsg, send: (m: ServerMsg) => void) {
       await bureau.close();
       break;
     case 'open':
-      bureau.open(str(m.missionId, 40), m.file ? str(m.file, 1000) : undefined);
+      await bureau.open(str(m.missionId, 40), m.file ? str(m.file, 1000) : undefined);
       break;
     case 'open_root':
       bureau.openRoot(m.rules === true);

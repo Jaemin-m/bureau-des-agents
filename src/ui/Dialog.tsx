@@ -124,6 +124,10 @@ function Composer() {
   const resumable = useOffice(canResume);
   const worker = useOffice((s) => { const id = recipientOf(s); return id === 'chef' ? undefined : s.agents[id]; });
   const [text, setText] = useState('');
+  const [where, setWhere] = useState<'folder' | 'repo'>('folder');
+  const [repoPath, setRepoPath] = useState('');
+  const repoInfo = useOffice((s) => s.repoInfo);
+  const repoOk = repoInfo?.ok === true && repoInfo.path === repoPath.trim();
   const area = useRef<HTMLTextAreaElement>(null);
   const textRef = useRef(text);
   textRef.current = text;
@@ -148,13 +152,14 @@ function Composer() {
       : mode === 'steer' ? '맥스에게 덧붙일 말이 있나요? 단계 사이에 읽어요.' : '맥스에게 수정을 요청하거나… 새 미션을 시작하세요.';
   const sendLabel = worker ? `${worker.name}에게 보내기` : mode === 'new' ? '시작' : '보내기';
 
+  const needsRepo = mode === 'new' && where === 'repo' && !repoOk;
   const submit = () => {
     const t = text.trim();
-    if (!t || replaying) return;
+    if (!t || replaying || (!worker && needsRepo)) return;
     if (dict.listening) dict.stop();
     sfx('send');
     if (worker) send({ t: 'say', text: t, to: worker.id });
-    else if (mode === 'new') send({ t: 'start', prompt: t });
+    else if (mode === 'new') send({ t: 'start', prompt: t, ...(where === 'repo' ? { target: { repo: repoPath.trim() } } : {}) });
     else send({ t: 'say', text: t });
     setText('');
   };
@@ -162,6 +167,7 @@ function Composer() {
   return (
     <div className="composer">
       {mission && !replaying && <RecipientChip />}
+      {mode === 'new' && !replaying && !demo && <WherePicker where={where} setWhere={setWhere} path={repoPath} setPath={setRepoPath} ok={repoOk} />}
       <div className={`composer-row ${dict.listening ? 'listening' : ''}`}>
         <textarea
           ref={area}
@@ -189,7 +195,7 @@ function Composer() {
             <button className="btn stop" onClick={() => { sfx('click'); send({ t: 'stop' }); }}>■ 멈추기</button>
           </>
         ) : (
-          <button className="btn primary send" disabled={!text.trim() || replaying} onClick={submit}>
+          <button className="btn primary send" disabled={!text.trim() || replaying || (!worker && needsRepo)} title={!worker && needsRepo ? '먼저 저장소를 확인해 주세요' : undefined} onClick={submit}>
             {sendLabel} <span aria-hidden="true">➜</span>
           </button>
         )}
@@ -202,6 +208,49 @@ function Composer() {
       </div>
       {dict.problem && (
         <div className="hint" onClick={dict.clearProblem}>🎙️ {dictationHelp(dict.problem)}</div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * 새 미션이 일할 곳: 사무실의 미션 폴더(지금처럼) 또는 내 코드 저장소. 저장소는 서버가 확인한 뒤에만 시작할 수 있고,
+ * 확인되면 경로 대신 저장소 이름과 기준 브랜치만 보여 준다(화면에 전체 경로를 남기지 않는다).
+ */
+function WherePicker({ where, setWhere, path, setPath, ok }: { where: 'folder' | 'repo'; setWhere: (w: 'folder' | 'repo') => void; path: string; setPath: (p: string) => void; ok: boolean }) {
+  const info = useOffice((s) => s.repoInfo);
+  const send = useOffice((s) => s.send);
+  const checked = info && info.path === path.trim() ? info : null;
+  const check = () => { const p = path.trim(); if (p) { sfx('click'); send({ t: 'repo_check', path: p }); } };
+  const change = () => { sfx('click'); useOffice.setState({ repoInfo: null }); };
+  return (
+    <div className="where">
+      <span className="recipient-label">일할 곳</span>
+      <span className="seg" role="radiogroup" aria-label="일할 곳">
+        <button role="radio" aria-checked={where === 'folder'} className={where === 'folder' ? 'on' : ''} onClick={() => setWhere('folder')}>폴더</button>
+        <button role="radio" aria-checked={where === 'repo'} className={where === 'repo' ? 'on' : ''} onClick={() => setWhere('repo')}>코드 저장소</button>
+      </span>
+      {where === 'folder' && <span className="where-hint">사무실의 미션 폴더에 결과물을 만들어요.</span>}
+      {where === 'repo' && ok && checked?.ok && (
+        <span className="repo-chip">
+          📦 <b>{checked.label}</b> · 기준 브랜치 <code>{checked.branch}</code>
+          {checked.dirty && <em> · 저장하지 않은 변경은 팀에게 보이지 않아요</em>}
+          <button className="recipient-back" onClick={change}>바꾸기</button>
+        </span>
+      )}
+      {where === 'repo' && !ok && (
+        <span className="repo-pick">
+          <input
+            className="repo-path"
+            value={path}
+            placeholder="저장소 폴더의 전체 경로 (예: ~/code/내-앱)"
+            spellCheck={false}
+            onChange={(e) => setPath(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) { e.preventDefault(); check(); } }}
+          />
+          <button className="btn small" disabled={!path.trim()} onClick={check}>확인</button>
+          {checked && !checked.ok && <span className="repo-why">{tidy(checked.why ?? '')}</span>}
+        </span>
       )}
     </div>
   );

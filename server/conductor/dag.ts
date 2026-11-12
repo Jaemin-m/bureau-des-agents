@@ -9,6 +9,8 @@ export interface PlanSpec { key: string; title: string; brief: string; role: str
 export type PlanCheck = { ok: true; specs: TaskSpec[] } | { ok: false; errors: string[] };
 
 const KEY = /^[a-z0-9][a-z0-9-]{0,31}$/;
+/** 저장소 미션에서 맥스의 읽기 렌즈가 할 일의 작업 폴더와 같은 자리(<미션>/<키>)를 쓴다 */
+export const LEAD_LENS = 'lead';
 const MEMBER_ROLES = (Object.keys(ROLES) as (keyof typeof ROLES)[]).filter((r): r is MemberRole => r !== 'chef');
 const TITLE_MAX = 60;
 const BRIEF_MAX = 6000;
@@ -29,6 +31,7 @@ export function validatePlan(s: MissionState, specs: readonly PlanSpec[], instal
   for (const p of specs) {
     const at = `할 일 '${p.key}'`;
     if (!KEY.test(p.key)) { errors.push(`키 '${p.key}'는 영어 소문자, 숫자, -로 32자까지만 쓸 수 있어요.`); continue; }
+    if (p.key === LEAD_LENS) { errors.push(`키 '${LEAD_LENS}'는 사무실이 맥스의 읽기 폴더에 써요. 다른 키를 골라 주세요.`); continue; }
     if (seen.has(p.key)) { errors.push(`키 '${p.key}'가 두 번 나와요. 키마다 하나만 보내 주세요.`); continue; }
     seen.add(p.key);
     if (!p.title.trim() || p.title.length > TITLE_MAX) errors.push(`${at}의 title은 1~${TITLE_MAX}자로 써 주세요.`);

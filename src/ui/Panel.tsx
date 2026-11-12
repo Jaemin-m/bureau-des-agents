@@ -100,10 +100,12 @@ function Welcome() {
 function TasksSection() {
   const total = useOffice((s) => Object.keys(s.tasks).length);
   const done = useOffice((s) => Object.values(s.tasks).filter((t) => t.run.k === 'done').length);
+  const target = useOffice((s) => s.mission?.target);
   if (!total) return null;
   return (
     <section className="card">
       <h3>할 일 <span className="count">{done}/{total}</span></h3>
+      {target?.kind === 'repo' && <p className="small muted repo-target">📦 {target.label} 저장소 · 기준 브랜치 {target.baseBranch}. 코드는 일꾼마다 자기 브랜치에 저장돼요.</p>}
       <TaskRows />
     </section>
   );
