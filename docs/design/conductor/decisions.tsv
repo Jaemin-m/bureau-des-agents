@@ -17,3 +17,49 @@ ts	phase	decision	why	evidence	result
 2026-11-11T10:26:26Z	graft	설계안 1에서 worktree 안전 규칙(읽기 전용 lens, plumbing 합치기, archive ref, hook 존중), end 의미 유지(settle 이벤트 추가), 0원 golden 기록, 세션 어댑터 표를 옮겨 붙임	두 채점 모두 설계안 1이 이 부분에서 더 나았음	arena/synthesis.md 'Grafts from candidate 1'	반영
 2026-11-11T10:26:26Z	graft	공통 결함 보완: 작업 상태는 파생값으로, 커밋 전 큰 파일·비밀 파일 제외, 워커 글은 데이터로 감싸 Max에게 전달, worktree는 ~/.bureau-des-agents로, office_message에 requestId	교차 심판이 두 안 모두의 결함으로 짚음	arena/synthesis.md 'Amendments'	반영
 2026-11-12T03:30:26Z	run	사용자가 U0a~U13 전부 진행, 실제 CLI 녹화와 CLI별 실제 미션 확인, 합치기 버튼 포함을 승인. upgrade/conductor 브랜치에서 진행	사용자 결정	AskUserQuestion 답	실행 시작
+2026-11-12T03:30:58Z	U0a	U0a(npm test, BUREAU_RECORD 녹화, golden 정규화 테스트, 데모 스토어 스냅샷)를 sonnet high 위임자에게 맡김	이후 리팩터가 동작을 바꾸지 않았음을 증명할 안전망을 먼저 깔기 위해	upgrade/conductor 브랜치	진행 중
+2026-11-12T03:37:34Z	U0a	U0a 검증: check·build·npm test(7개) 직접 재실행해 통과, 서버 변경은 녹화 tap 추가뿐임을 diff로 확인	위임자 보고 대신 실물 확인	commit bf00ab0	VERIFIED
+2026-11-12T03:37:34Z	U0a	기존 버그 수정: 미션 기록 파일 appendFile 순서 뒤바뀜을 미션별 프로미스 체인으로 해결, 순서 테스트 추가	다시 보기가 파일 순서를 재생하므로 원인 지점에서 고침	수정 전 테스트 10회 중 4회 실패, 수정 후 통과; commit e29943d	VERIFIED
+2026-11-12T03:38:36Z	U0b	U0b 실제 CLI 녹화와 설계 미확인 질문 확인을 sonnet high 위임자에게 맡김(사용자 승인된 사용량)	설계의 가장 큰 불확실성(MCP over HTTP, codex·gemini 출력 형식, 헤드리스 로그인)을 먼저 해소	upgrade/conductor, docs/design/conductor/research/probe-report.md 예정	진행 중
+2026-11-12T03:38:36Z	U1	U1(프로토콜 추가와 클라이언트 스토어)을 opus high 위임자에게 별도 worktree(unit/u1 브랜치)로 병렬 진행	U0b와 파일이 겹치지 않지만 같은 체크아웃에서 동시 커밋하면 섞이므로 분리	unit/u1	진행 중
+2026-11-12T03:51:39Z	U1	U1 검증: unit/u1 worktree에서 check·build·npm test(43개) 직접 재실행해 통과, 데모 스냅샷 그대로	위임자 보고 대신 실물 확인	unit/u1 commit 9a3939f	VERIFIED, U0b 끝나면 합침. hire.taskKey는 중복 정보라 합친 뒤 삭제 예정
+2026-11-12T03:54:45Z	U0b	U0b 결과: claude 승인·중단·턴 중 메시지(큐)·MCP over HTTP 모두 VERIFIED, codex exec·resume VERIFIED(resume는 -c sandbox_mode 필요, SIGTERM은 자식 고아 남김), gemini는 oauth-personal이 IneligibleTierError로 막혀 NOT VERIFIED	설계의 미확인 질문을 실물로 해소	docs/design/conductor/research/probe-report.md, commit 547d73d	gemini는 U11 전에 사용자에게 인증 방법 질문 필요
+2026-11-12T03:54:45Z	U0b	위임자가 짚은 '맡에게 claude.ai 커넥터가 붙는 구멍'은 고치지 않음. activity.ts가 커넥터 사용을 보여 주고 허락을 묻는 의도된 기능. 새 구조에서 워커만 --strict-mcp-config로 최소 권한	기존 기능을 버그로 오인해 지우지 않으려고	shared/activity.ts MCP_NAMES, permissionText의 mcp__ 분기	기본값으로 결정
+2026-11-12T03:54:45Z	U1	unit/u1을 upgrade/conductor에 합치고 아무도 읽지 않는 hire.taskKey 삭제, 44개 테스트 통과	같은 정보를 두 곳에 두지 않기	commit 92c6137	VERIFIED
+2026-11-12T03:57:58Z	U11	사용자 결정: 이번 버전에서 Gemini 제외. U11 건너뜀, 첫 버전은 Claude와 Codex만	개인 로그인이 IneligibleTierError로 막혀 실제 검증이 불가능해서	AskUserQuestion 답, probe-report.md gemini 항목	skip
+2026-11-12T03:57:58Z	parallel	U2(claude 어댑터, sonnet), U4(순수 핵심, opus), U5(worktree 안전, opus)를 각자 worktree에서 병렬 진행	서로 파일이 겹치지 않는 경계(server/agents, server/conductor, server/workspaces)	unit/u2, unit/u4, unit/u5	진행 중
+2026-11-12T04:05:49Z	U5	U5 검증 후 합침: check와 테스트 83개 직접 재실행 통과, --force·-D·--no-verify·셸 실행 없음을 검색으로 확인, 위임자의 변이 검사(가드 5개를 깨면 테스트 실패)	git 안전 규칙은 사용자 작업 손실과 직결되므로 실물로 확인	commit dd34717, server/workspaces.ts:76	VERIFIED
+2026-11-12T04:07:34Z	U2	U2 검증 후 합침: worktree에서 63개, 합친 뒤 102개 테스트·check·build 직접 재실행 통과. 실제 claude 녹화(real-hire-one-1) golden이 새 어댑터 경로로 그대로 재현	동작 불변 리팩터를 golden으로 증명	commit 6f6fa59, merge 32ecc5d	VERIFIED. 남은 일(끝난 세션 resume, 워커 strict MCP)은 U6로
+2026-11-12T04:08:01Z	U3	U3를 범용 대본형 가짜 CLI(claude·codex)와 시나리오 도우미로 좁혀 sonnet high 위임자에게 맡김. U2의 fake-claude는 이것으로 대체	U2가 claude 계약 테스트를 이미 만들어 남은 일만 맡김. 가짜 CLI를 두 개 두지 않기	unit/u3	진행 중
+2026-11-12T04:16:33Z	U4	U4 검증 후 합침: 97개 테스트 직접 재실행 통과, 무작위 걸음 불변식 검사가 돌연변이 2개를 잡음. 미션 초기 상태 'done'은 U6에서 첫 요청을 받아 working으로 시작하도록 고치기로	새 미션이 끝난 것처럼 읽히는 상태는 오해를 부름	commit dbd55b9, server/conductor/model.ts:170	VERIFIED
+2026-11-12T04:22:36Z	U3	U3 검증 후 합침: 합친 뒤 166개 테스트 5.1초, check·build 통과. fake-claude.ts는 fake-agent.ts로 대체	가짜 CLI를 하나로	merge 6078662	VERIFIED
+2026-11-12T04:22:36Z	U6	U6(Conductor 셸, lead MCP, boot, 폴더 미션)을 opus high에 맡김. 미션 초기 상태 수정, 끝난 세션 resume, 워커 strict MCP, 팀장은 커넥터 유지, ROLE_POWERS 단일 목록 포함	부품을 처음 하나로 연결하는 가장 까다로운 단위	unit/u6	진행 중
+2026-11-12T04:22:36Z	parallel	U6와 겹치지 않는 U10(codex 어댑터)과 U12(화면)를 병렬로 띄움	U10은 U2·U3에만, U12는 U1에만 기댐	unit/u10, unit/u12	진행 중
+2026-11-12T04:27:57Z	U10	U10 검증 후 합침: codex exec 어댑터, 프로세스 그룹 종료와 SIGKILL 상승, resume 때 sandbox_mode 재지정. error 이벤트로 턴을 끝내지 않는 판단 수용	녹화에 없는 일시 오류로 턴을 일찍 끝내지 않으려고	commit cd9e0cb	VERIFIED(가짜 기준). resume cwd는 실제 smoke에서 확인 필요
+2026-11-12T04:53:57Z	U6	U6 검증 후 합침: 174개 테스트 직접 재실행. boot의 프로세스 그룹 종료를 빼는 돌연변이로 재시작 테스트가 실패하지 않고 멈추는 것을 발견해 시간 제한과 정리를 넣음	회귀가 생기면 CI가 멈추지 않고 원인을 말하게 하려고	commit 77b5015	VERIFIED, 돌연변이 시 단언 실패 확인
+2026-11-12T04:53:57Z	U6	U6와 U10 병렬 작업이 AgentSession.bin에서 어긋나 타입 오류, codex 세션 bin을 공개 읽기 전용으로 수정	병렬 단위의 계약 충돌을 합칠 때 해결	commit 231b0d3	check 통과, 198개 테스트 통과
+2026-11-12T04:53:57Z	U7	U7 전환을 opus high에 맡김. 서버만 바꾸고 src/는 U12에 맡김. 실제 claude·codex 작은 미션 확인 포함(사용자 승인)	되돌리기 어려운 전환이라 가장 강한 모델에	unit/u7	진행 중
+2026-11-12T04:55:43Z	U12	U12 스크린샷 직접 확인 후 합침(217개 테스트). 질문이 허락 요청처럼 네/아니요로 보이는 문제는 U8에서, 라운지·간판 위 이름표 겹침은 마지막 화면 다듬기에서 처리	보고서가 아니라 화면을 보고 판단	scratchpad/u12/shot-2-question-approval-page.png, shot-3-settled.png; merge fe25dbb	VERIFIED, 후속 2건
+2026-11-12T04:56:11Z	U8	U8 화면 부분(질문 답장 입력, 받는 사람 지정, 워커 대화, 워커별 멈춤, 이어서 하기)을 U7과 병렬로 sonnet high에 맡김. 서버 연동 확인은 U7 합친 뒤	U7은 server/만, U8은 src/만 건드려 겹치지 않음	unit/u8	진행 중
+2026-11-12T05:04:06Z	U8	U8 스크린샷 확인 후 합침. 질문·허락 구분과 ClientMsg 12건 단언 확인. 요청 4건이 쌓이면 사무실을 다 덮는 문제는 마지막 다듬기로	화면을 보고 판단	scratchpad/u8/1-asks-stack.png, 5-worker-card-thread.png	VERIFIED(화면·메시지). 서버 연동은 U7 합친 뒤 확인
+2026-11-12T05:15:55Z	U7	U7 검증 후 합침(합친 뒤 224개 테스트). 실제 claude·codex 미션 모두 office_plan→워커→settle 성공, MCP 요청에 Origin 없음. 실제 확인 중 사용자 경로가 화면으로 새던 버그를 위임자가 고침	전환을 실제 CLI로 증명	tests/fixtures/scenarios/real-u7-*.logged.jsonl, docs/design/conductor/research/u7-smoke.md, merge 1f4ddf9	VERIFIED
+2026-11-12T05:15:55Z	U7b	U7b: 맥스 시작 실패 시 미션이 working에 갇히는 문제를 error 상태로, 맥스 권한을 읽기+사무실 도구로 줄여 구조로 막기, codexModel 설정 화면, 실제 서버+가짜 CLI+헤드리스 Chrome으로 U8 화면 연동 확인	갇히는 상태와 지시문에만 기대는 규칙은 구조로 고쳐야 함	unit/u7b	진행 중
+2026-11-12T05:44:50Z	U7b	직접 검증 중 간헐 실패 발견(전체 테스트 12회 중 1~2회). 첫 가설(구간 시작이 늦음)로 고쳐도 재발해 되돌리고, 실패 순간 값을 기록해 원인 확인: 구간 끝은 정수 ms, mtime은 소수 ms라 같은 ms에 쓴 파일을 놓침	같은 전제로 두 번째 수정을 하지 않고 전제를 실측으로 확인	scratchpad/flaky/spans.jsonl, commit c256320, tests/working-at.test.ts(수정 전 실패·후 통과)	VERIFIED
+2026-11-12T05:44:50Z	U7b	질문이 대화에 '메모'로 표시되던 문제(MsgKind question 추가)와 fr-FR 두 곳 수정 후 U7b 합침, 232개 테스트	스크린샷과 검색으로 발견	commit 034cb41, merge a7cde7b	VERIFIED
+2026-11-12T05:44:50Z	bug	남은 간헐 실패: 두 워커가 보고를 마친 뒤 맥스가 깨어나 정리하지 않아 20초 시간 초과(전체 20회 중 1회). 버그 수정 단위로 분리	사용자에게는 미션이 멈추는 심각한 문제	scratchpad/flaky/lead-not-woken.txt	open
+2026-11-12T05:45:33Z	bug	맥스 미기상 간헐 버그를 bug-fix 지침(재현 먼저)으로 sonnet high에 맡김	증상만 봐서는 하네스 문제인지 실제 버그인지 모름	unit/wake	진행 중
+2026-11-12T05:45:33Z	U9	U9+U13(저장소 미션, worktree 연결, resolveInside로 경로 검사 교체, 브랜치 카드, 합치기·버리기)을 opus high에 병렬로 맡김	사용자 실제 저장소를 다루는 가장 위험한 단위	unit/u9	진행 중
+2026-11-12T05:49:36Z	bug	맥스 미기상 원인: Node setTimeout이 Date.now 기준 최대 1ms 일찍 깨어나(400개 중 58개) 코어가 아직 때가 아니라고 보고, 타이머는 한 번뿐이라 마지막 소식이 영영 전달되지 않음. 울린 타이머는 때가 된 것으로 보도록 코어 수정	실제 사용자도 겪는 미션 멈춤	scratchpad/wake/early-result.txt, commits 85014a8(빨강) 1b53703(초록), 내가 수정 전 1 fail·후 1 pass 재확인, 위임자 전체 20회 연속 통과	VERIFIED
+2026-11-12T06:10:55Z	U9	U9+U13 합침(테스트 충돌은 양쪽 테스트를 모두 살려 해결). 합친 뒤 238개 테스트와 브라우저 E2E(일반·맥스 실패·저장소, main e8c1faa→ef55f85 합치기) 통과	실물 확인	merge 1de0047, scratchpad/e2e-after-u9.txt, scratchpad/u9/c02, c05	VERIFIED
+2026-11-12T06:10:55Z	U9	열린 문제로 남김: 재시작 때 끝나지 않은 미션의 작업 폴더가 쌓일 수 있음(지우지 않는 원칙과 맞바꿈)	사용자 작업 손실 위험보다 디스크 누적이 낫다	U9 보고	open
+2026-11-12T06:10:55Z	polish	화면 다듬기 단위: 요청 카드 접기, 이름표 겹침, 홈 밖 전체 경로, Gemini 문구, 멈춤 배지 색, 앞 브랜치 충돌은 재시도 없이 막힘	스크린샷 검토에서 모은 문제	scratchpad/u8/1-asks-stack.png, u12/shot-3-settled.png, u9/c02, u7b/a09	진행 예정
+2026-11-12T06:16:47Z	start	이전 세션 종료 후 이어받음. 앞선 기록은 2026-11-11T09:58Z부터 이 세션의 이전 실행이 씀	세션이 바뀌어 새 실행으로 기록	새 세션 34c89457	이어서 진행
+2026-11-12T06:16:47Z	polish	다듬기 위임자가 세션 종료로 중단, 6건 중 1건(요청 카드 접기)만 커밋됨. 커밋 안 된 변경 없음 확인 후 나머지 5건을 unit/polish 위에서 새 위임자에게 맡김	끝난 일은 살리고 남은 범위만 넘김	commit 948929c, unit/polish2	진행 중
+2026-11-12T06:28:41Z	polish	다듬기 6건 스크린샷 확인 후 합침. 합친 뒤 246개 테스트, 브라우저 E2E 통과	화면을 보고 판단	scratchpad(34c89457)/polish/fix1-after-many-requests-page.png, fix2-after-3-settled.png, merge f2b67fe	VERIFIED
+2026-11-12T06:28:41Z	gate	반복된 실수(fr-FR 재유입)를 테스트로 고정: 로케일 호출이 ko-KR이 아니면 npm test 실패	같은 지적을 두 번 하지 않게 구조로	tests/locale-gate.test.ts, fr-FR 삽입 시 실패 확인, commit 4bdf038	VERIFIED
+2026-11-12T06:29:32Z	audit	결정 기록 감사: 근거 커밋 24개 모두 존재, 줄여 쓴 경로 2개(u9/c02, explore-*.md)도 실제 파일로 이어짐, 갈림길과 되돌림이 모두 기록됨	기록이 실제로 한 일과 맞는지 확인	git cat-file로 24개 확인	VERIFIED
+2026-11-12T06:29:32Z	audit	누락 보충: 다듬기 첫 커밋 948929c에 정해진 Opus 5.5 대신 Sonnet 5.5 공동 저자 줄이 붙음. 합칠 브랜치의 기록을 다시 쓰지 않고 그대로 둠	감사에서 발견, 기록은 덧붙이기만	commit 948929c 메시지	알려진 차이
+2026-11-12T06:39:43Z	final	최종 확인: 진짜 claude·codex로 저장소 미션(repo_check, office_plan 의존 관계, 브랜치와 사무실 커밋, 사용자 체크아웃 불변, codex 이어서 시키기, 합치기) 5개 모두 VERIFIED. codex resume cwd는 그 일꾼의 worktree로 확인되어 열린 문제 해소	완료 기준을 실제 제품으로 확인	docs/design/conductor/research/final-smoke.md, tests/fixtures/scenarios/real-final-repo.logged.jsonl	VERIFIED
+2026-11-12T06:39:43Z	final	최종 확인 중 찾은 버그 2개 수정(이어서 시킨 일을 맥스가 모르던 문제, 이어서 한 일이 합치기·버리기에서 빠지던 문제). 수정 전 테스트 실패·후 통과를 직접 재확인	실물로 드러난 결함을 원인 지점에서	commit 80e4be4, tests/final-followup-branch.test.ts	VERIFIED
+2026-11-12T06:39:43Z	final	합친 뒤 249개 테스트, check, build, 브라우저 E2E 통과	최종 상태 확인	merge 1891123, scratchpad(34c89457)/e2e-final.txt	VERIFIED
+2026-11-12T06:39:43Z	final	남은 열린 문제: 재시작 때 끝나지 않은 미션의 작업 폴더 누적, 이어서 시킨 뒤 원래 카드의 result.head가 옛 커밋에 머묾(합치기는 브랜치 끝이라 내용은 맞음), 테스트가 OS 임시 폴더에 남기는 폴더	다음 과제로 넘김	U9 보고, final-smoke.md	open
