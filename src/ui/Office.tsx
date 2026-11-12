@@ -9,7 +9,7 @@ import { jukebox } from '../audio/music.ts';
 import { interact } from './interact.ts';
 import { H, W } from '../engine/layout.ts';
 import { sfx } from '../audio/sfx.ts';
-import { useOffice, type AskView } from '../state/store.ts';
+import { openAsks, useOffice, type AskView } from '../state/store.ts';
 
 const ICON: Record<ActKind, string> = {
   search: '🔎', web: '🌐', read: '📖', write: '✍️', edit: '✏️', bash: '💻', plan: '📋', skill: '🎓', mcp: '🔌', other: '⚙️',
@@ -250,7 +250,7 @@ function Bubbles() {
       fresh.add(c.id);
     }
   }
-  const askOf = (id: string) => Object.values(asks).find((a) => a.who === id);
+  const askOf = (id: string) => openAsks(asks).find((a) => a.who === id);
 
   const view = (id: string): View => {
     const actor = world.actors.get(id);
@@ -327,6 +327,21 @@ function Bubble({ id, v }: { id: string; v: View }) {
 
 function AskBubble({ ask, name }: { ask: AskView; name: string }) {
   const send = useOffice((s) => s.send);
+  if (ask.kind === 'question') {
+    const reply = (text: string) => { sfx('yes'); send({ t: 'reply', requestId: ask.requestId, text }); };
+    return (
+      <div className="bubble ask question">
+        <span className="bubble-name">💬 {name}</span>
+        <span className="bubble-text">{short(ask.label)}</span>
+        {ask.options && ask.options.length > 0 && (
+          <span className="ask-actions">
+            {ask.options.slice(0, 3).map((o) => <button key={o} className="yes" title={o} onClick={() => reply(o)}>{o.length > 10 ? o.slice(0, 9) + '…' : o}</button>)}
+          </span>
+        )}
+        <span className="ask-more">직접 답하려면 화면 아래 ↓</span>
+      </div>
+    );
+  }
   const answer = (allow: boolean) => {
     sfx(allow ? 'yes' : 'no');
     send({ t: 'answer', requestId: ask.requestId, allow });

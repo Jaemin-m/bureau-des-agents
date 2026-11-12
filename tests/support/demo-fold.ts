@@ -27,7 +27,7 @@ export const NEW_FOLDED_KEYS = { tasks: {}, settled: null } as const;
 /** 이벤트와 상관없는 것: 서버가 알려 주는 값, 화면 설정, 열린 창. 스토어에 키가 늘면 둘 중 하나로 분류해야 한다. */
 export const UI_KEYS = [
   'connection', 'claude', 'dir', 'settings', 'quota', 'missions', 'replaying', 'viewer', 'modal', 'versions', 'teamHistory',
-  'music', 'voiceOn', 'cameraAuto', 'tour', 'historyOpen', 'settingsOpen', 'vertical', 'portrait', 'filming', 'sound', 'tod', 'draft',
+  'music', 'voiceOn', 'cameraAuto', 'tour', 'historyOpen', 'settingsOpen', 'vertical', 'portrait', 'filming', 'sound', 'tod', 'draft', 'recipient',
   'send', 'receive', 'apply', 'resetMission', 'toast',
 ] as const;
 

@@ -24,17 +24,22 @@ export function party() {
   sfx('done');
 }
 
+/** 일꾼의 카드를 열고, 입력창의 받는 사람도 그 일꾼으로 맞춘다. */
+export function openAgent(id: string) {
+  sfx('open');
+  useOffice.setState({ modal: { kind: 'agent', id }, recipient: id });
+}
+
 export function interact(hit: Hit) {
   const st = useOffice.getState();
   if (hit.kind === 'actor') {
     if (hit.id === 'chef') {
       sfx('click');
       world.chef.happyUntil = world.time + 1.5;
-      useOffice.setState({ draft: ' ' });
+      useOffice.setState({ draft: ' ', recipient: null });
       return;
     }
-    sfx('open');
-    useOffice.setState({ modal: { kind: 'agent', id: hit.id } });
+    openAgent(hit.id);
     return;
   }
   if (hit.kind === 'cat') {
@@ -47,8 +52,8 @@ export function interact(hit: Hit) {
     // 에이전트 책상: 앉아 있으면 그 에이전트 카드, 아니면 그 구역과 도구 소개
     const deskId = id.startsWith('chair-') ? id.slice(6) : id;
     const who = [...world.actors.values()].find((a) => a.seated && a.seat?.deskId === deskId);
-    sfx('open');
-    useOffice.setState({ modal: who ? { kind: 'agent', id: who.id } : { kind: 'team', role: hit.role } });
+    if (who) openAgent(who.id);
+    else { sfx('open'); useOffice.setState({ modal: { kind: 'team', role: hit.role } }); }
     return;
   }
   if (id.startsWith('zone:')) { sfx('open'); useOffice.setState({ modal: { kind: 'team', role: hit.role } }); return; }
@@ -60,7 +65,7 @@ export function interact(hit: Hit) {
   }
   switch (id) {
     case 'board': case 'chefDesk': sfx('open'); useOffice.setState({ modal: { kind: 'board' } }); return;
-    case 'chefChair': sfx('click'); useOffice.setState({ draft: ' ' }); return;
+    case 'chefChair': sfx('click'); useOffice.setState({ draft: ' ', recipient: null }); return;
     case 'clock': sfx('open'); useOffice.setState({ modal: { kind: 'clock' } }); return;
     case 'rack': sfx('open'); useOffice.setState({ modal: { kind: 'machine' } }); return;
     case 'printer': sfx('open'); useOffice.setState({ modal: { kind: 'files' } }); return;

@@ -122,6 +122,8 @@ interface S {
   sound: boolean;
   tod: Tod;
   draft: string;
+  /** 입력창의 받는 일꾼(그 일꾼의 id). null = 맥스. 없는 일꾼이면 맥스로 본다(recipientOf) */
+  recipient: string | null;
   toasts: Toast[];
   send: (m: ClientMsg) => void;
   receive: (m: ServerMsg) => void;
@@ -191,6 +193,7 @@ export const useOffice = create<S>((set, get) => ({
   sound: pref('sound', true),
   tod: pref<Tod>('tod', 'auto'),
   draft: '',
+  recipient: null,
   toasts: [],
   send: () => {},
 
@@ -203,7 +206,7 @@ export const useOffice = create<S>((set, get) => ({
   resetMission: (m) => {
     set({
       mission: m, chef: emptyChef(), agents: {}, order: [], plan: [], files: [], asks: {}, tasks: {}, settled: null, stats: emptyStats(),
-      feed: [], final: null, busySince: null, workMs: 0, showFinal: false, planHistory: [],
+      feed: [], final: null, busySince: null, workMs: 0, showFinal: false, planHistory: [], recipient: null,
     });
     bus.reset();
   },
@@ -437,3 +440,19 @@ export const agentKindOf = (a: AgentView): AgentKind => a.agent ?? 'claude';
 
 /** 일꾼의 단계. worker 이벤트가 없던 옛 기록은 status에서 읽는다. */
 export const phaseOf = (a: AgentView): WorkerPhase => a.phase ?? LEGACY_PHASE[a.status];
+
+/** 열린 요청, 먼저 온 것부터. 키가 숫자처럼 보여도 도착 순서를 지킨다. */
+export const openAsks = (asks: Record<string, AskView>): AskView[] => Object.values(asks).sort((a, b) => a.at - b.at);
+
+/** 입력창이 말을 보낼 곳: 'chef' 또는 지금 사무실에 있는 일꾼의 id. */
+export const recipientOf = (s: Pick<S, 'recipient' | 'agents'>): string => (s.recipient && s.agents[s.recipient] ? s.recipient : 'chef');
+
+/** 멈춘 미션을 이어서 시킬 수 있는가. */
+export const canResume = (s: Pick<S, 'mission' | 'busySince' | 'replaying'>): boolean =>
+  !!s.mission && s.mission.status === 'stopped' && s.busySince === null && !s.replaying;
+
+/** 이 일꾼만 멈출 수 있는가: 일하거나 기다리는 중일 때(쉬는 일꾼, 끝난 일꾼은 멈출 게 없다). */
+export const canStopWorker = (a: AgentView): boolean => {
+  const phase = phaseOf(a);
+  return phase === 'provisioning' || phase === 'starting' || phase === 'working' || phase === 'blocked';
+};
